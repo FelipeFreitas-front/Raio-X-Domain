@@ -17,11 +17,12 @@
   if(/^#[^#]+\.[a-z]{2,}/i.test(location.hash)) location.replace('raio-x.html' + location.hash);
   (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
     if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', t); })();
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add('js'); })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='1' y='1' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='1' width='21' height='21' rx='6' fill='%23016a71'/%3E%3Crect x='1' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Cpath d='M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/base.css">
@@ -32,18 +33,28 @@
 section{scroll-margin-top:72px}
 .eyebrow{justify-self:start;display:inline-flex;align-items:center;gap:8px;padding:4px 12px 4px 6px;border:1px solid var(--mist);border-radius:var(--r-pill);font-size:13px;color:var(--graphite);background:var(--paper)}
 .eyebrow b{display:inline-grid;place-items:center;height:20px;padding:0 8px;border-radius:var(--r-pill);background:var(--teal);color:var(--on-teal);font-size:11px;font-weight:500}
-.h-sec{margin:0;font-size:clamp(26px,3.4vw,36px);line-height:1.2;font-weight:500;letter-spacing:-.015em;text-wrap:balance}
+.h-sec{margin:0;font-size:clamp(28px,3.8vw,42px);line-height:1.15;font-weight:700;letter-spacing:-.03em;text-wrap:balance}
 .lead{margin:0;font-size:17px;line-height:1.6;color:var(--graphite);max-width:60ch}
 .sec{padding-block:72px}
-.sec-head{display:grid;gap:12px;margin-bottom:32px;max-width:720px}
-.kicker{font-size:13px;color:var(--teal);font-weight:500}
+/* seções abaixo do hero: título e conteúdo centralizados */
+.sec-head{display:grid;justify-items:center;gap:12px;margin:0 auto 40px;max-width:760px;text-align:center}
+.sec-head .lead{text-align:center}
+.kicker{font-size:13px;color:var(--teal);font-weight:500;letter-spacing:.02em}
+
+/* grifo de marca-texto nas palavras-chave: desenhado da esquerda para a direita quando aparece na tela */
+.hl{color:inherit;background:linear-gradient(transparent 56%, rgba(var(--glow),.26) 56%, rgba(var(--glow),.26) 94%, transparent 94%) no-repeat 0 0 / 100% 100%;padding:0 .06em;margin:0 -.03em;border-radius:.12em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+:root[data-theme="dark"] .hl{background-image:linear-gradient(transparent 56%, rgba(var(--glow),.34) 56%, rgba(var(--glow),.34) 94%, transparent 94%)}
+@media (prefers-reduced-motion:no-preference){
+  .js .hl{background-size:0% 100%;transition:background-size .9s cubic-bezier(.2,.7,.2,1) .15s}
+  .js .hl.on{background-size:100% 100%}
+}
 
 /* hero */
 .hero{padding-block:56px 40px}
 .hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:48px;align-items:center}
 @media (max-width:920px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:40px}}
 .hero-copy{display:grid;gap:20px;align-content:start}
-.hero h1{margin:0;font-size:clamp(36px,5.2vw,58px);line-height:1.06;font-weight:500;letter-spacing:-.03em;text-wrap:balance}
+.hero h1{margin:0;font-size:clamp(38px,5.4vw,62px);line-height:1.04;font-weight:700;letter-spacing:-.045em;text-wrap:balance}
 .hero h1 em{font-style:normal;color:var(--teal)}
 .try{display:flex;gap:8px;padding:8px 8px 8px 16px;background:var(--parchment);border:1px solid var(--mist);border-radius:var(--r-input);box-shadow:0 0 0 1px rgba(var(--glow),.4),0 0 24px rgba(var(--glow),.10);max-width:520px}
 .try:focus-within{box-shadow:0 0 0 2px rgba(var(--glow),.55),0 0 28px rgba(var(--glow),.16)}
@@ -159,6 +170,35 @@ section{scroll-margin-top:72px}
 .cta{display:grid;justify-items:center;gap:16px;text-align:center;padding:56px 24px;border-radius:24px;background:var(--paper);border:1px solid var(--hair)}
 .cta .btns{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
 .cta .btn{height:48px;padding:0 22px;font-size:15px}
+
+/* centralização das seções abaixo do hero */
+.stat{justify-items:center;text-align:center}
+.stat b{font-weight:700;letter-spacing:-.03em}
+.tool{justify-items:center;text-align:center;padding:32px 28px}
+.tool-top{flex-direction:column;gap:14px}
+.tool h3{font-size:24px;font-weight:700;letter-spacing:-.02em}
+.tool p{max-width:46ch}
+.feat{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.feat li{align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--hair);border-radius:var(--r-pill);background:var(--parchment);font-size:13px;line-height:1.3}
+.feat svg{margin-top:0;width:14px;height:14px}
+.tool{grid-template-rows:auto auto 1fr auto}
+.feat{align-self:start;align-content:flex-start}
+.tool .go{justify-self:center;align-self:end}
+.case{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;gap:8px;padding:28px 24px}
+.case .n{grid-row:auto;margin-bottom:4px}
+.case b{font-size:18px;font-weight:700;letter-spacing:-.01em}
+.case span{max-width:44ch}
+.privacy{grid-template-columns:minmax(0,1fr);justify-items:center;text-align:center;gap:32px;padding:56px 40px}
+.privacy > div{justify-items:center}
+.privacy .hl{background-image:linear-gradient(transparent 56%, rgba(var(--glow),.7) 56%, rgba(var(--glow),.7) 94%, transparent 94%)}
+:root[data-theme="dark"] .privacy .hl{background-image:linear-gradient(transparent 56%, rgba(var(--glow),.45) 56%, rgba(var(--glow),.45) 94%, transparent 94%)}
+.privacy p{max-width:60ch}
+.privacy ul{grid-template-columns:repeat(3,minmax(0,1fr));width:100%;max-width:900px}
+@media (max-width:820px){.privacy{padding:40px 20px}.privacy ul{grid-template-columns:minmax(0,1fr)}}
+.privacy li{grid-template-columns:minmax(0,1fr);justify-items:center;gap:8px;padding:20px 16px}
+.privacy li b{font-weight:700}
+.faq{margin:0 auto}
+.cta .h-sec{max-width:18ch}
 .btn.line{background:transparent;color:var(--ink);border:1px solid var(--mist)}
 .btn.line:hover{border-color:var(--ink);background:transparent}
 
@@ -199,7 +239,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <span class="eyebrow"><b>Grátis</b>Sem cadastro · roda no seu navegador</span>
-        <h1>As ferramentas que você abre <em>todo dia</em> para entregar sites.</h1>
+        <h1>As ferramentas que você abre <em class="hl">todo dia</em> para entregar sites.</h1>
         <p class="lead">Descubra tudo sobre um domínio em segundos, acompanhe a propagação do DNS e deixe as imagens do site leves, com favicon e código prontos para colar.</p>
         <form class="try" id="try" autocomplete="off" role="search" aria-label="Consultar domínio">
           <label for="try-q" hidden>Domínio</label>
@@ -257,7 +297,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <div class="wrap">
       <div class="sec-head">
         <span class="kicker">Ferramentas</span>
-        <h2 class="h-sec">Duas ferramentas completas, sem aba de propaganda e sem “crie sua conta”.</h2>
+        <h2 class="h-sec">Duas ferramentas <span class="hl">completas</span>, sem aba de propaganda e sem “crie sua conta”.</h2>
       </div>
       <div class="tools">
         <a class="tool" href="raio-x.html">
@@ -302,7 +342,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <div class="wrap">
       <div class="sec-head">
         <span class="kicker">No dia a dia</span>
-        <h2 class="h-sec">Feito para as situações que aparecem toda semana.</h2>
+        <h2 class="h-sec">Feito para as situações que aparecem <span class="hl">toda semana</span>.</h2>
       </div>
       <div class="cases">
         <a class="case" href="raio-x.html"><span class="n">01</span><b>Cliente novo mandou só o domínio</b><span>Em uma tela você descobre onde ele comprou, onde está hospedado, quem cuida do e-mail e em qual painel mexer no DNS.</span><em>Fazer raio-x do domínio</em></a>
@@ -318,7 +358,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <div class="wrap"><div class="privacy">
       <div style="display:grid;gap:12px">
         <span class="kicker" style="color:var(--parchment);opacity:.7">Privacidade de verdade</span>
-        <h2 class="h-sec">Os arquivos do seu cliente nunca saem do seu computador.</h2>
+        <h2 class="h-sec">Os arquivos do seu cliente <span class="hl">nunca saem</span> do seu computador.</h2>
         <p>Tudo roda no seu navegador. Não existe servidor recebendo imagens, não existe conta e não existe histórico guardado em lugar nenhum além do seu próprio navegador.</p>
       </div>
       <ul>
@@ -332,7 +372,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
   <!-- perguntas -->
   <section class="sec" style="padding-top:0" id="perguntas">
     <div class="wrap">
-      <div class="sec-head"><span class="kicker">Perguntas frequentes</span><h2 class="h-sec">Antes de você perguntar.</h2></div>
+      <div class="sec-head"><span class="kicker">Perguntas frequentes</span><h2 class="h-sec">Antes de você <span class="hl">perguntar</span>.</h2></div>
       <div class="faq">
         <details><summary>É grátis mesmo?</summary><p>Sim. As ferramentas rodam no seu navegador, então não há servidor para pagar por imagem convertida ou domínio consultado. Não há limite de uso.</p></details>
         <details><summary>Minhas imagens vão para algum servidor?</summary><p>Não. A conversão acontece no seu computador. A página só baixa os programas de conversão (como o codificador de AVIF) na primeira vez que você precisa deles.</p></details>
@@ -348,7 +388,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
   <section class="sec" style="padding-top:0">
     <div class="wrap">
       <div class="cta">
-        <h2 class="h-sec">Comece pelo que você precisa agora.</h2>
+        <h2 class="h-sec">Comece pelo que você precisa <span class="hl">agora</span>.</h2>
         <p class="lead" style="text-align:center">Sem instalar, sem cadastro e sem esperar.</p>
         <div class="btns">
           <a class="btn" href="raio-x.html">Fazer raio-x de um domínio</a>
@@ -384,6 +424,12 @@ themeBtn.addEventListener('click', () => {
   syncThemeBtn();
 });
 syncThemeBtn();
+// grifo das palavras-chave: desenha quando o título aparece na tela
+const hls = document.querySelectorAll('.hl');
+if('IntersectionObserver' in window){
+  const io = new IntersectionObserver(entries => entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target); } }), {threshold: .6});
+  hls.forEach(el => io.observe(el));
+} else hls.forEach(el => el.classList.add('on'));
 // busca do topo leva direto ao Raio-X
 document.getElementById('try').addEventListener('submit', e => {
   e.preventDefault();
