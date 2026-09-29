@@ -8,7 +8,8 @@
   // aplica o tema antes de desenhar a página (evita piscar branco): escolha salva > preferência do sistema
   (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
     if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', t); })();
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add('pl-on'); })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -291,6 +292,7 @@ details+details{margin-top:4px}
 .toast.show{opacity:1}
 footer{color:var(--ash);font-size:12px}
 </style>
+<link rel="stylesheet" href="assets/motion.css">
 </head>
 <body>
 <!-- Logo raio-x: globo com nós + lupa. Um símbolo reaproveitado no menu e na tela inicial. -->
@@ -1577,5 +1579,6 @@ renderRecent();
 if(location.hash.length > 1) run(decodeURIComponent(location.hash.slice(1)));
 else $('#q').focus();
 </script>
+<script src="assets/site.js"></script>
 </body>
 </html>

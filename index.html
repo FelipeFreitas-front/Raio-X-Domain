@@ -18,6 +18,7 @@
   (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
     if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add('pl-on');
     document.documentElement.classList.add('js'); })();
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -26,6 +27,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='1' y='1' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='1' width='21' height='21' rx='6' fill='%23016a71'/%3E%3Crect x='1' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Cpath d='M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/motion.css">
 <style>
 /* Layout: landing comercial em coluna de 1120px. Hero em duas colunas (promessa + busca à esquerda, prévia do produto à direita),
    faixa de números, ferramentas, situações de uso, privacidade, perguntas e chamada final. Plano, sem gradiente, um único teal. */
@@ -51,7 +53,7 @@ section{scroll-margin-top:72px}
 
 /* hero */
 .hero{padding-block:56px 40px}
-.hero-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:48px;align-items:center}
+.hero-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:40px;align-items:center}
 @media (max-width:920px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:40px}}
 .hero-copy{display:grid;gap:20px;align-content:start}
 .hero h1{margin:0;font-size:clamp(38px,5.4vw,62px);line-height:1.04;font-weight:700;letter-spacing:-.045em;text-wrap:balance}
@@ -63,48 +65,63 @@ section{scroll-margin-top:72px}
 .try .btn{height:44px}
 .hero-alt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;font-size:14px;color:var(--graphite)}
 .hero-alt a{color:var(--ink)}
-.checks{display:flex;flex-wrap:wrap;gap:8px 20px;margin:4px 0 0;padding:0;list-style:none;font-size:14px;color:var(--graphite)}
-.checks li{display:flex;align-items:center;gap:6px}
-.checks svg{width:16px;height:16px;fill:none;stroke:var(--teal);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-/* prévia do produto (montada em HTML, com dados de exemplo) */
-.preview{position:relative;min-height:440px}
-@media (max-width:920px){.preview{min-height:0;display:grid;gap:12px}}
-.pv{background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);border:1px solid var(--hair)}
-.pv-main{position:relative;z-index:1;padding:16px;display:grid;gap:12px;width:88%}
-@media (max-width:920px){.pv-main{width:100%}}
-.pv-bar{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--graphite)}
-.pv-bar .dots{display:flex;gap:4px}
-.pv-bar .dots i{width:8px;height:8px;border-radius:50%;background:var(--mist)}
-.pv-url{flex:1;padding:4px 10px;border-radius:var(--r-pill);background:var(--parchment);border:1px solid var(--hair);font:12px var(--mono);color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pv-title{display:flex;align-items:center;gap:8px;font-size:18px;font-weight:500}
-.pv-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.pv-cell{padding:10px 12px;border-radius:var(--r-input);background:var(--parchment);border:1px solid var(--hair);display:grid;gap:2px;min-width:0}
-.pv-cell .q{font-size:11px;color:var(--graphite)}
-.pv-cell .a{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pv-alert{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:var(--r-input);border:1px solid var(--hair);font-size:13px}
-.pv-conv{position:absolute;z-index:2;right:0;bottom:12px;width:62%;padding:14px;display:grid;gap:10px}
-@media (max-width:920px){.pv-conv{position:static;width:100%}}
-.pv-file{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center}
-.pv-thumb{width:44px;height:44px;border-radius:8px;background:
-  linear-gradient(180deg,transparent 58%,var(--hair) 58% 62%,transparent 62%),
-  var(--parchment);border:1px solid var(--hair);position:relative;overflow:hidden}
-.pv-thumb::before{content:"";position:absolute;left:8px;bottom:10px;width:22px;height:14px;border:2px solid var(--graphite);border-bottom:0;border-radius:2px 2px 0 0}
-.pv-thumb::after{content:"";position:absolute;right:8px;top:8px;width:8px;height:8px;border-radius:50%;background:var(--teal)}
-.pv-file .n{font:500 12px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pv-file .s{font-size:12px;color:var(--graphite)}
-.pv-progress{height:6px;border-radius:var(--r-pill);background:var(--hair);overflow:hidden}
-.pv-progress span{display:block;height:100%;width:100%;background:var(--teal);transform-origin:left;animation:fill 2.4s ease-out both}
-@keyframes fill{from{transform:scaleX(.08)}to{transform:scaleX(1)}}
-.pv-fav{position:absolute;z-index:3;right:6%;top:-18px;display:flex;gap:8px;padding:10px}
-@media (max-width:920px){.pv-fav{display:none}}
-.pv-fav i{display:grid;place-items:center;width:32px;height:32px;border-radius:8px;background:var(--parchment);border:1px solid var(--hair)}
-.pv-fav i::after{content:"";width:14px;height:14px;border-radius:4px;background:var(--teal)}
-.pv-fav i:nth-child(2)::after{width:18px;height:18px}
-.pv-fav i:nth-child(3){width:40px;height:40px}
-.pv-fav i:nth-child(3)::after{width:22px;height:22px;border-radius:6px}
-.pv-note{position:absolute;left:4px;bottom:0;margin:0;font-size:12px;color:var(--ash)}
-@media (max-width:920px){.pv-note{position:static}}
+/* hero: MacBook com um navegador de verdade dentro da tela, alternando entre as duas ferramentas.
+   A tela do mockup é transparente; o conteúdo fica por baixo da moldura. Medidas da tela em % da imagem. */
+.mac{position:relative;width:100%;aspect-ratio:1600/1040}
+.mac-frame{position:absolute;inset:0;z-index:2;width:100%;height:100%;pointer-events:none;user-select:none}
+.mac-screen{position:absolute;z-index:1;left:11.689%;top:14.197%;width:76.623%;height:74.103%;overflow:hidden;container-type:size;background:var(--parchment)}
+.mac-note{margin:10px 0 0;text-align:center;font-size:12px;color:var(--ash)}
+.bw{position:absolute;inset:0;display:grid;grid-template-rows:auto auto minmax(0,1fr);font:400 2.15cqw/1.35 var(--font);color:var(--ink);background:var(--parchment)}
+.bw-tabs{display:flex;align-items:flex-end;gap:.3em;padding:.55em .8em 0;background:var(--rail);border-bottom:1px solid var(--hair)}
+.bw-dots{display:flex;gap:.35em;align-self:center;margin-right:.6em}
+.bw-dots i{width:.6em;height:.6em;border-radius:50%;background:var(--mist)}
+.bw-tab{display:flex;align-items:center;gap:.45em;padding:.45em .9em;border-radius:.6em .6em 0 0;font-size:.82em;color:var(--graphite);white-space:nowrap;transition:background .3s,color .3s}
+.bw-tab.on{background:var(--parchment);color:var(--ink);box-shadow:0 1px 0 var(--parchment)}
+.bw-tab .fav{width:.95em;height:.95em;border-radius:.25em;background:var(--ink);position:relative;flex:none}
+.bw-tab .fav::after{content:"";position:absolute;right:0;top:0;width:45%;height:45%;border-radius:.12em;background:var(--teal)}
+.bw-bar{display:flex;align-items:center;gap:.6em;padding:.45em .8em;border-bottom:1px solid var(--hair)}
+.bw-url{flex:1;padding:.28em .9em;border-radius:1em;background:var(--paper);border:1px solid var(--hair);font:.78em var(--mono);color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bw-body{position:relative;overflow:hidden}
+.scene{position:absolute;inset:0;padding:1em 1.3em;display:grid;align-content:start;gap:.7em;opacity:0;transform:translateX(5%);transition:opacity .45s ease,transform .6s cubic-bezier(.2,.7,.2,1);pointer-events:none}
+.scene.on{opacity:1;transform:none}
+.scene.out{opacity:0;transform:translateX(-5%)}
+.pop{opacity:0;transform:translateY(.6em);transition:opacity .4s ease,transform .5s cubic-bezier(.2,.7,.2,1)}
+.pop.in{opacity:1;transform:none}
+.d-search{display:flex;align-items:center;gap:.2em;padding:.3em .3em .3em .9em;border:1px solid var(--mist);border-radius:.7em;background:var(--parchment);box-shadow:0 0 0 1px rgba(var(--glow),.35),0 0 1.2em rgba(var(--glow),.1)}
+.d-typed{font-size:.95em;white-space:nowrap}
+.d-ph{font-size:.95em;color:var(--graphite)}
+.caret{width:1px;height:1.1em;background:var(--ink);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.d-btn{margin-left:auto;padding:.4em .9em;border-radius:.55em;background:var(--ink);color:var(--parchment);font-size:.8em;font-weight:500;transition:transform .15s}
+.d-btn.press,.bw-tab.press{transform:scale(.92)}
+.d-title{display:flex;align-items:center;gap:.5em;font-size:1.35em;font-weight:700;letter-spacing:-.02em}
+.d-pill{display:inline-block;padding:.18em .65em;border-radius:1em;background:var(--teal);color:var(--on-teal);font-size:.62em;font-weight:500;letter-spacing:0}
+.d-pill.warn{background:transparent;border:1px solid var(--ink);color:var(--ink)}
+.d-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5em}
+.d-card{display:grid;gap:.12em;padding:.55em .75em;border-radius:.6em;background:var(--paper);border:1px solid var(--hair);min-width:0}
+.d-card .q{font-size:.7em;color:var(--graphite)}
+.d-card .a{font-size:1.05em;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-alert{display:flex;align-items:center;gap:.6em;padding:.5em .75em;border-radius:.6em;border:1px solid var(--hair);background:var(--paper);font-size:.82em}
+.d-alert .d-pill{font-size:.75em}
+.d-row{display:flex;align-items:center;gap:.6em}
+.d-drop{flex:1;padding:.55em;border:1.5px dashed var(--mist);border-radius:.7em;text-align:center;font-size:.8em;color:var(--graphite)}
+.d-file{display:grid;grid-template-columns:2.3em minmax(0,1fr) auto;gap:.65em;align-items:center;padding:.45em .6em;border-radius:.6em;background:var(--paper);border:1px solid var(--hair)}
+.d-thumb{width:2.3em;height:2.3em;border-radius:.45em;position:relative;overflow:hidden}
+.d-thumb.t1{background:var(--ink)}.d-thumb.t2{background:var(--teal)}.d-thumb.t3{background:var(--mist)}
+.d-thumb::before{content:"";position:absolute;left:14%;right:14%;bottom:16%;height:42%;background:var(--parchment);opacity:.85;clip-path:polygon(0 100%,38% 20%,62% 62%,76% 42%,100% 100%)}
+.d-thumb::after{content:"";position:absolute;right:18%;top:16%;width:22%;height:22%;border-radius:50%;background:var(--parchment);opacity:.85}
+.d-file .n{font:500 .78em var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.d-file .s{font-size:.68em;color:var(--graphite);white-space:nowrap}
+.d-bar{height:.28em;margin-top:.3em;border-radius:1em;background:var(--hair);overflow:hidden}
+.d-bar span{display:block;height:100%;width:0;background:var(--teal);transition:width .7s cubic-bezier(.3,.7,.3,1)}
+.d-file .d-pill{opacity:0;transform:scale(.6);transition:opacity .3s,transform .35s cubic-bezier(.3,1.6,.5,1)}
+.d-file.done .d-pill{opacity:1;transform:none}
+.d-total{display:flex;justify-content:space-between;align-items:center;padding:.6em .85em;border-radius:.6em;background:var(--ink);color:var(--parchment);font-weight:700;font-size:.95em}
+.d-total .d-pill{font-size:.72em}
+.d-cursor{position:absolute;z-index:5;left:78%;top:70%;width:4.2cqw;height:auto;filter:drop-shadow(0 .15cqw .3cqw rgba(0,0,0,.35));transition:left .75s cubic-bezier(.45,.05,.3,1),top .75s cubic-bezier(.45,.05,.3,1),transform .12s;pointer-events:none}
+.d-cursor.click{transform:scale(.82)}
+@media (prefers-reduced-motion:reduce){.d-cursor{display:none}.caret{animation:none}}
 
 /* faixas cruzadas: cada trilha tem a lista duas vezes e desliza metade da largura, sem emenda */
 .ticker{position:relative;overflow:hidden;padding-block:40px 52px}
@@ -273,11 +290,12 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
 
 /* entrada suave, só com movimento permitido */
 @media (prefers-reduced-motion:no-preference){
-  .hero-copy > *,.preview > *{animation:rise .6s ease-out both}
+  .hero-copy > *,.hero-mac{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .pl-on .hero-copy > *,.pl-on .hero-mac{animation-play-state:paused}
   .hero-copy > *:nth-child(2){animation-delay:.05s}.hero-copy > *:nth-child(3){animation-delay:.1s}
   .hero-copy > *:nth-child(4){animation-delay:.15s}.hero-copy > *:nth-child(5){animation-delay:.2s}
-  .pv-conv{animation-delay:.25s!important}.pv-fav{animation-delay:.35s!important}
-  @keyframes rise{from{transform:translateY(10px)}to{transform:none}}
+  .hero-mac{animation-delay:.2s}
+  @keyframes rise{from{transform:translateY(18px)}to{transform:none}}
 }
 </style>
 </head>
@@ -314,28 +332,42 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
         </div>
       </div>
 
-      <div class="preview" aria-label="Exemplo do que as ferramentas mostram">
-        <div class="pv pv-main">
-          <div class="pv-bar"><span class="dots"><i></i><i></i><i></i></span><span class="pv-url">raio-x.html#seusite.com.br</span></div>
-          <div class="pv-title">seusite.com.br <span class="pill ok">Registrado</span></div>
-          <div class="pv-grid">
-            <div class="pv-cell"><span class="q">Registrado em</span><span class="a">Registro.br</span></div>
-            <div class="pv-cell"><span class="q">Idade do domínio</span><span class="a">6 anos</span></div>
-            <div class="pv-cell"><span class="q">Hospedagem provável</span><span class="a">Hostinger</span></div>
-            <div class="pv-cell"><span class="q">Provedor de e-mail</span><span class="a">Google Workspace</span></div>
+      <div class="hero-mac">
+        <div class="mac" aria-label="Demonstração das duas ferramentas em uso">
+          <div class="mac-screen" id="demo" aria-hidden="true">
+            <div class="bw">
+              <div class="bw-tabs">
+                <span class="bw-dots"><i></i><i></i><i></i></span>
+                <span class="bw-tab on" data-tab="rx"><i class="fav"></i>Raio-X de domínio</span>
+                <span class="bw-tab" data-tab="cv"><i class="fav"></i>Conversor de imagens</span>
+              </div>
+              <div class="bw-bar"><span class="bw-url" id="d-url">webkit / raio-x</span></div>
+              <div class="bw-body">
+                <section class="scene on" data-scene="rx">
+                  <div class="d-search"><span class="d-typed" id="d-typed"></span><i class="caret"></i><span class="d-ph" id="d-ph">Digite um domínio</span><span class="d-btn" id="d-go">Consultar</span></div>
+                  <div class="d-title pop">seusite.com.br <span class="d-pill">Registrado</span></div>
+                  <div class="d-cards">
+                    <div class="d-card pop"><span class="q">Registrado em</span><span class="a">Registro.br</span></div>
+                    <div class="d-card pop"><span class="q">Quando expira</span><span class="a">em 8 meses</span></div>
+                    <div class="d-card pop"><span class="q">Hospedagem provável</span><span class="a">Hostinger</span></div>
+                    <div class="d-card pop"><span class="q">Provedor de e-mail</span><span class="a">Google Workspace</span></div>
+                  </div>
+                  <div class="d-alert pop"><span class="d-pill warn">Atenção</span>Falta o DMARC: e-mails podem cair no spam.</div>
+                </section>
+                <section class="scene" data-scene="cv">
+                  <div class="d-row"><span class="d-drop">Solte as imagens aqui</span><span class="d-btn" id="d-conv">Converter</span></div>
+                  <div class="d-file pop"><span class="d-thumb t1"></span><div style="min-width:0"><div class="n">fachada.jpg</div><div class="s">4000 × 3000 · 2,4 MB → <b>180 KB</b></div><div class="d-bar"><span></span></div></div><span class="d-pill">−92%</span></div>
+                  <div class="d-file pop"><span class="d-thumb t2"></span><div style="min-width:0"><div class="n">cozinha.heic</div><div class="s">3024 × 4032 · 2,1 MB → <b>164 KB</b></div><div class="d-bar"><span></span></div></div><span class="d-pill">−92%</span></div>
+                  <div class="d-file pop"><span class="d-thumb t3"></span><div style="min-width:0"><div class="n">banheiro.png</div><div class="s">2400 × 1600 · 820 KB → <b>68 KB</b></div><div class="d-bar"><span></span></div></div><span class="d-pill">−92%</span></div>
+                  <div class="d-total pop"><span>5,3 MB → 412 KB</span><span class="d-pill">Economia de 92%</span></div>
+                </section>
+              </div>
+            </div>
+            <svg class="d-cursor" id="d-cursor" viewBox="0 0 24 24"><path d="M5 3l13 7.5-5.6 1.4 3.4 6.2-2.6 1.4-3.4-6.2L6 17.5z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>
           </div>
-          <div class="pv-alert"><span class="pill warn">Atenção</span><span>Falta o DMARC: e-mails podem cair no spam.</span></div>
+          <img class="mac-frame" src="assets/img/macbook.webp" alt="" width="1600" height="1040" fetchpriority="high">
         </div>
-        <div class="pv pv-conv">
-          <div class="pv-file">
-            <span class="pv-thumb" aria-hidden="true"></span>
-            <div style="min-width:0"><div class="n">fachada-01.avif</div><div class="s">4000 × 3000 · 2,4 MB → 1200 × 900 · 96 KB</div></div>
-            <span class="pill ok">−96%</span>
-          </div>
-          <div class="pv-progress"><span></span></div>
-        </div>
-        <div class="pv pv-fav" aria-hidden="true"><i></i><i></i><i></i></div>
-        <p class="pv-note">Dados ilustrativos.</p>
+        <p class="mac-note">Demonstração com dados ilustrativos.</p>
       </div>
     </div>
   </section>
@@ -511,8 +543,88 @@ document.getElementById('try').addEventListener('submit', e => {
   e.preventDefault();
   let v = document.getElementById('try-q').value.trim().toLowerCase();
   v = v.replace(/^[a-z]+:\/\//, '').replace(/^[^@\/]*@/, '').replace(/[\/?#:].*$/, '').replace(/^www\./, '');
-  location.href = 'raio-x.html' + (v ? '#' + encodeURIComponent(v) : '');
+  document.documentElement.classList.add('pl-on');
+  setTimeout(() => { location.href = 'raio-x.html' + (v ? '#' + encodeURIComponent(v) : ''); }, 260);
 });
 </script>
+<script>
+// demonstração no MacBook: digita um domínio no Raio-X, mostra o resultado, troca de aba e converte imagens, em loop
+(function(){
+  const demo = document.getElementById('demo'); if(!demo) return;
+  const q = s => demo.querySelector(s), qa = s => [...demo.querySelectorAll(s)];
+  const cursor = q('#d-cursor'), typed = q('#d-typed'), ph = q('#d-ph'), url = q('#d-url');
+  const tabs = {rx: q('[data-tab="rx"]'), cv: q('[data-tab="cv"]')};
+  const scenes = {rx: q('[data-scene="rx"]'), cv: q('[data-scene="cv"]')};
+  const DOMAIN = 'seusite.com.br';
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let visible = true;
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(demo);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  // espera respeitando a página: pausa quando o MacBook sai da tela, a aba fica em segundo plano ou a tela de carregamento está aberta
+  const wait = async ms => { await sleep(ms); while(!visible || document.hidden || document.documentElement.classList.contains('pl-on')) await sleep(250); };
+  function point(el, dx = .5, dy = .5){
+    const s = demo.getBoundingClientRect(), r = el.getBoundingClientRect();
+    cursor.style.left = ((r.left - s.left + r.width * dx) / s.width * 100) + '%';
+    cursor.style.top = ((r.top - s.top + r.height * dy) / s.height * 100) + '%';
+  }
+  async function click(el){ cursor.classList.add('click'); el.classList.add('press'); await sleep(160); cursor.classList.remove('click'); el.classList.remove('press'); }
+  function show(name){
+    for(const k in tabs){ tabs[k].classList.toggle('on', k === name); }
+    for(const k in scenes){
+      const on = k === name;
+      if(!on && scenes[k].classList.contains('on')){ scenes[k].classList.add('out'); setTimeout(() => scenes[k].classList.remove('out'), 600); }
+      scenes[k].classList.toggle('on', on);
+    }
+  }
+  function resetRx(){ typed.textContent = ''; ph.hidden = false; qa('[data-scene="rx"] .pop').forEach(e => e.classList.remove('in')); url.textContent = 'webkit / raio-x'; }
+  function resetCv(){ qa('[data-scene="cv"] .pop').forEach(e => e.classList.remove('in', 'done')); qa('.d-bar span').forEach(b => { b.style.width = '0'; }); }
+  async function stagger(list, gap){ for(const el of list){ el.classList.add('in'); await wait(gap); } }
+
+  if(reduced){ // sem animação: mostra o resultado do Raio-X pronto
+    typed.textContent = DOMAIN; ph.hidden = true; url.textContent = 'webkit / raio-x#' + DOMAIN;
+    qa('[data-scene="rx"] .pop').forEach(e => e.classList.add('in'));
+    return;
+  }
+
+  async function loop(){
+    for(;;){
+      // Raio-X: digita o domínio e consulta
+      resetRx(); show('rx');
+      await wait(500);
+      point(q('.d-search'), .35, .5); await wait(800);
+      ph.hidden = true;
+      for(const ch of DOMAIN){ typed.textContent += ch; await wait(55 + Math.random() * 70); }
+      point(q('#d-go')); await wait(700);
+      await click(q('#d-go'));
+      url.textContent = 'webkit / raio-x#' + DOMAIN;
+      await wait(250);
+      await stagger(qa('[data-scene="rx"] .pop'), 140);
+      point(q('.d-alert'), .7, .6);
+      await wait(2400);
+
+      // troca de aba para o conversor
+      resetCv();
+      point(tabs.cv, .45, .55); await wait(850);
+      await click(tabs.cv);
+      show('cv'); url.textContent = 'webkit / conversor';
+      await wait(600);
+      await stagger(qa('[data-scene="cv"] .d-file'), 160);
+      point(q('#d-conv')); await wait(800);
+      await click(q('#d-conv'));
+      for(const f of qa('[data-scene="cv"] .d-file')){ f.querySelector('.d-bar span').style.width = '100%'; await wait(650); f.classList.add('done'); }
+      await wait(200);
+      q('[data-scene="cv"] .d-total').classList.add('in');
+      point(q('.d-total'), .75, .5);
+      await wait(2600);
+
+      // volta para o Raio-X
+      point(tabs.rx, .45, .55); await wait(850);
+      await click(tabs.rx);
+    }
+  }
+  loop();
+})();
+</script>
+<script src="assets/site.js"></script>
 </body>
 </html>

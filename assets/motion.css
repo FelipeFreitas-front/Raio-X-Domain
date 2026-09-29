@@ -1,0 +1,27 @@
+/* Movimento compartilhado do hub: tela de carregamento entre páginas e entrada suave dos blocos.
+   Depende só dos tokens --parchment, --ink e --teal, que todas as páginas definem. */
+
+/* tela de carregamento: cobre a página com o fundo e mostra a grade do webkit com o quadrado teal girando.
+   O html recebe .pl-on no <head>; assets/site.js tira. Se o script falhar, some sozinha em 2,5 s. */
+html::before{content:"";position:fixed;inset:0;z-index:9998;background:var(--parchment);opacity:0;visibility:hidden;transition:opacity .3s ease,visibility 0s linear .3s}
+html::after{content:"";position:fixed;left:50%;top:50%;z-index:9999;width:18px;height:18px;margin:-20px 0 0 -20px;border-radius:5px;
+  background:var(--ink);box-shadow:22px 0 0 var(--teal),0 22px 0 var(--ink),22px 22px 0 var(--ink);opacity:0;visibility:hidden;transition:opacity .2s ease,visibility 0s linear .2s}
+html.pl-on::before,html.pl-on::after{opacity:1;visibility:visible;transition:opacity .18s ease}
+html.pl-on::before{animation:pl-failsafe 0s 2.5s forwards}
+html.pl-on::after{animation:pl-cycle .8s steps(1) infinite,pl-failsafe 0s 2.5s forwards}
+@keyframes pl-cycle{
+  0%{background:var(--ink);box-shadow:22px 0 0 var(--teal),0 22px 0 var(--ink),22px 22px 0 var(--ink)}
+  25%{background:var(--ink);box-shadow:22px 0 0 var(--ink),0 22px 0 var(--ink),22px 22px 0 var(--teal)}
+  50%{background:var(--ink);box-shadow:22px 0 0 var(--ink),0 22px 0 var(--teal),22px 22px 0 var(--ink)}
+  75%{background:var(--teal);box-shadow:22px 0 0 var(--ink),0 22px 0 var(--ink),22px 22px 0 var(--ink)}
+}
+@keyframes pl-failsafe{to{opacity:0;visibility:hidden}}
+
+/* entrada suave: blocos sobem e aparecem quando entram na tela (classes aplicadas por assets/site.js) */
+.rv{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .75s cubic-bezier(.2,.7,.2,1)}
+.rv.rv-in{opacity:1;transform:none}
+
+@media (prefers-reduced-motion:reduce){
+  html.pl-on::after{animation:pl-failsafe 0s 2.5s forwards}
+  .rv{opacity:1;transform:none;transition:none}
+}
