@@ -15,7 +15,7 @@ Também dá para abrir direto um domínio pelo endereço: `index.html#exemplo.co
 - Provedor de e-mail e checagem de SPF, DMARC e DKIM
 - Registros DNS agrupados por finalidade (site, e-mail, nameservers, TXT)
 - Pontos de atenção em português claro (vencimento, www quebrado, falta de DMARC etc.)
-- Comparação Google × Cloudflare para ver propagação
+- Propagação global (estilo whatsmydns): 11 servidores DNS públicos em vários países e 9 cidades simuladas via Google, com valor esperado e verificação automática a cada 30 s até propagar
 
 ## Exportação
 

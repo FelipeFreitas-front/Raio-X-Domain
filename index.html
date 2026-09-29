@@ -235,6 +235,45 @@ tr.empty td,tr.empty .typ{color:var(--ash)}
 .check b{font-size:14px}
 
 .export .sep{margin-left:8px}
+
+.col > *{min-width:0}
+
+/* propagação global */
+.pg-intro{margin:0;max-width:65ch}
+.pg-form{display:grid;grid-template-columns:minmax(0,2fr) 104px minmax(0,2fr) auto;gap:8px;align-items:end}
+.pg-f{display:grid;gap:4px;min-width:0}
+.pg-f span{font-size:12px;color:var(--graphite)}
+.pg-f em{font-style:normal;color:var(--ash)}
+.pg-f input,.pg-f select{height:40px;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-input);background:var(--parchment);color:var(--ink);font:400 14px var(--font);min-width:0;width:100%}
+.pg-f input{font-family:var(--mono);font-size:13px}
+.pg-f input:focus,.pg-f select:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+@media (max-width:640px){.pg-form{grid-template-columns:minmax(0,1fr) 104px}.pg-exp{grid-column:1/-1}.pg-form .btn{grid-column:1/-1}}
+.pg-auto{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
+.pg-auto label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.pg-auto input{width:16px;height:16px;accent-color:var(--teal)}
+.pg-sum{display:grid;gap:8px;padding:16px;border-radius:var(--r-input);background:var(--parchment);border:1px solid var(--hair)}
+.pg-sum.is-done{border-color:var(--teal)}
+.pg-sum-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px}
+.pg-sum-top b{font-size:16px}
+.pg-bar{height:8px;border-radius:var(--r-pill);background:var(--hair);overflow:hidden}
+.pg-bar span{display:block;height:100%;background:var(--teal);border-radius:inherit;transition:width .4s}
+@media (prefers-reduced-motion:reduce){.pg-bar span{transition:none}}
+.pg-tbl td{vertical-align:middle}
+.pg-tbl .val{font-size:12.5px;word-break:normal;overflow-wrap:normal}
+.pg-tbl .v1{display:block;white-space:nowrap}
+.pg-tbl .v-long{display:block;overflow-wrap:anywhere}
+@media (max-width:560px){.pg-tbl td.ttl div{display:none}.pg-tbl td.ttl{width:56px}}
+.pg-tbl td.ttl{width:88px;text-align:right;line-height:1.4}
+.pg-st{width:36px}
+.pg-dot{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font:500 12px var(--font);border:1px solid var(--mist);color:var(--ash)}
+.s-good .pg-dot{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.s-bad .pg-dot{background:var(--ink);border-color:var(--ink);color:var(--parchment)}
+.s-err .pg-dot{border-color:var(--ink);color:var(--ink)}
+.s-loading .pg-dot{border-top-color:var(--teal);animation:spin .8s linear infinite}
+@media (prefers-reduced-motion:reduce){.s-loading .pg-dot{animation:none}}
+.s-bad .val{color:var(--ink);font-weight:500}
+.cc{display:inline-block;min-width:22px;padding:0 4px;border:1px solid var(--hair);border-radius:4px;font:500 10px/16px var(--mono);text-align:center;color:var(--graphite)}
+.pg-tbl .loading{font-size:12px}
 .export{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
 .loading{color:var(--graphite);font-size:14px;display:flex;align-items:center;gap:8px}
 .loading::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid var(--mist);border-top-color:var(--teal);animation:spin .8s linear infinite}
@@ -339,14 +378,14 @@ footer{color:var(--ash);font-size:12px}
       <button class="tab" role="tab" type="button" data-tab="c-mail">E-mail<span class="tb" id="tb-mail"></span></button>
       <button class="tab" role="tab" type="button" data-tab="c-reg">WHOIS completo</button>
       <button class="tab" role="tab" type="button" data-tab="c-host">Hospedagem e IP</button>
-      <button class="tab" role="tab" type="button" data-tab="c-prop">Propagação<span class="tb" id="tb-prop"></span></button>
+      <button class="tab" role="tab" type="button" data-tab="c-prop">Propagação global<span class="tb" id="tb-prop"></span></button>
       <button class="tab" role="tab" type="button" data-tab="c-raw">Dados brutos</button>
     </div>
     <section class="card" role="tabpanel" id="c-dns"><h2>Registros DNS <span class="src" id="dns-src"></span></h2><div class="body"></div></section>
     <section class="card" role="tabpanel" id="c-mail"><h2>E-mail: quem recebe e se está protegido contra spam</h2><div class="body"></div></section>
     <section class="card" role="tabpanel" id="c-reg"><h2>Registro (WHOIS) <span class="src" id="reg-src"></span></h2><div class="body"></div></section>
     <section class="card" role="tabpanel" id="c-host"><h2>Hospedagem e IP</h2><div class="body"></div></section>
-    <section class="card" role="tabpanel" id="c-prop"><h2>Propagação: Google × Cloudflare</h2><div class="body"></div></section>
+    <section class="card" role="tabpanel" id="c-prop"><h2>Propagação global de DNS</h2><div class="body"></div></section>
     <section class="card" role="tabpanel" id="c-raw"><h2>Dados brutos</h2><div class="body"></div></section>
   </div>
   <footer>Consulta feita direto do seu navegador: RDAP (sucessor oficial do WHOIS, via bootstrap da IANA) e DNS-over-HTTPS do Google e da Cloudflare. Nada passa por servidor próprio.</footer>
@@ -717,8 +756,6 @@ function renderTabBadges(){
   $('#tb-dns').textContent = D ? String(DNS_TYPES.reduce((n, t) => n + (D.records[t] || []).length, 0)) : '';
   const mailIssues = collectAlerts().filter(a => /SPF|DMARC/.test(a.txt) && a.lvl !== 'info').length;
   const tbm = $('#tb-mail'); tbm.textContent = mailIssues ? String(mailIssues) : ''; tbm.classList.toggle('alert', !!mailIssues);
-  const div = (S.prop || []).filter(p => !p.rotating && p.g && p.c && JSON.stringify(p.g) !== JSON.stringify(p.c)).length;
-  const tbp = $('#tb-prop'); tbp.textContent = div ? String(div) : ''; tbp.classList.toggle('alert', !!div);
 }
 function setTab(id){
   for(const b of document.querySelectorAll('#tabbar .tab')){
@@ -727,6 +764,7 @@ function setTab(id){
     document.getElementById(b.dataset.tab).hidden = !on;
   }
   store('rx-tab', id);
+  if(id === 'c-prop' && S && PG.doneFor !== S.domain) renderProp();
 }
 
 function renderReg(){
@@ -928,21 +966,252 @@ function renderHost(){
   setBody('c-host', html);
 }
 
+/* ---------- propagação global (estilo whatsmydns) ---------- */
+// Servidores DNS públicos que aceitam consulta direto do navegador (testados). Os "globais" são anycast:
+// respondem pelo nó mais próximo de quem consulta.
+const RESOLVERS = [
+  {name:'Google Public DNS', where:'Global (anycast)', cc:'US', kind:'json', url:'https://dns.google/resolve'},
+  {name:'Cloudflare',        where:'Global (anycast)', cc:'US', kind:'wire', url:'https://cloudflare-dns.com/dns-query'},
+  {name:'CleanBrowsing',     where:'Estados Unidos',   cc:'US', kind:'wire', url:'https://doh.cleanbrowsing.org/doh/security-filter/'},
+  {name:'Control D',         where:'Canadá',           cc:'CA', kind:'wire', url:'https://freedns.controld.com/p0'},
+  {name:'DNS.SB',            where:'Alemanha',         cc:'DE', kind:'wire', url:'https://doh.dns.sb/dns-query'},
+  {name:'DNS4EU',            where:'União Europeia',   cc:'EU', kind:'wire', url:'https://unfiltered.joindns4.eu/dns-query'},
+  {name:'CZ.NIC ODVR',       where:'Tchéquia',         cc:'CZ', kind:'wire', url:'https://odvr.nic.cz/doh'},
+  {name:'RethinkDNS',        where:'Índia',            cc:'IN', kind:'wire', url:'https://sky.rethinkdns.com/dns-query'},
+  {name:'IIJ Public DNS',    where:'Japão',            cc:'JP', kind:'wire', url:'https://public.dns.iij.jp/dns-query'},
+  {name:'Tiarap',            where:'Singapura',        cc:'SG', kind:'wire', url:'https://doh.tiar.app/dns-query'},
+  {name:'AliDNS',            where:'China',            cc:'CN', kind:'json', url:'https://dns.alidns.com/resolve'},
+];
+// Visão por cidade: o Google responde "como se" a consulta viesse de uma rede daquela região (EDNS Client Subnet).
+// Mostra diferenças de CDNs e DNS geográfico; as sub-redes são de provedores locais conhecidos.
+const REGIONS = [
+  {name:'São Paulo',   cc:'BR', net:'200.147.0.0/24'},
+  {name:'Nova York',   cc:'US', net:'72.229.0.0/24'},
+  {name:'Los Angeles', cc:'US', net:'76.170.0.0/24'},
+  {name:'Londres',     cc:'GB', net:'81.2.69.0/24'},
+  {name:'Frankfurt',   cc:'DE', net:'80.187.0.0/24'},
+  {name:'Joanesburgo', cc:'ZA', net:'41.13.0.0/24'},
+  {name:'Mumbai',      cc:'IN', net:'49.36.0.0/24'},
+  {name:'Tóquio',      cc:'JP', net:'126.0.0.0/24'},
+  {name:'Sydney',      cc:'AU', net:'1.128.0.0/24'},
+];
+const PG_TYPES = ['A','AAAA','CNAME','MX','NS','TXT','CAA','SOA'];
+
+// DNS em formato binário (RFC 8484): monta a pergunta e lê a resposta
+function wireQuery(name, type){
+  const b = [Math.random() * 256 | 0, Math.random() * 256 | 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+  for(const l of name.replace(/\.$/, '').split('.')){ b.push(l.length); for(const c of l) b.push(c.charCodeAt(0)); }
+  b.push(0, TYPE_NUM[type] >> 8, TYPE_NUM[type] & 255, 0, 1);
+  return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function ipv6(bytes){
+  const g = []; for(let i = 0; i < 16; i += 2) g.push(((bytes[i] << 8) | bytes[i + 1]).toString(16));
+  let best = -1, len = 0;
+  for(let i = 0; i < 8; i++){ let j = i; while(j < 8 && g[j] === '0') j++; if(j - i > len && j - i > 1){ best = i; len = j - i; } if(j > i) i = j; }
+  if(best < 0) return g.join(':');
+  return g.slice(0, best).join(':') + '::' + g.slice(best + len).join(':');
+}
+function parseWire(buf){
+  const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength), dec = new TextDecoder();
+  const readName = off => {
+    const labels = []; let end = null, guard = 0;
+    while(guard++ < 128){
+      const len = buf[off];
+      if(len === 0){ off++; break; }
+      if((len & 0xC0) === 0xC0){ if(end === null) end = off + 2; off = ((len & 0x3F) << 8) | buf[off + 1]; continue; }
+      labels.push(dec.decode(buf.subarray(off + 1, off + 1 + len))); off += len + 1;
+    }
+    return {name: labels.join('.') + '.', next: end ?? off};
+  };
+  const status = v.getUint16(2) & 15, qd = v.getUint16(4), an = v.getUint16(6);
+  let o = 12;
+  for(let i = 0; i < qd; i++) o = readName(o).next + 4;
+  const answers = [];
+  for(let i = 0; i < an; i++){
+    o = readName(o).next;
+    const type = v.getUint16(o), ttl = v.getUint32(o + 4), len = v.getUint16(o + 8), rd = o + 10;
+    o = rd + len;
+    let data;
+    if(type === 1) data = [...buf.subarray(rd, rd + 4)].join('.');
+    else if(type === 28) data = ipv6(buf.subarray(rd, rd + 16));
+    else if(type === 2 || type === 5 || type === 12) data = readName(rd).name;
+    else if(type === 15) data = v.getUint16(rd) + ' ' + readName(rd + 2).name;
+    else if(type === 16){ const parts = []; for(let p = rd; p < rd + len; p += buf[p] + 1) parts.push(dec.decode(buf.subarray(p + 1, p + 1 + buf[p]))); data = parts.join(''); }
+    else if(type === 257){ const tl = buf[rd + 1]; data = `${buf[rd]} ${dec.decode(buf.subarray(rd + 2, rd + 2 + tl))} "${dec.decode(buf.subarray(rd + 2 + tl, rd + len))}"`; }
+    else if(type === 6){ const m = readName(rd), r = readName(m.next); const n = [0, 4, 8, 12, 16].map(k => v.getUint32(r.next + k)); data = `${m.name} ${r.name} ${n.join(' ')}`; }
+    else continue;
+    answers.push({type, ttl, data});
+  }
+  return {status, answers};
+}
+async function resolveWith(res, name, type, ecs){
+  const want = TYPE_NUM[type], t0 = performance.now();
+  let status, answers;
+  if(res.kind === 'json'){
+    const url = `${res.url}?name=${encodeURIComponent(name)}&type=${want}${ecs ? '&edns_client_subnet=' + ecs : ''}`;
+    const j = await fetchJSON(url, {headers:{accept:'application/dns-json'}}, 8000);
+    status = j.Status; answers = (j.Answer || []).map(a => ({type:a.type, ttl:a.TTL, data: a.type === 16 ? cleanTxt(a.data) : a.data}));
+  } else {
+    // alguns operadores têm endereços alternativos; tenta em sequência até um responder
+    let lastErr;
+    for(const u of [res.url, ...(res.alt || [])]){
+      const c = new AbortController(), tm = setTimeout(() => c.abort(), 8000);
+      try{
+        const r = await fetch(`${u}?dns=${wireQuery(name, type)}`, {headers:{accept:'application/dns-message'}, signal:c.signal});
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        ({status, answers} = parseWire(new Uint8Array(await r.arrayBuffer())));
+        lastErr = null; break;
+      } catch(e){ lastErr = new Error(e.name === 'AbortError' ? 'tempo esgotado' : 'bloqueado ou fora do ar'); }
+      finally{ clearTimeout(tm); }
+    }
+    if(lastErr) throw lastErr;
+  }
+  const recs = answers.filter(a => a.type === want);
+  return {status, values: recs.map(a => normVal(a.data)).sort(), ttl: recs.length ? Math.min(...recs.map(a => a.ttl)) : null, ms: Math.round(performance.now() - t0)};
+}
+const normVal = v => String(v).trim().toLowerCase().replace(/\.$/, '').replace(/\s+/g, ' ');
+
+const PG = {name:null, qname:null, type:'A', expect:'', rows:[], regions:[], running:false, timer:null, next:0, doneFor:null, runId:0};
+function pgBuild(){
+  if($('#pg-form')) return;
+  setBody('c-prop', `
+    <p class="small muted pg-intro">Consulta o mesmo registro em ${RESOLVERS.length} servidores DNS públicos de vários países e em ${REGIONS.length} regiões. Depois de mudar um DNS, é aqui que você vê se a mudança já chegou no mundo todo.</p>
+    <form class="pg-form" id="pg-form" autocomplete="off">
+      <label class="pg-f pg-name"><span>Nome</span><input id="pg-name" spellcheck="false" autocapitalize="off"></label>
+      <label class="pg-f"><span>Tipo</span><select id="pg-type">${PG_TYPES.map(t => `<option>${t}</option>`).join('')}</select></label>
+      <label class="pg-f pg-exp"><span>Valor esperado <em>(opcional)</em></span><input id="pg-expect" placeholder="ex.: o IP novo do servidor" spellcheck="false" autocapitalize="off"></label>
+      <button class="btn" id="pg-go" type="submit">Verificar</button>
+    </form>
+    <div class="pg-auto">
+      <label><input type="checkbox" id="pg-auto"> Verificar de novo a cada 30 s até propagar</label>
+      <span class="small muted" id="pg-count"></span>
+    </div>
+    <div id="pg-summary"></div>
+    <div id="pg-results"></div>`);
+  $('#pg-form').addEventListener('submit', e => { e.preventDefault(); pgRun(); });
+  $('#pg-type').addEventListener('change', () => pgRun());
+  $('#pg-auto').addEventListener('change', e => e.target.checked ? pgSchedule() : pgStop());
+}
+// chamada quando um domínio novo é carregado
 function renderProp(){
-  if(S.dnsErr){ setBody('c-prop', '<div class="muted small">—</div>'); return; }
-  if(!S.prop){ setBody('c-prop', loading('Comparando resolvedores…')); return; }
-  const rows = S.prop.map(p => {
-    let state, cls;
-    if(p.g === null || p.c === null){ state = 'erro'; cls = 'warn'; }
-    else if(!p.g.length && !p.c.length){ state = 'vazio'; cls = ''; }
-    else if(JSON.stringify(p.g) === JSON.stringify(p.c)){ state = 'igual'; cls = 'ok'; }
-    else if(p.rotating){ state = 'rodízio'; cls = ''; }
-    else { state = 'diverge'; cls = 'bad'; }
-    const detail = state === 'rodízio' ? `<span class="muted">IPs mudam a cada consulta (balanceamento de carga do provedor), não é problema.</span>` : state === 'diverge' ? `<div class="small"><span class="muted">Google:</span> ${p.g.map(esc).join(', ') || '—'}<br><span class="muted">Cloudflare:</span> ${p.c.map(esc).join(', ') || '—'}</div>` : `<span class="muted">${(p.g || p.c || []).length} registro(s)</span>`;
-    return `<tr><td class="t"><span class="typ">${p.type}</span></td><td><span class="pill ${cls}">${state}</span></td><td class="val">${detail}</td></tr>`;
-  }).join('');
-  setBody('c-prop', `<div class="tbl-wrap"><table><tbody>${rows}</tbody></table></div>
-    <div class="small muted">Se algo "diverge", uma mudança recente de DNS ainda está propagando (os caches expiram pelo TTL).</div>`);
+  if(!S) return;
+  pgBuild();
+  if(PG.name !== S.domain){
+    pgStop(); $('#pg-auto').checked = false;
+    PG.name = S.domain; PG.rows = []; PG.regions = []; PG.doneFor = null;
+    $('#pg-name').value = S.domain; $('#pg-expect').value = '';
+    $('#pg-summary').innerHTML = ''; $('#pg-results').innerHTML = '';
+  }
+  if(!$('#c-prop').hidden && PG.doneFor !== S.domain) pgRun();
+}
+async function pgRun(){
+  // aqui o www e subdomínios são mantidos: dá para checar www.dominio.com ou _dmarc.dominio.com
+  const name = $('#pg-name').value.trim().toLowerCase().replace(/^[a-z]+:\/\//, '').replace(/[\/?#:].*$/, '').replace(/\.$/, '');
+  if(!/^[a-z0-9_.-]+\.[a-z0-9-]{2,}$/.test(name)){ toast('Digite um nome válido, ex.: www.dominio.com'); return; }
+  const type = $('#pg-type').value, expect = normVal($('#pg-expect').value.replace(/^"|"$/g, ''));
+  const id = ++PG.runId;
+  Object.assign(PG, {qname: name, type, expect, running: true, doneFor: S?.domain});
+  PG.rows = RESOLVERS.map(r => ({r, state:'loading'}));
+  PG.regions = REGIONS.map(g => ({g, state:'loading'}));
+  $('#pg-go').disabled = true;
+  pgRender();
+  const settle = (list, i, p) => p.then(x => { list[i] = {...list[i], state:'ok', ...x}; }).catch(e => { list[i] = {...list[i], state:'err', err:e.message}; }).finally(() => { if(PG.runId === id) pgRender(); });
+  await Promise.all([
+    ...RESOLVERS.map((r, i) => settle(PG.rows, i, resolveWith(r, name, type))),
+    ...REGIONS.map((g, i) => settle(PG.regions, i, resolveWith(RESOLVERS[0], name, type, g.net))),
+  ]);
+  if(PG.runId !== id) return;
+  PG.running = false; $('#pg-go').disabled = false;
+  PG.at = new Date();
+  pgRender();
+  const sum = pgSummary();
+  if($('#pg-auto').checked){
+    if(sum.complete){ pgStop(); $('#pg-auto').checked = false; toast('Propagação completa'); flashTitle(); }
+    else pgSchedule();
+  }
+}
+// resposta de referência: o valor esperado, se houver; senão, a resposta mais comum
+function pgReference(){
+  if(PG.expect) return null;
+  const count = {};
+  for(const x of PG.rows) if(x.state === 'ok' && x.values.length){ const k = x.values.join('|'); count[k] = (count[k] || 0) + 1; }
+  return Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+function rowStatus(x, ref){
+  if(x.state === 'loading') return 'loading';
+  if(x.state === 'err') return 'err';
+  if(x.status === 3 || !x.values.length) return PG.expect ? 'bad' : 'empty';
+  if(PG.expect) return x.values.some(v => v === PG.expect || v.includes(PG.expect)) ? 'good' : 'bad';
+  return x.values.join('|') === ref ? 'good' : 'bad';
+}
+function pgSummary(){
+  const ref = pgReference();
+  let st = PG.rows.map(x => rowStatus(x, ref));
+  // Rodízio: IPs com TTL curto que mudam a cada consulta (Hostinger, CDNs). Muitas respostas diferentes
+  // não é propagação; sem valor esperado, todo servidor que respondeu com IP conta como ok.
+  const okRows = PG.rows.filter(x => x.state === 'ok' && x.values.length);
+  const distinct = new Set(okRows.map(x => x.values.join('|'))).size;
+  const rotating = !PG.expect && ['A','AAAA'].includes(PG.type) && distinct >= 3 && okRows.every(x => x.ttl <= 300);
+  if(rotating) st = st.map((s, i) => s === 'bad' && PG.rows[i].values.length ? 'good' : s);
+  const answered = st.filter(s => s !== 'err' && s !== 'loading').length;
+  const good = st.filter(s => s === 'good').length;
+  const empty = st.filter(s => s === 'empty').length;
+  const loadingN = st.filter(s => s === 'loading').length;
+  const complete = !loadingN && answered > 0 && (good === answered || empty === answered);
+  return {ref, st, answered, good, empty, loadingN, complete, rotating};
+}
+function flashTitle(){
+  const base = document.title; let n = 0;
+  const h = setInterval(() => { document.title = n++ % 2 ? base : '✓ Propagado · ' + PG.qname; if(n > 9){ clearInterval(h); document.title = base; } }, 800);
+}
+function pgSchedule(){
+  pgStop(true);
+  PG.next = Date.now() + 30000;
+  PG.timer = setInterval(() => {
+    const s = Math.max(0, Math.ceil((PG.next - Date.now()) / 1000));
+    $('#pg-count').textContent = `próxima verificação em ${s} s`;
+    if(s <= 0){ clearInterval(PG.timer); PG.timer = null; $('#pg-count').textContent = 'verificando…'; pgRun(); }
+  }, 250);
+}
+function pgStop(keepText){ if(PG.timer){ clearInterval(PG.timer); PG.timer = null; } if(!keepText && $('#pg-count')) $('#pg-count').textContent = ''; }
+
+const ST_LABEL = {good:'✓', bad:'✕', empty:'—', err:'!', loading:''};
+function pgRender(){
+  const {ref, st, answered, good, empty, loadingN, complete, rotating} = pgSummary();
+  const total = RESOLVERS.length;
+  // cada valor inteiro numa linha (IPs e nomes não quebram no meio); só textos longos quebram
+  const shown = v => v.length ? v.map(x => `<span class="${x.length > 40 ? 'v-long' : 'v1'}">${esc(x)}</span>`).join('') : '<span class="muted">sem registro</span>';
+  // resumo
+  let head, sub;
+  if(loadingN === total){ head = 'Consultando servidores…'; sub = ''; }
+  else if(PG.expect){ head = `${good} de ${answered} servidores já mostram o valor esperado`; sub = complete ? 'Propagação completa.' : loadingN ? 'Ainda chegando respostas…' : 'Os que ainda não mostram estão com o valor antigo no cache.'; }
+  else if(rotating && !loadingN){ head = `IPs em rodízio: ${answered} de ${answered} servidores responderam`; sub = 'O provedor entrega IPs diferentes a cada consulta (balanceamento de carga), então as respostas não batem entre si, e isso é normal. Para acompanhar uma migração, preencha o valor esperado com o IP novo.'; }
+  else if(empty === answered && answered){ head = `Nenhum servidor encontrou registro ${PG.type}`; sub = `O nome ${PG.qname} não tem registro ${PG.type}.`; }
+  else { head = `${good} de ${answered} servidores dão a mesma resposta`; sub = complete ? 'Tudo igual no mundo todo.' : loadingN ? 'Ainda chegando respostas…' : 'Quem está diferente ainda tem o valor antigo no cache, ou o provedor usa IPs diferentes por região.'; }
+  const pct = answered ? Math.round((PG.expect || empty !== answered ? good : answered) / total * 100) : 0;
+  $('#pg-summary').innerHTML = `<div class="pg-sum ${complete ? 'is-done' : ''}">
+    <div class="pg-sum-top"><b>${esc(head)}</b>${PG.at && !PG.running ? `<span class="small muted">verificado às ${PG.at.toLocaleTimeString('pt-BR')}</span>` : ''}</div>
+    <div class="pg-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></div>
+    ${sub ? `<div class="small muted">${esc(sub)}</div>` : ''}
+    ${ref && !PG.expect && !rotating ? `<div class="small muted">Resposta mais comum: <span class="mono">${ref.split('|').map(esc).join(', ')}</span></div>` : ''}
+  </div>`;
+  // tabela de servidores
+  const row = (label, where, cc, x, s) => `<tr class="pg-row s-${s}">
+    <td class="pg-st"><span class="pg-dot" title="${{good:'Resposta igual',bad:'Resposta diferente',empty:'Sem registro',err:'Erro',loading:'Consultando'}[s]}">${ST_LABEL[s]}</span></td>
+    <td><b>${esc(label)}</b><div class="small muted"><span class="cc">${cc}</span> ${esc(where)}</div></td>
+    <td class="val">${s === 'loading' ? '<span class="loading">consultando</span>' : s === 'err' ? `<span class="muted">sem resposta (${esc(x.err)})</span>` : shown(x.values)}</td>
+    <td class="ttl">${x.ttl != null ? ttl(x.ttl) : ''}${x.ms ? `<div>${x.ms} ms</div>` : ''}</td></tr>`;
+  const regRef = ref;
+  $('#pg-results').innerHTML = `
+    <div class="dg-sub">Servidores DNS públicos</div>
+    <div class="tbl-wrap"><table class="pg-tbl"><tbody>${PG.rows.map((x, i) => row(x.r.name, x.r.where, x.r.cc, x, st[i])).join('')}</tbody></table></div>
+    <div class="dg-sub">Por região <span class="muted">· o que o Google responde para quem está em cada cidade (útil para CDN e DNS geográfico)</span></div>
+    <div class="tbl-wrap"><table class="pg-tbl"><tbody>${PG.regions.map(x => { let s = rowStatus(x, regRef); if(rotating && s === 'bad' && x.values?.length) s = 'good'; return row(x.g.name, 'via Google', x.g.cc, x, s); }).join('')}</tbody></table></div>
+    <div class="small muted">TTL é quanto tempo cada servidor ainda guarda a resposta atual antes de buscar de novo. Quando todos os TTLs zerarem, o valor novo aparece em todo lugar.</div>`;
+  // selo na aba
+  const tbp = $('#tb-prop');
+  const bad = st.filter(s => s === 'bad').length;
+  if(!loadingN){ tbp.textContent = bad ? String(bad) : ''; tbp.classList.toggle('alert', !!bad); }
 }
 
 function renderRaw(){
@@ -1223,7 +1492,6 @@ async function run(input, opts = {}){
   setBody('c-dns', loading('Resolvendo A, AAAA, MX, NS, TXT, SOA, CAA…'));
   setBody('c-host', loading('Aguardando DNS…'));
   setBody('c-mail', loading('Aguardando DNS…'));
-  setBody('c-prop', loading('Aguardando DNS…'));
   setBody('c-raw', loading('Aguardando respostas…'));
   renderSummary();
   const t0 = performance.now();
@@ -1271,6 +1539,7 @@ $('#clear').addEventListener('click', e => {
 });
 function goHome(){
   runId++; S = null;
+  pgStop(); PG.runId++; if($('#pg-auto')) $('#pg-auto').checked = false;
   $('#col').classList.add('empty'); $('#col').classList.remove('has-result');
   $('#go').disabled = false;
   try{ history.replaceState(null, '', location.pathname + location.search); }catch{}
