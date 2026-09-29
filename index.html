@@ -106,6 +106,25 @@ section{scroll-margin-top:72px}
 .pv-note{position:absolute;left:4px;bottom:0;margin:0;font-size:12px;color:var(--ash)}
 @media (max-width:920px){.pv-note{position:static}}
 
+/* faixa de benefícios: conteúdo em loop contínuo (lista duplicada, desliza metade da largura) */
+.ticker{border-block:1px solid var(--hair);background:var(--paper);overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.ticker-track{display:flex;width:max-content;animation:ticker 38s linear infinite}
+.ticker:hover .ticker-track{animation-play-state:paused}
+.ticker-list{display:flex;margin:0;padding:0;list-style:none;flex:none}
+.ticker-list li{display:flex;align-items:baseline;gap:10px;padding:22px 28px;font-size:16px;color:var(--graphite);white-space:nowrap}
+.ticker-list li::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--teal);margin-left:28px;align-self:center}
+.ticker-list b{font-size:26px;font-weight:700;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
+@keyframes ticker{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){
+  .ticker{-webkit-mask-image:none;mask-image:none}
+  .ticker-track{animation:none;width:auto;justify-content:center}
+  .ticker-list{flex-wrap:wrap;justify-content:center}
+  .ticker-list[aria-hidden]{display:none}
+  .ticker-list li{padding:14px 20px}
+}
+@media (max-width:560px){.ticker-list li{padding:16px 20px;font-size:15px}.ticker-list li::after{margin-left:20px}.ticker-list b{font-size:22px}}
+
 /* números */
 .stats{border-block:1px solid var(--hair);background:var(--paper)}
 .stats-in{display:grid;grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -299,13 +318,19 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     </div>
   </section>
 
-  <!-- números -->
-  <section class="stats" aria-label="Em números">
-    <div class="wrap stats-in">
-      <div class="stat"><b>11</b><span>servidores DNS checados no mundo</span></div>
-      <div class="stat"><b>4</b><span>formatos de imagem, incluindo AVIF</span></div>
-      <div class="stat"><b>0</b><span>arquivos enviados para servidor</span></div>
-      <div class="stat"><b>R$ 0</b><span>para usar, sem cadastro</span></div>
+  <!-- faixa de benefícios rolando -->
+  <section class="ticker" aria-label="Benefícios">
+    <div class="ticker-track">
+      <ul class="ticker-list">
+        <li><b>11</b> servidores DNS checados no mundo</li>
+        <li><b>4</b> formatos de imagem, incluindo AVIF</li>
+        <li><b>0</b> arquivos enviados para servidor</li>
+        <li><b>R$ 0</b> para usar, sem cadastro</li>
+        <li><b>Sem limite</b> de uso</li>
+        <li><b>HEIC</b> do iPhone aceito</li>
+        <li><b>Funciona</b> no celular</li>
+      </ul>
+      <ul class="ticker-list" aria-hidden="true"></ul>
     </div>
   </section>
 
@@ -439,6 +464,9 @@ themeBtn.addEventListener('click', () => {
   syncThemeBtn();
 });
 syncThemeBtn();
+// faixa de benefícios: a segunda cópia da lista fecha o loop sem emenda
+const tick = document.querySelectorAll('.ticker-list');
+if(tick.length === 2) tick[1].innerHTML = tick[0].innerHTML;
 // grifo das palavras-chave: desenha quando o título aparece na tela
 const hls = document.querySelectorAll('.hl');
 if('IntersectionObserver' in window){
