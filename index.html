@@ -52,9 +52,13 @@ section{scroll-margin-top:72px}
 }
 
 /* hero */
-.hero{padding-block:56px 40px}
-.hero-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:40px;align-items:center}
+.hero{padding-block:56px 40px;overflow:hidden}
+.hero-grid{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:32px;align-items:center}
 @media (max-width:920px){.hero-grid{grid-template-columns:minmax(0,1fr);gap:40px}}
+/* no desktop o notebook cresce para a direita, ocupando a margem até a borda da tela (sem cortar a tela dele) */
+@media (min-width:921px){
+  .hero-mac{--bleed:clamp(16px, calc((100vw - 1120px) / 2 + 8px), 520px);width:calc(100% + var(--bleed));margin-right:calc(-1 * var(--bleed))}
+}
 .hero-copy{display:grid;gap:20px;align-content:start}
 .hero h1{margin:0;font-size:clamp(38px,5.4vw,62px);line-height:1.04;font-weight:700;letter-spacing:-.045em;text-wrap:balance}
 .hero h1 em{font-style:normal;color:var(--teal)}
@@ -83,9 +87,10 @@ section{scroll-margin-top:72px}
 .bw-bar{display:flex;align-items:center;gap:.6em;padding:.45em .8em;border-bottom:1px solid var(--hair)}
 .bw-url{flex:1;padding:.28em .9em;border-radius:1em;background:var(--paper);border:1px solid var(--hair);font:.78em var(--mono);color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bw-body{position:relative;overflow:hidden}
-.scene{position:absolute;inset:0;padding:1em 1.3em;display:grid;align-content:start;gap:.7em;opacity:0;transform:translateX(5%);transition:opacity .45s ease,transform .6s cubic-bezier(.2,.7,.2,1);pointer-events:none}
-.scene.on{opacity:1;transform:none}
-.scene.out{opacity:0;transform:translateX(-5%)}
+/* troca de aba: a cena antiga some rápido e só depois a nova entra, sem as duas se sobreporem */
+.scene{position:absolute;inset:0;padding:1em 1.3em;display:grid;align-content:start;gap:.7em;background:var(--parchment);opacity:0;visibility:hidden;transform:translateX(4%);transition:opacity .18s ease,transform .18s ease,visibility 0s linear .18s;pointer-events:none}
+.scene.on{opacity:1;visibility:visible;transform:none;transition:opacity .4s ease .16s,transform .55s cubic-bezier(.2,.7,.2,1) .16s,visibility 0s}
+.scene.out{transform:translateX(-4%)}
 .pop{opacity:0;transform:translateY(.6em);transition:opacity .4s ease,transform .5s cubic-bezier(.2,.7,.2,1)}
 .pop.in{opacity:1;transform:none}
 .d-search{display:flex;align-items:center;gap:.2em;padding:.3em .3em .3em .9em;border:1px solid var(--mist);border-radius:.7em;background:var(--parchment);box-shadow:0 0 0 1px rgba(var(--glow),.35),0 0 1.2em rgba(var(--glow),.1)}
