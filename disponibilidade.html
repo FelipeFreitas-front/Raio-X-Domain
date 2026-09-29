@@ -162,6 +162,7 @@
       <li><b>Preços das extensões internacionais:</b> tabela pública da <a href="https://porkbun.com/products/domains" target="_blank" rel="noopener">Porkbun</a>, em dólar, convertida pela cotação do dia (<a href="https://docs.awesomeapi.com.br/" target="_blank" rel="noopener">AwesomeAPI</a>). Outras registradoras cobram diferente e costumam ter promoção no primeiro ano.</li>
       <li><b>Preços .br:</b> valor oficial do <a href="https://registro.br/" target="_blank" rel="noopener">Registro.br</a> por ano.</li>
       <li><b>Domínios premium</b> (nomes curtos ou muito buscados) podem aparecer livres, mas custar bem mais que o preço de referência. O valor final é sempre o da registradora.</li>
+      <li><b>Registrar</b> leva para a <a href="https://www.hostinger.com/br/registro-de-dominio" target="_blank" rel="noopener">Hostinger</a>, já com o domínio buscado. Lá o preço pode ser outro: a Hostinger costuma dar desconto grande no primeiro ano em planos de 2 ou 3 anos.</li>
     </ul>
   </section>
 </main>
@@ -304,8 +305,11 @@ const STATUS = {
   unknown: '<span class="pill st">Não deu para verificar</span>',
 };
 const fmtDate = s => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleDateString('pt-BR', {month: 'short', year: 'numeric'}); };
-function buyUrl(domain, tld){
-  return isBr(tld) ? `https://registro.br/busca-dominio/?fqdn=${encodeURIComponent(domain)}` : `https://porkbun.com/checkout/search?q=${encodeURIComponent(domain)}`;
+// todos os botões "Registrar" levam para a busca de domínio da Hostinger, já com o domínio preenchido.
+// Para usar link de afiliado, coloque os parâmetros aqui (ex.: 'REFERRALCODE=seucodigo').
+const HOSTINGER_EXTRA = '';
+function buyUrl(domain){
+  return `https://www.hostinger.com/br/domain-name-results?domain=${encodeURIComponent(domain)}&from=domain-name-search${HOSTINGER_EXTRA ? '&' + HOSTINGER_EXTRA : ''}`;
 }
 function rowHTML(r){
   const free = r.state === 'free' || r.state === 'maybe';
@@ -315,7 +319,7 @@ function rowHTML(r){
   if(r.state === 'taken') price = `<span class="small muted">${r.registrar ? esc(r.registrar) : 'Já tem dono'}${r.expires ? ` · vence ${esc(fmtDate(r.expires))}` : ''}</span>`;
   if(r.state === 'load') price = '<span class="small muted">consultando o registro…</span>';
   let act = '';
-  if(free) act = `<a class="btn teal" href="${buyUrl(r.domain, r.tld)}" target="_blank" rel="noopener">Registrar ${isBr(r.tld) ? 'no Registro.br' : 'na Porkbun'} ↗</a>`;
+  if(free) act = `<a class="btn teal" href="${buyUrl(r.domain)}" target="_blank" rel="noopener">Registrar na Hostinger ↗</a>`;
   else if(r.state === 'taken') act = `<a class="ghost" href="raio-x.html#${encodeURIComponent(r.domain)}">Ver no Raio-X</a>`;
   const warn = free && p && p.ren > p.reg * 1.4 ? `<div class="warnline">Renovação ${Math.round((p.ren / p.reg - 1) * 100)}% mais cara que o primeiro ano.</div>` : '';
   return `<li class="row${free ? ' free' : ''}" data-state="${r.state}">

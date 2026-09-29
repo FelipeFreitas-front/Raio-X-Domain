@@ -16,7 +16,7 @@ Hub de ferramentas gratuitas para quem faz sites. Tudo roda no navegador: sem ca
 - Disponibilidade pelo RDAP oficial de cada extensão; sem RDAP, cai para o DNS e marca como "provavelmente livre"
 - Preço de registro e de renovação em reais: tabela pública da Porkbun (910 extensões, guardada 24 h) convertida pela cotação do dia (AwesomeAPI); `.br` pelo valor do Registro.br (constante `BR_PRICE` no arquivo)
 - Ordena pelo custo de manter (renovação) e avisa quando a renovação é bem mais cara que o primeiro ano
-- Sugere variações livres do nome e leva para registrar no Registro.br ou na Porkbun
+- Sugere variações livres do nome; o botão Registrar leva para a busca de domínio da Hostinger (constante `HOSTINGER_EXTRA` para link de afiliado)
 - Link direto: `disponibilidade.html#meusite`
 
 ## Raio-X de domínio
