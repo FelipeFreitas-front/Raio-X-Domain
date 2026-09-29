@@ -29,6 +29,15 @@
     setTimeout(() => { location.href = url.href; }, reduced ? 0 : 260);
   });
 
+  // topo: ganha sombra e fica mais compacto depois que a página rola
+  const bar = document.querySelector('.topbar');
+  if(bar){
+    let ticking = false;
+    const sync = () => { bar.classList.toggle('scrolled', scrollY > 8); ticking = false; };
+    addEventListener('scroll', () => { if(!ticking){ ticking = true; requestAnimationFrame(sync); } }, {passive: true});
+    sync();
+  }
+
   // entrada suave
   const SELECTOR = [
     '[data-reveal]', '.sec-head', '.tool', '.case', '.privacy', '.faq details', '.cta', '.ticker', 'footer.site',
