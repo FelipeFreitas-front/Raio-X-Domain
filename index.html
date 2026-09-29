@@ -106,24 +106,46 @@ section{scroll-margin-top:72px}
 .pv-note{position:absolute;left:4px;bottom:0;margin:0;font-size:12px;color:var(--ash)}
 @media (max-width:920px){.pv-note{position:static}}
 
-/* faixa de benefícios: conteúdo em loop contínuo (lista duplicada, desliza metade da largura) */
-.ticker{border-block:1px solid var(--hair);background:var(--paper);overflow:hidden;
-  -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
-.ticker-track{display:flex;width:max-content;animation:ticker 38s linear infinite}
-.ticker:hover .ticker-track{animation-play-state:paused}
-.ticker-list{display:flex;margin:0;padding:0;list-style:none;flex:none}
-.ticker-list li{display:flex;align-items:baseline;gap:10px;padding:22px 28px;font-size:16px;color:var(--graphite);white-space:nowrap}
-.ticker-list li::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--teal);margin-left:28px;align-self:center}
-.ticker-list b{font-size:26px;font-weight:700;letter-spacing:-.03em;color:var(--ink);font-variant-numeric:tabular-nums}
-@keyframes ticker{to{transform:translateX(-50%)}}
-@media (prefers-reduced-motion:reduce){
-  .ticker{-webkit-mask-image:none;mask-image:none}
-  .ticker-track{animation:none;width:auto;justify-content:center}
-  .ticker-list{flex-wrap:wrap;justify-content:center}
-  .ticker-list[aria-hidden]{display:none}
-  .ticker-list li{padding:14px 20px}
+/* faixas cruzadas: cada trilha tem a lista duas vezes e desliza metade da largura, sem emenda */
+.ticker{position:relative;overflow:hidden;padding-block:40px 52px}
+.band{position:relative;width:108%;margin-left:-4%;overflow:hidden}
+.band-a{z-index:2;background:var(--ink);color:var(--parchment);transform:rotate(-2deg);box-shadow:0 10px 30px rgba(0,0,0,.12)}
+.band-b{z-index:1;margin-top:-6px;background:var(--teal);color:var(--on-teal);transform:rotate(2.2deg)}
+.track{display:flex;width:max-content;animation:tick 42s linear infinite}
+.band-b .track{animation-duration:34s;animation-direction:reverse}
+.ticker:hover .track{animation-play-state:paused}
+.tlist{display:flex;align-items:center;margin:0;padding:0;list-style:none;flex:none}
+/* separador: estrelinha de 4 pontas, a mesma das ilustrações */
+.tlist li{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.tlist li::after{content:"";flex:none;width:14px;height:14px;margin:0 32px;background:currentColor;
+  clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%)}
+.band-a .tlist li{padding-block:22px;font-size:17px}
+.band-a .tlist li::after{background:var(--teal);width:18px;height:18px}
+.band-a .tlist li{color:rgba(250,248,245,.72)}
+:root[data-theme="dark"] .band-a .tlist li{color:rgba(23,22,19,.72)}
+.band-a b{font-size:28px;font-weight:700;letter-spacing:-.03em;color:var(--parchment);font-variant-numeric:tabular-nums}
+.ti{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--teal);flex:none}
+.ti svg{width:20px;height:20px;fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.band-b .tlist li{padding-block:12px;font:500 13px var(--mono);letter-spacing:.1em;text-transform:uppercase}
+.band-b .tlist li::after{width:10px;height:10px;margin:0 22px;opacity:.7}
+@keyframes tick{to{transform:translateX(-50%)}}
+@media (max-width:560px){
+  .ticker{padding-block:24px 32px}
+  .band-a .tlist li{padding-block:16px;font-size:15px}
+  .band-a b{font-size:22px}
+  .ti{width:32px;height:32px}.ti svg{width:17px;height:17px}
+  .tlist li::after{margin:0 22px}
+  .band-b{margin-top:-4px}
 }
-@media (max-width:560px){.ticker-list li{padding:16px 20px;font-size:15px}.ticker-list li::after{margin-left:20px}.ticker-list b{font-size:22px}}
+@media (prefers-reduced-motion:reduce){
+  .band{transform:none;width:auto;margin-left:0}
+  .band-b{display:none}
+  .track{animation:none;width:auto;justify-content:center}
+  .tlist{flex-wrap:wrap;justify-content:center;padding:8px 16px}
+  .tlist[aria-hidden]{display:none}
+  .tlist li::after{display:none}
+  .band-a .tlist li{padding:12px 18px}
+}
 
 /* números */
 .stats{border-block:1px solid var(--hair);background:var(--paper)}
@@ -318,19 +340,27 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     </div>
   </section>
 
-  <!-- faixa de benefícios rolando -->
+  <!-- faixas cruzadas: benefícios (escura) e palavras-chave (teal), rolando em sentidos opostos -->
   <section class="ticker" aria-label="Benefícios">
-    <div class="ticker-track">
-      <ul class="ticker-list">
-        <li><b>11</b> servidores DNS checados no mundo</li>
-        <li><b>4</b> formatos de imagem, incluindo AVIF</li>
-        <li><b>0</b> arquivos enviados para servidor</li>
-        <li><b>R$ 0</b> para usar, sem cadastro</li>
-        <li><b>Sem limite</b> de uso</li>
-        <li><b>HEIC</b> do iPhone aceito</li>
-        <li><b>Funciona</b> no celular</li>
-      </ul>
-      <ul class="ticker-list" aria-hidden="true"></ul>
+    <div class="band band-a">
+      <div class="track">
+        <ul class="tlist">
+          <li><span class="ti"><svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7"/><path d="M3 10h14M10 3c-2 2-3 4.3-3 7s1 5 3 7M10 3c2 2 3 4.3 3 7s-1 5-3 7"/></svg></span><b>11</b> servidores DNS checados no mundo</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2.5"/><circle cx="7.5" cy="8.5" r="1.4"/><path d="M4 14l4-3.5 3 2.5 2-1.5 3 2.5"/></svg></span><b>4</b> formatos de imagem, incluindo AVIF</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="4.5" y="9" width="11" height="8" rx="2"/><path d="M7 9V6.8a3 3 0 0 1 6 0V9"/></svg></span><b>0</b> arquivos enviados para servidor</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><path d="M3 10.5V4h6.5l7.5 7.5-6.5 6.5z"/><circle cx="7" cy="7.5" r="1.2"/></svg></span><b>R$ 0</b> para usar, sem cadastro</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><path d="M6.5 7c-2 0-3.5 1.4-3.5 3s1.5 3 3.5 3c3 0 4-6 7-6 2 0 3.5 1.4 3.5 3s-1.5 3-3.5 3c-3 0-4-6-7-6z"/></svg></span><b>Sem limite</b> de uso</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="2.5" y="6" width="15" height="10.5" rx="2.5"/><path d="M7 6l1.3-2h3.4L13 6"/><circle cx="10" cy="11.2" r="2.8"/></svg></span><b>HEIC</b> do iPhone aceito</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="6" y="2.5" width="8" height="15" rx="2"/><path d="M9 15h2"/></svg></span><b>Funciona</b> no celular</li>
+        </ul>
+      </div>
+    </div>
+    <div class="band band-b" aria-hidden="true">
+      <div class="track">
+        <ul class="tlist">
+          <li>WHOIS</li><li>DNS</li><li>Propagação</li><li>SPF · DMARC · DKIM</li><li>Hospedagem</li><li>WebP</li><li>AVIF</li><li>Favicon</li><li>&lt;picture&gt;</li><li>Marca d'água</li><li>HEIC</li>
+        </ul>
+      </div>
     </div>
   </section>
 
@@ -464,9 +494,12 @@ themeBtn.addEventListener('click', () => {
   syncThemeBtn();
 });
 syncThemeBtn();
-// faixa de benefícios: a segunda cópia da lista fecha o loop sem emenda
-const tick = document.querySelectorAll('.ticker-list');
-if(tick.length === 2) tick[1].innerHTML = tick[0].innerHTML;
+// faixas: duplica cada lista para o loop fechar sem emenda
+document.querySelectorAll('.track').forEach(tr => {
+  const ul = tr.querySelector('.tlist'), copy = ul.cloneNode(true);
+  copy.setAttribute('aria-hidden', 'true');
+  tr.appendChild(copy);
+});
 // grifo das palavras-chave: desenha quando o título aparece na tela
 const hls = document.querySelectorAll('.hl');
 if('IntersectionObserver' in window){
