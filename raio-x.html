@@ -779,7 +779,7 @@ function renderReg(){
     const nf = S.rdapErr.notFound;
     $('#reg-src').textContent = '';
     setBody('c-reg', nf
-      ? `<div class="check"><span class="pill ok">livre?</span><div><b>Nenhum registro encontrado</b><div class="small muted">O registro da extensão respondeu 404. O domínio pode estar disponível para compra.</div></div></div>`
+      ? `<div class="check"><span class="pill ok">livre?</span><div><b>Nenhum registro encontrado</b><div class="small muted">O registro da extensão respondeu 404. O domínio pode estar disponível para compra.</div><a class="small" href="disponibilidade.html#${encodeURIComponent(S.domain)}">Ver preço e outras extensões livres</a></div></div>`
       : `<div class="err">Não consegui ler o WHOIS/RDAP (${esc(S.rdapErr.message)}). Algumas extensões não têm RDAP público ou bloqueiam consultas do navegador.</div>
          <div class="small muted">Tente em <a href="https://rdap.org/domain/${esc(S.domain)}" target="_blank" rel="noopener">rdap.org</a> ou <a href="https://lookup.icann.org/pt/lookup?name=${esc(S.domain)}" target="_blank" rel="noopener">lookup.icann.org</a>.</div>`);
     return;

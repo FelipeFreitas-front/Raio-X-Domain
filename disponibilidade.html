@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Disponibilidade de Domínio</title>
+<meta name="description" content="Veja se um domínio está livre em várias extensões ao mesmo tempo (.com.br, .com, .dev, .io e outras), com preço de registro e renovação em reais.">
+<script>
+  (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
+    if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add('pl-on'); })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 12.5V4h8.5L21 13.5 13.5 21z' stroke='%2327251e'/%3E%3Cpath d='M8 12.5l2.5 2.5L15 10.5' stroke='%23016a71'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/motion.css">
+<style>
+/* Layout: coluna central de 900px. Busca grande no topo, extensões em chips, resumo e a lista de resultados (livres primeiro, do mais barato). */
+.dv{max-width:900px;margin:0 auto;padding:40px 16px 72px;display:grid;gap:24px}
+.dv-head{display:grid;gap:10px;justify-items:center;text-align:center}
+.dv-head h1{margin:0;font-size:clamp(30px,4.4vw,44px);line-height:1.1;font-weight:700;letter-spacing:-.035em;text-wrap:balance}
+.dv-head p{margin:0;max-width:58ch;color:var(--graphite);font-size:16px;line-height:1.55}
+.dv-search{display:flex;gap:8px;padding:8px 8px 8px 18px;background:var(--parchment);border:1px solid var(--mist);border-radius:var(--r-input);box-shadow:0 0 0 1px rgba(var(--glow),.4),0 0 24px rgba(var(--glow),.10)}
+.dv-search:focus-within{box-shadow:0 0 0 2px rgba(var(--glow),.55),0 0 28px rgba(var(--glow),.16)}
+.dv-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 18px var(--font);outline:none}
+.dv-search input::placeholder{color:var(--graphite)}
+.dv-search .btn{height:46px;padding:0 20px}
+.exts{display:grid;gap:10px}
+.exts-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--graphite)}
+.exts-h button{border:0;background:none;padding:0;color:var(--graphite);font:400 13px var(--font);text-decoration:underline;text-decoration-color:var(--mist);text-underline-offset:3px;cursor:pointer}
+.exts-h button:hover{color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{position:relative}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip span{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-pill);font:500 13px var(--mono);color:var(--graphite);cursor:pointer;transition:background-color .15s,color .15s,border-color .15s}
+.chip input:checked + span{background:var(--ink);border-color:var(--ink);color:var(--parchment)}
+.chip input:focus-visible + span{outline:2px solid var(--teal);outline-offset:2px}
+.addext{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px 0 12px;border:1px dashed var(--mist);border-radius:var(--r-pill)}
+.addext input{width:84px;border:0;background:transparent;color:var(--ink);font:500 13px var(--mono);outline:none}
+.addext button{height:24px;padding:0 8px;border:0;border-radius:var(--r-pill);background:var(--parchment);color:var(--graphite);font:500 12px var(--font);cursor:pointer}
+
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:640px){.summary{grid-template-columns:minmax(0,1fr)}}
+.sum{padding:16px;background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);display:grid;gap:4px;min-width:0}
+.sum .k{font-size:13px;color:var(--graphite)}
+.sum .v{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.2;overflow-wrap:anywhere}
+.sum .d{font-size:13px;color:var(--graphite)}
+
+.bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.filters{display:flex;gap:4px;padding:3px;border:1px solid var(--hair);border-radius:var(--r-pill);background:var(--parchment)}
+.filters button{height:30px;padding:0 14px;border:0;border-radius:var(--r-pill);background:transparent;color:var(--graphite);font:500 13px var(--font);cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--teal);color:var(--on-teal)}
+.bar .note{font-size:12px;color:var(--ash)}
+
+.results{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.row{display:grid;grid-template-columns:minmax(0,1.3fr) auto minmax(0,1.2fr) auto;gap:8px 16px;align-items:center;padding:14px 16px;background:var(--paper);border:1px solid var(--hair);border-radius:var(--r-input);animation:rowin .35s ease both}
+@keyframes rowin{from{transform:translateY(6px)}to{transform:none}}
+@media (prefers-reduced-motion:reduce){.row{animation:none}}
+.row.free{border-color:color-mix(in srgb, var(--teal) 35%, var(--hair))}
+.row .name{font:500 16px var(--mono);overflow-wrap:anywhere}
+.row .name small{display:block;font:400 12px var(--font);color:var(--graphite);margin-top:2px}
+.row .price{font-size:14px;line-height:1.4}
+.row .price b{font-size:17px;font-weight:700}
+.row .price small{display:block;font-size:12px;color:var(--graphite)}
+.row .act{justify-self:end}
+.row .act .btn{height:36px;padding:0 14px;font-size:13px}
+.row .act .ghost{height:36px}
+.st{justify-self:start}
+.pill.load{border-color:var(--mist);color:var(--graphite)}
+.pill.load::before{content:"";width:8px;height:8px;margin-right:6px;border-radius:50%;border:1.5px solid var(--mist);border-top-color:var(--teal);animation:spin .8s linear infinite}
+.warnline{grid-column:1/-1;font-size:12px;color:var(--ink);display:flex;align-items:center;gap:6px}
+.warnline::before{content:"!";display:inline-grid;place-items:center;width:16px;height:16px;border-radius:50%;background:var(--ink);color:var(--parchment);font:700 10px var(--font)}
+@media (max-width:640px){
+  .row{grid-template-columns:minmax(0,1fr) auto}
+  .row .price{grid-column:1/-1}
+  .row .act{grid-column:1/-1;justify-self:stretch}
+  .row .act .btn,.row .act .ghost{width:100%;justify-content:center}
+}
+.empty{padding:40px 16px;text-align:center;color:var(--graphite);background:var(--paper);border-radius:var(--r-card);border:1px dashed var(--mist)}
+.sugg h2,.sources h2{margin:0 0 10px;font-size:18px;font-weight:700;letter-spacing:-.01em}
+.sugg-list{display:flex;flex-wrap:wrap;gap:8px}
+.sg{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 6px 0 12px;border:1px solid var(--hair);border-radius:var(--r-pill);background:var(--paper);font:500 13px var(--mono);color:var(--ink);text-decoration:none}
+.sg .pill{font-family:var(--font)}
+.sg:hover{border-color:var(--mist)}
+.sources{padding:16px 18px;border-radius:var(--r-card);background:var(--paper);border:1px solid var(--hair);font-size:13px;color:var(--graphite);line-height:1.6}
+.sources ul{margin:0;padding-left:18px;display:grid;gap:4px}
+.sources a{color:var(--graphite)}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="hub-brand wk" href="./" aria-label="webkit, página inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
+    <nav class="topnav" aria-label="Ferramentas">
+      <a href="raio-x.html"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.2"/><path d="M1.8 7h10.4M7 1.8c-1.5 1.4-2.2 3.1-2.2 5.2s.7 3.8 2.2 5.2M7 1.8c1.5 1.4 2.2 3.1 2.2 5.2s-.7 3.8-2.2 5.2M10.8 10.8l3.4 3.4"/></svg>Raio-X<span class="nav-long"> de domínio</span></a>
+      <a href="disponibilidade.html" aria-current="page"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.3V2.5h5.8L14 8.7 8.7 14z"/><path d="M5.2 8l1.8 1.8 3.2-3.2"/></svg>Domínio<span class="nav-long"> livre?</span></a>
+      <a href="conversor.html"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="2"/><circle cx="5.5" cy="6.3" r="1.1"/><path d="M2.5 12l3.4-3 2.6 2.1 1.8-1.4 3.2 2.6"/></svg>Conversor<span class="nav-long"> de imagens</span></a>
+    </nav>
+    <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
+      <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
+      <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="dv">
+  <section class="dv-head" data-reveal>
+    <h1>Esse domínio está livre?</h1>
+    <p>Digite o nome e veja na hora em quais extensões ele está livre, quanto custa registrar e quanto custa renovar.</p>
+  </section>
+
+  <form class="dv-search" id="f" autocomplete="off" role="search" data-reveal>
+    <label for="q" hidden>Nome ou domínio</label>
+    <input id="q" placeholder="ex.: goldlinepainting ou meusite.com.br" spellcheck="false" autocapitalize="off" inputmode="url">
+    <button class="btn" id="go" type="submit">Verificar</button>
+  </form>
+
+  <section class="exts" aria-label="Extensões verificadas" data-reveal>
+    <div class="exts-h"><span>Extensões verificadas</span><span><button type="button" id="all">Marcar todas</button> · <button type="button" id="popular">Só as principais</button></span></div>
+    <div class="chips" id="chips"></div>
+  </section>
+
+  <section class="summary" id="summary" hidden aria-live="polite"></section>
+
+  <div class="bar" id="bar" hidden>
+    <div class="filters" role="group" aria-label="Filtrar">
+      <button type="button" data-f="all" aria-pressed="true">Todas</button>
+      <button type="button" data-f="free" aria-pressed="false">Livres</button>
+      <button type="button" data-f="taken" aria-pressed="false">Registradas</button>
+    </div>
+    <span class="note" id="fxnote"></span>
+  </div>
+
+  <ul class="results" id="results" aria-live="polite"></ul>
+
+  <section class="sugg" id="sugg" hidden>
+    <h2>Outras ideias de nome</h2>
+    <div class="sugg-list" id="sugg-list"></div>
+  </section>
+
+  <section class="sources" data-reveal>
+    <h2>De onde vêm os dados</h2>
+    <ul>
+      <li><b>Disponibilidade:</b> consulta direta ao registro oficial de cada extensão (RDAP). Quando a extensão não oferece isso, usamos o DNS público e marcamos como “provavelmente livre”.</li>
+      <li><b>Preços das extensões internacionais:</b> tabela pública da <a href="https://porkbun.com/products/domains" target="_blank" rel="noopener">Porkbun</a>, em dólar, convertida pela cotação do dia (<a href="https://docs.awesomeapi.com.br/" target="_blank" rel="noopener">AwesomeAPI</a>). Outras registradoras cobram diferente e costumam ter promoção no primeiro ano.</li>
+      <li><b>Preços .br:</b> valor oficial do <a href="https://registro.br/" target="_blank" rel="noopener">Registro.br</a> por ano.</li>
+      <li><b>Domínios premium</b> (nomes curtos ou muito buscados) podem aparecer livres, mas custar bem mais que o preço de referência. O valor final é sempre o da registradora.</li>
+    </ul>
+  </section>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2400); }
+const brl = new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'});
+const store = (k, v) => { try{ if(v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); }catch{ return null; } };
+
+// Extensões oferecidas. As "principais" vêm marcadas.
+const EXTS = ['com.br', 'com', 'net.br', 'net', 'app', 'dev', 'io', 'site', 'online', 'store', 'tech', 'co', 'org', 'shop', 'xyz', 'ai', 'digital', 'blog'];
+const POPULAR = ['com.br', 'com', 'net.br', 'net', 'app', 'dev', 'io', 'site', 'online', 'store'];
+// Preço oficial do Registro.br por ano (R$). Atualizar aqui se o Registro.br mudar a tabela.
+const BR_PRICE = 40;
+const isBr = tld => /(^|\.)br$/.test(tld);
+
+async function fetchJSON(url, opts = {}, ms = 12000){
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try{
+    const r = await fetch(url, {...opts, signal: c.signal});
+    const e = new Error('HTTP ' + r.status); e.status = r.status;
+    if(!r.ok) throw e;
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+
+/* ---------- preços ---------- */
+// Tabela da Porkbun (US$), guardada 24 h; cotação do dólar guardada 6 h
+async function loadPrices(){
+  const c = store('dv-prices');
+  if(c && Date.now() - c.ts < 864e5) return c.p;
+  const j = await fetchJSON('https://api.porkbun.com/api/json/v3/pricing/get', {method: 'POST', body: '{}', headers: {'content-type': 'text/plain'}}, 30000);
+  const p = {};
+  for(const [tld, v] of Object.entries(j.pricing || {})) p[tld] = [+v.registration, +v.renewal];
+  store('dv-prices', {ts: Date.now(), p});
+  return p;
+}
+async function loadRate(){
+  const c = store('dv-fx');
+  if(c && Date.now() - c.ts < 6 * 36e5) return c;
+  const j = await fetchJSON('https://economia.awesomeapi.com.br/json/last/USD-BRL', {}, 10000);
+  const fx = {ts: Date.now(), rate: +j.USDBRL.bid};
+  store('dv-fx', fx);
+  return fx;
+}
+let PRICES = null, FX = null;
+const pricesReady = Promise.all([loadPrices().catch(() => null), loadRate().catch(() => null)]).then(([p, fx]) => { PRICES = p; FX = fx; });
+// preço em R$ de uma extensão: {reg, ren, usd:[reg,ren]} ou null
+function priceOf(tld){
+  if(isBr(tld)) return {reg: BR_PRICE, ren: BR_PRICE, src: 'Registro.br'};
+  const p = PRICES?.[tld];
+  if(!p || !FX) return null;
+  return {reg: p[0] * FX.rate, ren: p[1] * FX.rate, usd: p, src: 'Porkbun'};
+}
+
+/* ---------- disponibilidade ---------- */
+// RDAP: 404 = não existe no registro (livre); 200 = registrado. Sem RDAP, cai para o DNS.
+async function bootstrap(){
+  const c = store('rx-rdap-boot');
+  if(c && Date.now() - c.ts < 7 * 864e5) return c.data;
+  const data = await fetchJSON('https://data.iana.org/rdap/dns.json', {}, 10000);
+  store('rx-rdap-boot', {ts: Date.now(), data});
+  return data;
+}
+const bootReady = bootstrap().catch(() => null);
+function rdapBase(boot, domain){
+  const tld = domain.split('.').pop();
+  for(const [tlds, urls] of boot?.services || []) if(tlds.includes(tld)) return urls.find(u => u.startsWith('https')) || urls[0];
+  return null;
+}
+function vcardName(ent){ for(const [k, , , v] of ent?.vcardArray?.[1] || []) if(k === 'fn') return v; return ent?.handle; }
+async function check(domain){
+  const boot = await bootReady, base = rdapBase(boot, domain);
+  if(base){
+    try{
+      const d = await fetchJSON(base.replace(/\/?$/, '/') + 'domain/' + domain, {headers: {accept: 'application/rdap+json'}}, 12000);
+      const ents = []; (function walk(l){ for(const e of l || []){ ents.push(e); walk(e.entities); } })(d.entities);
+      const reg = ents.find(e => (e.roles || []).includes('registrar'));
+      const exp = (d.events || []).find(e => e.eventAction === 'expiration')?.eventDate;
+      return {state: 'taken', registrar: reg ? vcardName(reg) : isBr(domain.split('.').slice(-2).join('.')) ? 'Registro.br' : null, expires: exp, how: 'rdap'};
+    }catch(e){
+      if(e.status === 404) return {state: 'free', how: 'rdap'};
+      // outros erros (limite de consultas, fora do ar): tenta pelo DNS
+    }
+  }
+  try{
+    const j = await fetchJSON(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=NS`, {headers: {accept: 'application/dns-json'}}, 8000);
+    if(j.Status === 3) return {state: 'maybe', how: 'dns'};
+    if((j.Answer || []).length || j.Status === 0) return {state: 'taken', how: 'dns'};
+  }catch{}
+  return {state: 'unknown'};
+}
+
+/* ---------- entrada ---------- */
+function parseInput(raw){
+  let s = (raw || '').trim().toLowerCase();
+  if(!s) return null;
+  s = s.replace(/^[a-z]+:\/\//, '').replace(/^[^@\/]*@/, '').replace(/[\/?#:].*$/, '').replace(/^www\./, '').replace(/\.$/, '');
+  try{ s = new URL('http://' + s).hostname; }catch{ return null; }
+  // separa o nome da extensão: tenta as extensões conhecidas (as de 2 níveis primeiro)
+  const known = [...EXTS, ...customExts()].sort((a, b) => b.length - a.length);
+  let base = s, ext = null;
+  for(const e of known) if(s.endsWith('.' + e)){ base = s.slice(0, -e.length - 1); ext = e; break; }
+  if(!ext && s.includes('.')){ const parts = s.split('.'); ext = parts.pop(); base = parts.join('.'); }
+  base = base.split('.').pop();
+  if(!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(base) && !/^xn--/.test(base)) return null;
+  return {base, ext};
+}
+const customExts = () => store('dv-custom') || [];
+
+/* ---------- tela ---------- */
+function renderChips(){
+  const sel = new Set(store('dv-sel') || POPULAR);
+  const all = [...EXTS, ...customExts().filter(e => !EXTS.includes(e))];
+  $('#chips').innerHTML = all.map(e => `<label class="chip"><input type="checkbox" value="${esc(e)}"${sel.has(e) ? ' checked' : ''}><span>.${esc(e)}</span></label>`).join('') +
+    `<span class="addext"><input id="newext" placeholder=".outra" aria-label="Adicionar extensão" spellcheck="false" autocapitalize="off"><button type="button" id="addext">Adicionar</button></span>`;
+}
+const selected = () => [...document.querySelectorAll('#chips input[type=checkbox]:checked')].map(i => i.value);
+function saveSel(){ store('dv-sel', selected()); }
+
+let run = 0, rows = [], filter = 'all', current = null;
+const STATUS = {
+  load:    '<span class="pill load st">verificando</span>',
+  free:    '<span class="pill ok st">Livre</span>',
+  maybe:   '<span class="pill ok st">Provavelmente livre</span>',
+  taken:   '<span class="pill bad st">Registrado</span>',
+  unknown: '<span class="pill st">Não deu para verificar</span>',
+};
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? '' : d.toLocaleDateString('pt-BR', {month: 'short', year: 'numeric'}); };
+function buyUrl(domain, tld){
+  return isBr(tld) ? `https://registro.br/busca-dominio/?fqdn=${encodeURIComponent(domain)}` : `https://porkbun.com/checkout/search?q=${encodeURIComponent(domain)}`;
+}
+function rowHTML(r){
+  const free = r.state === 'free' || r.state === 'maybe';
+  const p = priceOf(r.tld);
+  let price = '<span class="muted small">sem preço de referência</span>';
+  if(p) price = `<b>${brl.format(p.reg)}</b>/ano<small>renova por ${brl.format(p.ren)}/ano${p.usd ? ` · US$ ${p.usd[0].toFixed(2).replace('.', ',')}` : ''}</small>`;
+  if(r.state === 'taken') price = `<span class="small muted">${r.registrar ? esc(r.registrar) : 'Já tem dono'}${r.expires ? ` · vence ${esc(fmtDate(r.expires))}` : ''}</span>`;
+  if(r.state === 'load') price = '<span class="small muted">consultando o registro…</span>';
+  let act = '';
+  if(free) act = `<a class="btn teal" href="${buyUrl(r.domain, r.tld)}" target="_blank" rel="noopener">Registrar ${isBr(r.tld) ? 'no Registro.br' : 'na Porkbun'} ↗</a>`;
+  else if(r.state === 'taken') act = `<a class="ghost" href="raio-x.html#${encodeURIComponent(r.domain)}">Ver no Raio-X</a>`;
+  const warn = free && p && p.ren > p.reg * 1.4 ? `<div class="warnline">Renovação ${Math.round((p.ren / p.reg - 1) * 100)}% mais cara que o primeiro ano.</div>` : '';
+  return `<li class="row${free ? ' free' : ''}" data-state="${r.state}">
+    <div class="name">${esc(r.domain)}<small>${r.state === 'maybe' ? 'sem consulta oficial para esta extensão; confira na registradora' : r.state === 'unknown' ? 'o registro não respondeu agora' : '.' + esc(r.tld)}</small></div>
+    ${STATUS[r.state]}
+    <div class="price">${price}</div>
+    <div class="act">${act}</div>${warn}
+  </li>`;
+}
+function sortRows(list){
+  const rank = {free: 0, maybe: 1, load: 2, unknown: 3, taken: 4};
+  // ordena pelo custo de manter (renovação), não pela promoção do primeiro ano
+  return [...list].sort((a, b) => rank[a.state] - rank[b.state] || (priceOf(a.tld)?.ren ?? 1e9) - (priceOf(b.tld)?.ren ?? 1e9) || (a.order - b.order));
+}
+function render(){
+  const list = sortRows(rows).filter(r => filter === 'all' || (filter === 'free' ? ['free', 'maybe'].includes(r.state) : r.state === 'taken'));
+  $('#results').innerHTML = list.length ? list.map(rowHTML).join('') : (rows.length ? '<li class="empty">Nada nesse filtro.</li>' : '');
+  // resumo
+  const done = rows.filter(r => r.state !== 'load'), free = rows.filter(r => ['free', 'maybe'].includes(r.state));
+  const cheapest = free.map(r => ({r, p: priceOf(r.tld)})).filter(x => x.p).sort((a, b) => a.p.ren - b.p.ren)[0];
+  const exact = current?.ext ? rows.find(r => r.tld === current.ext) : null;
+  $('#summary').hidden = !rows.length;
+  $('#summary').innerHTML = `
+    <div class="sum"><span class="k">${exact ? esc(exact.domain) : 'Livres'}</span><span class="v">${exact ? (exact.state === 'load' ? '…' : ['free', 'maybe'].includes(exact.state) ? 'Livre' : exact.state === 'taken' ? 'Registrado' : '?') : `${free.length} de ${rows.length}`}</span><span class="d">${exact ? 'o domínio que você digitou' : done.length < rows.length ? 'verificando as extensões…' : 'extensões livres'}</span></div>
+    <div class="sum"><span class="k">Mais barata para manter</span><span class="v">${cheapest ? '.' + esc(cheapest.r.tld) : done.length < rows.length ? '…' : '—'}</span><span class="d">${cheapest ? `${brl.format(cheapest.p.ren)}/ano na renovação` : 'nenhuma com preço'}</span></div>
+    <div class="sum"><span class="k">Registradas</span><span class="v">${rows.filter(r => r.state === 'taken').length}</span><span class="d">já têm dono</span></div>`;
+  $('#bar').hidden = !rows.length;
+  $('#fxnote').textContent = FX ? `Dólar a ${brl.format(FX.rate)} · preços de referência` : PRICES === null && rows.length ? 'carregando preços…' : '';
+}
+
+async function search(raw){
+  const parsed = parseInput(raw);
+  if(!parsed){ toast('Digite um nome válido: letras, números e hífen'); return; }
+  const id = ++run;
+  current = parsed;
+  let tlds = selected();
+  if(parsed.ext && !tlds.includes(parsed.ext)) tlds = [parsed.ext, ...tlds];
+  if(!tlds.length){ toast('Marque pelo menos uma extensão'); return; }
+  $('#q').value = parsed.ext ? `${parsed.base}.${parsed.ext}` : parsed.base;
+  try{ history.replaceState(null, '', '#' + encodeURIComponent($('#q').value)); }catch{}
+  rows = tlds.map((tld, order) => ({tld, order, domain: `${parsed.base}.${tld}`, state: 'load'}));
+  $('#go').disabled = true;
+  render();
+  pricesReady.then(() => { if(id === run) render(); });
+  // .br um por vez (o Registro.br limita consultas seguidas); as outras em paralelo
+  const doRow = async r => { const res = await check(r.domain); if(id !== run) return; Object.assign(r, res); render(); };
+  const br = rows.filter(r => isBr(r.tld)), other = rows.filter(r => !isBr(r.tld));
+  await Promise.all([Promise.all(other.map(doRow)), (async () => { for(const r of br){ await doRow(r); await new Promise(res => setTimeout(res, 250)); } })()]);
+  if(id !== run) return;
+  $('#go').disabled = false;
+  suggestions(parsed.base, id);
+}
+
+// variações do nome, checadas em .com.br e .com
+async function suggestions(base, id){
+  const vars = [...new Set([`${base}br`, `meu${base}`, `${base}oficial`, `${base}online`, base.endsWith('s') ? null : `${base}s`,
+    base.includes('-') ? base.replace(/-/g, '') : null].filter(v => v && v.length <= 63 && v !== base))].slice(0, 5);
+  const list = vars.flatMap(v => ['com.br', 'com'].map(tld => ({domain: `${v}.${tld}`, tld, state: 'load'})));
+  const box = $('#sugg-list');
+  const draw = () => {
+    const free = list.filter(s => ['free', 'maybe'].includes(s.state));
+    $('#sugg').hidden = !free.length && list.every(s => s.state !== 'load');
+    box.innerHTML = free.map(s => `<a class="sg" href="${buyUrl(s.domain, s.tld)}" target="_blank" rel="noopener">${esc(s.domain)} <span class="pill ok">Livre</span></a>`).join('')
+      || (list.some(s => s.state === 'load') ? '<span class="loading">procurando variações livres…</span>' : '');
+  };
+  $('#sugg').hidden = false; draw();
+  const other = list.filter(s => !isBr(s.tld)), br = list.filter(s => isBr(s.tld));
+  await Promise.all([Promise.all(other.map(async s => { Object.assign(s, await check(s.domain)); if(id === run) draw(); })),
+    (async () => { for(const s of br){ Object.assign(s, await check(s.domain)); if(id === run) draw(); await new Promise(r => setTimeout(r, 250)); } })()]);
+  if(id === run) draw();
+}
+
+/* ---------- eventos ---------- */
+$('#f').addEventListener('submit', e => { e.preventDefault(); search($('#q').value); });
+$('#chips').addEventListener('change', e => { if(e.target.matches('input[type=checkbox]')) saveSel(); });
+document.querySelector('.filters').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if(!b) return;
+  filter = b.dataset.f;
+  document.querySelectorAll('.filters button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  render();
+});
+$('#all').addEventListener('click', () => { document.querySelectorAll('#chips input[type=checkbox]').forEach(i => { i.checked = true; }); saveSel(); });
+$('#popular').addEventListener('click', () => { document.querySelectorAll('#chips input[type=checkbox]').forEach(i => { i.checked = POPULAR.includes(i.value); }); saveSel(); });
+$('#chips').addEventListener('click', e => {
+  if(e.target.id !== 'addext') return;
+  const v = $('#newext').value.trim().toLowerCase().replace(/^\./, '');
+  if(!/^[a-z0-9-]{2,24}(\.[a-z]{2,6})?$/.test(v)){ toast('Extensão inválida, ex.: .blog ou .art.br'); return; }
+  const c = customExts(); if(!c.includes(v) && !EXTS.includes(v)) store('dv-custom', [...c, v]);
+  const sel = new Set(selected()); sel.add(v); store('dv-sel', [...sel]);
+  renderChips();
+});
+$('#chips').addEventListener('keydown', e => { if(e.target.id === 'newext' && e.key === 'Enter'){ e.preventDefault(); $('#addext').click(); } });
+
+// tema
+const themeBtn = $('#theme');
+function syncThemeBtn(){ const dark = document.documentElement.dataset.theme === 'dark'; const l = dark ? 'Ativar modo claro' : 'Ativar modo escuro'; themeBtn.setAttribute('aria-label', l); themeBtn.title = l; }
+themeBtn.addEventListener('click', () => { const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next; try{ localStorage.setItem('rx-theme', next); }catch{} syncThemeBtn(); });
+syncThemeBtn();
+
+renderChips();
+// link direto: disponibilidade.html#nome
+const fromHash = () => decodeURIComponent(location.hash.slice(1));
+addEventListener('hashchange', () => { const v = fromHash(); if(v && v !== $('#q').value) search(v); });
+if(location.hash.length > 1) search(fromHash());
+else $('#q').focus();
+</script>
+<script src="assets/site.js"></script>
+</body>
+</html>

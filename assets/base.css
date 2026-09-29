@@ -67,6 +67,7 @@ button,input,select{font-family:inherit}
 /* menu dentro de uma pílula, com ícones */
 .topnav{padding:4px;background:var(--parchment);border:1px solid var(--hair);border-radius:var(--r-pill)}
 .topnav a{gap:8px;height:34px;padding:0 14px;font-weight:500;transition:background-color .2s,color .2s}
+.topnav a .nav-long{margin-left:calc(-8px + .28em)}
 .topnav a svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .topnav a:hover{background:var(--paper)}
 .topnav a[aria-current="page"]{box-shadow:0 2px 8px rgba(1,106,113,.25)}

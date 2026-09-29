@@ -302,6 +302,24 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
   .hero-mac{animation-delay:.2s}
   @keyframes rise{from{transform:translateY(18px)}to{transform:none}}
 }
+
+/* terceiro cartão, largo: prévia de resultado no lugar da ilustração */
+.tool-wide{grid-column:1/-1;min-height:0}
+.tool-wide > :not(.tool-art){max-width:50%}
+.tool-preview{top:50%;bottom:auto;right:32px;width:42%;aspect-ratio:auto;transform:translateY(-50%);display:grid;gap:8px}
+.tool-preview::before{display:none}
+.tp-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;background:var(--parchment);border:1px solid var(--hair);box-shadow:var(--shadow);transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+.tp-row b{font:500 13px var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tp-row i{font-style:normal}
+.tp-row em{font-style:normal;color:var(--graphite);font-size:12px;white-space:nowrap}
+.tool-wide:hover .tp-row:nth-child(odd){transform:translateX(-6px)}
+.tool-wide:hover .tp-row:nth-child(even){transform:translateX(6px)}
+@media (max-width:820px){
+  .tool-wide > :not(.tool-art){max-width:100%}
+  .tool-preview{position:static;transform:none;width:100%;margin-top:8px}
+  .tool-wide{padding-bottom:28px}
+}
+@media (prefers-reduced-motion:reduce){.tool-wide:hover .tp-row{transform:none}}
 </style>
 </head>
 <body>
@@ -310,6 +328,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <a class="hub-brand wk" href="./" aria-current="page" aria-label="webkit, pÃ¡gina inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
     <nav class="topnav" aria-label="Ferramentas">
       <a href="raio-x.html"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.2"/><path d="M1.8 7h10.4M7 1.8c-1.5 1.4-2.2 3.1-2.2 5.2s.7 3.8 2.2 5.2M7 1.8c1.5 1.4 2.2 3.1 2.2 5.2s-.7 3.8-2.2 5.2M10.8 10.8l3.4 3.4"/></svg>Raio-X<span class="nav-long"> de domínio</span></a>
+      <a href="disponibilidade.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.3V2.5h5.8L14 8.7 8.7 14z"/><path d="M5.2 8l1.8 1.8 3.2-3.2"/></svg>Domínio<span class="nav-long"> livre?</span></a>
       <a href="conversor.html"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="2"/><circle cx="5.5" cy="6.3" r="1.1"/><path d="M2.5 12l3.4-3 2.6 2.1 1.8-1.4 3.2 2.6"/></svg>Conversor<span class="nav-long"> de imagens</span></a>
     </nav>
     <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
@@ -387,6 +406,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
           <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="2.5"/><circle cx="7.5" cy="8.5" r="1.4"/><path d="M4 14l4-3.5 3 2.5 2-1.5 3 2.5"/></svg></span><b>4</b> formatos de imagem, incluindo AVIF</li>
           <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="4.5" y="9" width="11" height="8" rx="2"/><path d="M7 9V6.8a3 3 0 0 1 6 0V9"/></svg></span><b>0</b> arquivos enviados para servidor</li>
           <li><span class="ti"><svg viewBox="0 0 20 20"><path d="M3 10.5V4h6.5l7.5 7.5-6.5 6.5z"/><circle cx="7" cy="7.5" r="1.2"/></svg></span><b>R$ 0</b> para usar, sem cadastro</li>
+          <li><span class="ti"><svg viewBox="0 0 20 20"><path d="M3 10.5V4h6.5l7.5 7.5-6.5 6.5z"/><path d="M8 11l2 2 3.5-3.5"/></svg></span><b>910</b> extensões com preço</li>
           <li><span class="ti"><svg viewBox="0 0 20 20"><path d="M6.5 7c-2 0-3.5 1.4-3.5 3s1.5 3 3.5 3c3 0 4-6 7-6 2 0 3.5 1.4 3.5 3s-1.5 3-3.5 3c-3 0-4-6-7-6z"/></svg></span><b>Sem limite</b> de uso</li>
           <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="2.5" y="6" width="15" height="10.5" rx="2.5"/><path d="M7 6l1.3-2h3.4L13 6"/><circle cx="10" cy="11.2" r="2.8"/></svg></span><b>HEIC</b> do iPhone aceito</li>
           <li><span class="ti"><svg viewBox="0 0 20 20"><rect x="6" y="2.5" width="8" height="15" rx="2"/><path d="M9 15h2"/></svg></span><b>Funciona</b> no celular</li>
@@ -407,7 +427,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <div class="wrap">
       <div class="sec-head">
         <span class="kicker">Ferramentas</span>
-        <h2 class="h-sec">Duas ferramentas <span class="hl">completas</span>, sem aba de propaganda e sem “crie sua conta”.</h2>
+        <h2 class="h-sec">Três ferramentas <span class="hl">completas</span>, sem aba de propaganda e sem “crie sua conta”.</h2>
       </div>
       <div class="tools">
         <a class="tool" href="raio-x.html">
@@ -440,6 +460,26 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
           </ul>
           <span class="btn go">Abrir o conversor</span>
           <span class="tool-art" aria-hidden="true"><img src="assets/img/conversor-3d.webp" alt="" width="1024" height="1024" loading="lazy" decoding="async" onerror="this.parentNode.hidden=true;this.closest('.tool').classList.add('no-art')"></span>
+        </a>
+        <a class="tool tool-wide" href="disponibilidade.html">
+          <div class="tool-top">
+            <span class="tool-ico" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.5V4h10.5L24 13.5 13.5 24z" style="stroke:var(--ink)"/><circle cx="9" cy="9" r="1.6" style="stroke:var(--ink)"/><path d="M10.5 15l3 3 5-5" style="stroke:var(--teal)"/></svg></span>
+            <div><h3>Domínio livre?</h3><span class="tag">Disponibilidade · preço · renovação</span></div>
+          </div>
+          <p>Digite um nome e veja em quais extensões ele está livre, quanto custa registrar e quanto custa manter por ano.</p>
+          <ul class="feat">
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>.com.br, .com, .dev, .io e mais, de uma vez</li>
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Preço de registro e renovação em reais</li>
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Avisa quando a renovação é bem mais cara</li>
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Sugere variações livres do nome</li>
+          </ul>
+          <span class="btn go">Verificar um nome</span>
+          <span class="tool-art tool-preview" aria-hidden="true">
+            <span class="tp-row"><b>goldline.com.br</b><i class="pill ok">Livre</i><em>R$ 40/ano</em></span>
+            <span class="tp-row"><b>goldline.com</b><i class="pill bad">Registrado</i><em>vence em 2027</em></span>
+            <span class="tp-row"><b>goldline.dev</b><i class="pill ok">Livre</i><em>R$ 67/ano</em></span>
+            <span class="tp-row"><b>goldline.site</b><i class="pill ok">Livre</i><em>renova por R$ 150</em></span>
+          </span>
         </a>
       </div>
     </div>
@@ -512,6 +552,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <span class="foot-brand"><span class="wk" style="font-size:18px"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/></svg><span class="wk-word">webk<span class="wk-i">&#305;</span>t</span></span> ferramentas grátis para quem faz sites</span>
     <nav aria-label="Rodapé">
       <a href="raio-x.html">Raio-X de domínio</a>
+      <a href="disponibilidade.html">Disponibilidade de domínio</a>
       <a href="conversor.html">Conversor de imagens</a>
       <a href="#perguntas">Perguntas frequentes</a>
     </nav>
