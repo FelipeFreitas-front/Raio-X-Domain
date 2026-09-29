@@ -11,6 +11,7 @@ Hub de ferramentas gratuitas para quem faz sites. Tudo roda no navegador: sem ca
 
 ## Disponibilidade de domínio
 
+- Aceita uma lista de domínios colada (um por linha, ou separados por vírgula/espaço) e checa todos de uma vez, na ordem colada, com botão para copiar só os livres
 - Checa um nome em até 18 extensões ao mesmo tempo (.com.br, .com, .net.br, .dev, .io, .app…) e aceita extensões extras
 - Disponibilidade pelo RDAP oficial de cada extensão; sem RDAP, cai para o DNS e marca como "provavelmente livre"
 - Preço de registro e de renovação em reais: tabela pública da Porkbun (910 extensões, guardada 24 h) convertida pela cotação do dia (AwesomeAPI); `.br` pelo valor do Registro.br (constante `BR_PRICE` no arquivo)

@@ -26,8 +26,10 @@
 .dv-head p{margin:0;max-width:58ch;color:var(--graphite);font-size:16px;line-height:1.55}
 .dv-search{display:flex;gap:8px;padding:8px 8px 8px 18px;background:var(--parchment);border:1px solid var(--mist);border-radius:var(--r-input);box-shadow:0 0 0 1px rgba(var(--glow),.4),0 0 24px rgba(var(--glow),.10)}
 .dv-search:focus-within{box-shadow:0 0 0 2px rgba(var(--glow),.55),0 0 28px rgba(var(--glow),.16)}
-.dv-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 18px var(--font);outline:none}
-.dv-search input::placeholder{color:var(--graphite)}
+.dv-search{align-items:flex-end}
+.dv-search textarea{flex:1;min-width:0;min-height:46px;max-height:240px;padding:10px 0;border:0;background:transparent;color:var(--ink);font:400 18px/1.45 var(--font);outline:none;resize:none;overflow-y:auto}
+.dv-search textarea::placeholder{color:var(--graphite)}
+.bar-r{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .dv-search .btn{height:46px;padding:0 20px}
 .recent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:-12px}
 .recent .lbl{font-size:13px;color:var(--graphite);margin-right:2px}
@@ -57,6 +59,7 @@
 .sum .k{font-size:13px;color:var(--graphite)}
 .sum .v{font-size:24px;font-weight:700;letter-spacing:-.02em;line-height:1.2;overflow-wrap:anywhere}
 .sum .d{font-size:13px;color:var(--graphite)}
+.sum .v.dom{font:500 16px/1.35 var(--mono);letter-spacing:0;padding-block:5px}
 
 .bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
 .filters{display:flex;gap:4px;padding:3px;border:1px solid var(--hair);border-radius:var(--r-pill);background:var(--parchment)}
@@ -118,12 +121,12 @@
 <main class="dv">
   <section class="dv-head" data-reveal>
     <h1>Esse domínio está livre?</h1>
-    <p>Digite o nome e veja na hora em quais extensões ele está livre, quanto custa registrar e quanto custa renovar.</p>
+    <p>Digite um nome para ver em quais extensões ele está livre, ou cole uma lista de domínios para checar todos de uma vez. Com preço de registro e de renovação.</p>
   </section>
 
   <form class="dv-search" id="f" autocomplete="off" role="search" data-reveal>
     <label for="q" hidden>Nome ou domínio</label>
-    <input id="q" placeholder="ex.: goldlinepainting ou meusite.com.br" spellcheck="false" autocapitalize="off" inputmode="url">
+    <textarea id="q" rows="1" placeholder="ex.: goldlinepainting ou cole uma lista de domínios, um por linha" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
     <button class="btn" id="go" type="submit">Verificar</button>
   </form>
 
@@ -142,7 +145,7 @@
       <button type="button" data-f="free" aria-pressed="false">Livres</button>
       <button type="button" data-f="taken" aria-pressed="false">Registradas</button>
     </div>
-    <span class="note" id="fxnote"></span>
+    <span class="bar-r"><span class="note" id="fxnote"></span><button class="ghost" id="copyfree" type="button">Copiar livres</button></span>
   </div>
 
   <ul class="results" id="results" aria-live="polite"></ul>
@@ -323,6 +326,8 @@ function rowHTML(r){
   </li>`;
 }
 function sortRows(list){
+  // lista colada: mantém a ordem em que foi escrita
+  if(current?.bulk) return [...list].sort((a, b) => a.order - b.order);
   const rank = {free: 0, maybe: 1, load: 2, unknown: 3, taken: 4};
   // ordena pelo custo de manter (renovação), não pela promoção do primeiro ano
   return [...list].sort((a, b) => rank[a.state] - rank[b.state] || (priceOf(a.tld)?.ren ?? 1e9) - (priceOf(b.tld)?.ren ?? 1e9) || (a.order - b.order));
@@ -336,46 +341,72 @@ function render(){
   const exact = current?.ext ? rows.find(r => r.tld === current.ext) : null;
   $('#summary').hidden = !rows.length;
   $('#summary').innerHTML = `
-    <div class="sum"><span class="k">${exact ? esc(exact.domain) : 'Livres'}</span><span class="v">${exact ? (exact.state === 'load' ? '…' : ['free', 'maybe'].includes(exact.state) ? 'Livre' : exact.state === 'taken' ? 'Registrado' : '?') : `${free.length} de ${rows.length}`}</span><span class="d">${exact ? 'o domínio que você digitou' : done.length < rows.length ? 'verificando as extensões…' : 'extensões livres'}</span></div>
-    <div class="sum"><span class="k">Mais barata para manter</span><span class="v">${cheapest ? '.' + esc(cheapest.r.tld) : done.length < rows.length ? '…' : '—'}</span><span class="d">${cheapest ? `${brl.format(cheapest.p.ren)}/ano na renovação` : 'nenhuma com preço'}</span></div>
-    <div class="sum"><span class="k">Registradas</span><span class="v">${rows.filter(r => r.state === 'taken').length}</span><span class="d">já têm dono</span></div>`;
+    <div class="sum"><span class="k">${exact ? esc(exact.domain) : 'Livres'}</span><span class="v">${exact ? (exact.state === 'load' ? '…' : ['free', 'maybe'].includes(exact.state) ? 'Livre' : exact.state === 'taken' ? 'Registrado' : '?') : `${free.length} de ${rows.length}`}</span><span class="d">${exact ? 'o domínio que você digitou' : done.length < rows.length ? `verificando… ${done.length} de ${rows.length}` : current?.bulk ? 'domínios livres' : 'extensões livres'}</span></div>
+    <div class="sum"><span class="k">${current?.bulk ? 'Mais barato para manter' : 'Mais barata para manter'}</span><span class="v${current?.bulk ? ' dom' : ''}">${cheapest ? (current?.bulk ? esc(cheapest.r.domain) : '.' + esc(cheapest.r.tld)) : done.length < rows.length ? '…' : '—'}</span><span class="d">${cheapest ? `${brl.format(cheapest.p.ren)}/ano na renovação` : 'nenhum livre com preço'}</span></div>
+    <div class="sum"><span class="k">${current?.bulk ? 'Registrados' : 'Registradas'}</span><span class="v">${rows.filter(r => r.state === 'taken').length}</span><span class="d">já têm dono</span></div>`;
   $('#bar').hidden = !rows.length;
   $('#fxnote').textContent = FX ? `Dólar a ${brl.format(FX.rate)} · preços de referência` : PRICES === null && rows.length ? 'carregando preços…' : '';
 }
 
+// aceita um nome, um domínio ou uma lista (um por linha, ou separados por vírgula, ponto e vírgula ou espaço)
+const MAX_LIST = 60;
+function parseList(raw){ return (raw || '').split(/[\s,;]+/).map(s => s.trim()).filter(Boolean).map(parseInput).filter(Boolean); }
+
 async function search(raw){
-  const parsed = parseInput(raw);
-  if(!parsed){ toast('Digite um nome válido: letras, números e hífen'); return; }
+  const items = parseList(raw);
+  if(!items.length){ toast('Digite um nome válido: letras, números e hífen'); return; }
+  const bulk = items.length > 1;
+  let list = [];
+  if(!bulk){
+    // um nome: checa nas extensões marcadas (e na que foi digitada, se houver)
+    const p = items[0];
+    let tlds = selected();
+    if(p.ext && !tlds.includes(p.ext)) tlds = [p.ext, ...tlds];
+    if(!tlds.length){ toast('Marque pelo menos uma extensão'); return; }
+    list = tlds.map(tld => ({tld, domain: `${p.base}.${tld}`}));
+  } else {
+    // lista: cada domínio exatamente como foi escrito; nome sem extensão vai nas extensões marcadas
+    for(const p of items){
+      if(p.ext) list.push({tld: p.ext, domain: `${p.base}.${p.ext}`});
+      else for(const tld of selected()) list.push({tld, domain: `${p.base}.${tld}`});
+    }
+    list = list.filter((d, i) => list.findIndex(x => x.domain === d.domain) === i);
+    if(list.length > MAX_LIST){ toast(`Verificando os primeiros ${MAX_LIST} de ${list.length}`); list = list.slice(0, MAX_LIST); }
+  }
   const id = ++run;
-  current = parsed;
-  let tlds = selected();
-  if(parsed.ext && !tlds.includes(parsed.ext)) tlds = [parsed.ext, ...tlds];
-  if(!tlds.length){ toast('Marque pelo menos uma extensão'); return; }
-  $('#q').value = parsed.ext ? `${parsed.base}.${parsed.ext}` : parsed.base;
-  try{ history.replaceState(null, '', '#' + encodeURIComponent($('#q').value)); }catch{}
-  rows = tlds.map((tld, order) => ({tld, order, domain: `${parsed.base}.${tld}`, state: 'load'}));
+  current = bulk ? {bulk: true, count: list.length} : items[0];
+  const q = $('#q');
+  q.value = bulk ? list.map(d => d.domain).join('\n') : (items[0].ext ? `${items[0].base}.${items[0].ext}` : items[0].base);
+  autosize();
+  try{ history.replaceState(null, '', bulk ? location.pathname + location.search : '#' + encodeURIComponent(q.value)); }catch{}
+  rows = list.map((d, order) => ({...d, order, state: 'load'}));
   // o botão nunca trava: uma busca nova cancela a anterior
   setBusy(true);
   $('#sugg').hidden = true;
   render();
   pricesReady.then(() => { if(id === run) render(); });
-  // .br um por vez (o Registro.br limita consultas seguidas); as outras em paralelo
+  // .br um por vez (o Registro.br limita consultas seguidas); as outras até 6 ao mesmo tempo
   const doRow = async r => { const res = await check(r.domain); if(id !== run) return; Object.assign(r, res); render(); };
   const br = rows.filter(r => isBr(r.tld)), other = rows.filter(r => !isBr(r.tld));
-  await Promise.all([Promise.all(other.map(doRow)), (async () => { for(const r of br){ await doRow(r); await new Promise(res => setTimeout(res, 250)); } })()]);
+  let next = 0;
+  const lane = async () => { while(next < other.length && id === run) await doRow(other[next++]); };
+  await Promise.all([...Array.from({length: Math.min(6, other.length)}, lane),
+    (async () => { for(const r of br){ if(id !== run) return; await doRow(r); await new Promise(res => setTimeout(res, 250)); } })()]);
   if(id !== run) return;
   setBusy(false);
-  saveRecent(parsed, rows);
-  suggestions(parsed.base, id);
+  saveRecent(bulk ? null : items[0], rows);
+  if(!bulk) suggestions(items[0].base, id);
 }
 function setBusy(on){ const b = $('#go'); b.classList.toggle('busy', on); b.textContent = on ? 'Verificando…' : 'Verificar'; }
 
 /* ---------- buscas recentes ---------- */
 function saveRecent(parsed, list){
-  const label = parsed.ext ? `${parsed.base}.${parsed.ext}` : parsed.base;
+  // lista: guarda todos os domínios e mostra "primeiro +N"
+  const q = parsed ? (parsed.ext ? `${parsed.base}.${parsed.ext}` : parsed.base) : list.map(r => r.domain).join('\n');
+  const label = parsed ? q : `${list[0].domain} +${list.length - 1}`;
   const free = list.filter(r => ['free', 'maybe'].includes(r.state)).length;
-  const rec = (store('dv-recent') || []).filter(x => x.q !== label);
-  rec.unshift({q: label, free, total: list.length});
+  const rec = (store('dv-recent') || []).filter(x => x.q !== q);
+  rec.unshift({q, label, free, total: list.length});
   store('dv-recent', rec.slice(0, 8));
   renderRecent();
 }
@@ -383,14 +414,29 @@ function renderRecent(){
   const rec = store('dv-recent') || [], box = $('#recent');
   box.hidden = !rec.length;
   const cur = $('#q').value;
-  box.innerHTML = rec.length ? '<span class="lbl">Recentes:</span>' + rec.map(x =>
-    `<button class="rc${x.q === cur ? ' on' : ''}" type="button" data-q="${esc(x.q)}" title="Verificar de novo">${esc(x.q)}<small>${x.free}/${x.total} livres</small></button>`).join('') +
+  box.innerHTML = rec.length ? '<span class="lbl">Recentes:</span>' + rec.map((x, i) =>
+    `<button class="rc${x.q === cur ? ' on' : ''}" type="button" data-i="${i}" title="${esc(x.q.includes('\n') ? x.q.split('\n').join(', ') : 'Verificar de novo')}">${esc(x.label || x.q)}<small>${x.free}/${x.total} livres</small></button>`).join('') +
     '<button class="rc-clear" type="button" id="rc-clear">limpar</button>' : '';
 }
 $('#recent').addEventListener('click', e => {
   if(e.target.id === 'rc-clear'){ store('dv-recent', []); renderRecent(); return; }
-  const b = e.target.closest('[data-q]'); if(b){ $('#q').value = b.dataset.q; search(b.dataset.q); window.scrollTo({top: 0, behavior: 'smooth'}); }
+  const b = e.target.closest('[data-i]'); if(!b) return;
+  const x = (store('dv-recent') || [])[+b.dataset.i]; if(!x) return;
+  $('#q').value = x.q; autosize(); search(x.q); window.scrollTo({top: 0, behavior: 'smooth'});
 });
+
+// copia só os domínios livres, um por linha
+async function copyFree(){
+  const free = sortRows(rows).filter(r => ['free', 'maybe'].includes(r.state)).map(r => r.domain);
+  if(!free.length){ toast('Nenhum domínio livre para copiar'); return; }
+  const txt = free.join('\n');
+  try{ await navigator.clipboard.writeText(txt); }
+  catch{ const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); }catch{} ta.remove(); }
+  toast(free.length === 1 ? '1 domínio livre copiado' : `${free.length} domínios livres copiados`);
+}
+
+// campo de busca cresce com a lista colada
+function autosize(){ const q = $('#q'); q.style.height = 'auto'; q.style.height = Math.min(q.scrollHeight, 240) + 'px'; }
 
 // variações do nome, checadas em .com.br e .com
 async function suggestions(base, id){
@@ -413,6 +459,10 @@ async function suggestions(base, id){
 
 /* ---------- eventos ---------- */
 $('#f').addEventListener('submit', e => { e.preventDefault(); search($('#q').value); });
+// Enter verifica; Shift + Enter pula linha
+$('#q').addEventListener('keydown', e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); $('#f').requestSubmit(); } });
+$('#q').addEventListener('input', autosize);
+$('#copyfree').addEventListener('click', copyFree);
 $('#chips').addEventListener('change', e => { if(e.target.matches('input[type=checkbox]')) saveSel(); });
 document.querySelector('.filters').addEventListener('click', e => {
   const b = e.target.closest('[data-f]'); if(!b) return;
