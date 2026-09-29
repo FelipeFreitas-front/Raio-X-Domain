@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Raio-X de Domínio</title>
+<script>
+  // aplica o tema antes de desenhar a página (evita piscar branco): escolha salva > preferência do sistema
+  (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
+    if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t); })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,8 +26,20 @@
   --mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
   --r-card:16px; --r-input:12px; --r-btn:6px; --r-pill:9999px;
   --shadow:rgba(0,0,0,.08) 0 1px 2px 0;
+  --logo-ink:#1f1d19; --glow:1,106,113; --on-teal-soft:rgba(255,255,255,.22);
   color-scheme:light;
 }
+/* Modo escuro: a mesma pegada de papel, em tons quentes escuros; o teal fica um pouco mais claro para manter o contraste */
+:root[data-theme="dark"]{
+  --parchment:#171613; --paper:#1f1d1a; --rail:#12110f; --mist:#3d3a34; --hair:#2b2925; --soft:#2b2925;
+  --ash:#85827a; --graphite:#a9a69d; --ink:#ece8df; --black:#ffffff;
+  --teal:#1a8a92; --on-teal:#ffffff;
+  --shadow:rgba(0,0,0,.45) 0 1px 2px 0;
+  --logo-ink:#ece8df; --glow:42,168,176;
+  color-scheme:dark;
+}
+body{transition:background-color .2s,color .2s}
+@media (prefers-reduced-motion:reduce){body{transition:none}}
 *{box-sizing:border-box}
 html,body{margin:0}
 body{background:var(--parchment);color:var(--ink);font:400 14px/1.43 var(--font);-webkit-font-smoothing:antialiased}
@@ -36,12 +54,17 @@ button{font-family:inherit}
 .app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
 .rail{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--rail);border-right:1px solid var(--hair);padding:16px 12px;display:flex;flex-direction:column;gap:16px}
 /* logo */
-.logo-word{font-family:"Poppins", var(--font);font-weight:700;letter-spacing:-.02em;color:#1f1d19;line-height:1}
+.logo-word{font-family:"Poppins", var(--font);font-weight:700;letter-spacing:-.02em;color:var(--logo-ink);line-height:1}
 .logo-word em{font-style:normal;color:var(--teal)}
 .logo-icon{flex:none;display:block}
 .brand{display:flex;align-items:center;gap:8px;padding:4px 12px;--logo-bg:var(--rail)}
 .brand .logo-icon{width:32px;height:30px}
 .brand .logo-word{font-size:24px}
+.theme-btn{margin-left:auto;display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--mist);border-radius:var(--r-pill);background:transparent;color:var(--graphite);cursor:pointer;flex:none}
+.theme-btn:hover{color:var(--ink);border-color:var(--graphite)}
+.theme-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.theme-btn .i-sun,:root[data-theme="dark"] .theme-btn .i-moon{display:none}
+:root[data-theme="dark"] .theme-btn .i-sun{display:block}
 .new{justify-content:flex-start;width:100%}
 .rail-label{padding:0 12px;font-size:12px;color:var(--graphite)}
 .recent{display:flex;flex-direction:column;gap:2px}
@@ -61,7 +84,7 @@ button{font-family:inherit}
 @media (max-width:900px){
   .app{grid-template-columns:minmax(0,1fr)}
   .rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;border-right:0;border-bottom:1px solid var(--hair);padding:12px 16px}
-  .brand{padding:4px 0;margin-right:auto}
+  .brand{padding:4px 0;flex:1}
   .new{width:auto}
   .rail-label{display:none}
   .recent{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;width:100%;gap:6px}
@@ -79,8 +102,8 @@ button{font-family:inherit}
 .wordmark .logo-word{font-size:64px}
 @media (max-width:440px){.wordmark .logo-icon{width:56px;height:52px}.wordmark .logo-word{font-size:46px}}
 .tag{margin:0;color:var(--graphite);font-size:14px}
-.search{width:min(640px,100%);display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 8px 8px 16px;background:var(--parchment);border:1px solid var(--mist);border-radius:var(--r-input);box-shadow:0 0 0 1px rgba(1,106,113,.4),0 0 24px rgba(1,106,113,.10);transition:box-shadow .2s}
-.search:focus-within{box-shadow:0 0 0 2px rgba(1,106,113,.55),0 0 28px rgba(1,106,113,.16)}
+.search{width:min(640px,100%);display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 8px 8px 16px;background:var(--parchment);border:1px solid var(--mist);border-radius:var(--r-input);box-shadow:0 0 0 1px rgba(var(--glow),.4),0 0 24px rgba(var(--glow),.10);transition:box-shadow .2s}
+.search:focus-within{box-shadow:0 0 0 2px rgba(var(--glow),.55),0 0 28px rgba(var(--glow),.16)}
 .search input{flex:1;min-width:0;height:40px;border:0;background:transparent;color:var(--ink);font:400 16px/1.5 var(--font);outline:none}
 .search input::placeholder{color:var(--graphite)}
 .btn{height:40px;padding:0 16px;border:0;border-radius:var(--r-input);background:var(--ink);color:var(--parchment);font:500 14px var(--font);cursor:pointer;flex:none}
@@ -178,7 +201,7 @@ details.dg summary b{font-size:16px}
 .tb{font-size:11px;font-weight:500;padding:1px 6px;border-radius:var(--r-pill);background:var(--hair);color:var(--graphite)}
 .tb:empty{display:none}
 .tb.alert{background:var(--ink);color:var(--parchment)}
-.tab[aria-selected="true"] .tb{background:rgba(255,255,255,.22);color:var(--on-teal)}
+.tab[aria-selected="true"] .tb{background:var(--on-teal-soft);color:var(--on-teal)}
 .card{background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);min-width:0}
 .card>h2{margin:0;padding:16px 16px 0;font-size:14px;line-height:1.43;font-weight:500;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
 .card>h2 .src{font:400 12px var(--mono);color:var(--ash)}
@@ -233,7 +256,7 @@ footer{color:var(--ash);font-size:12px}
     <clipPath id="globe-clip"><circle cx="190" cy="195" r="170"/></clipPath>
   </defs>
   <symbol id="logo-icon" viewBox="0 0 430 400">
-    <g fill="none" stroke="#1f1d19" stroke-width="20" stroke-linecap="round">
+    <g fill="none" style="stroke:var(--logo-ink,#1f1d19)" stroke-width="20" stroke-linecap="round">
       <circle cx="190" cy="195" r="170"/>
       <g clip-path="url(#globe-clip)">
         <ellipse cx="190" cy="195" rx="78" ry="178"/>
@@ -242,15 +265,15 @@ footer{color:var(--ash);font-size:12px}
         <path d="M10 272 Q190 302 370 272"/>
       </g>
     </g>
-    <g fill="#016a71" style="stroke:var(--logo-bg,#faf8f5)" stroke-width="12">
+    <g style="fill:var(--teal,#016a71);stroke:var(--logo-bg,#faf8f5)" stroke-width="12">
       <circle cx="126" cy="104" r="24"/>
       <circle cx="113" cy="195" r="24"/>
       <circle cx="126" cy="286" r="24"/>
     </g>
     <circle cx="290" cy="255" r="112" style="fill:var(--logo-bg,#faf8f5)"/>
-    <circle cx="290" cy="255" r="86" fill="none" stroke="#016a71" stroke-width="22"/>
-    <path d="M354 320 L404 370" stroke="#016a71" stroke-width="30" stroke-linecap="round"/>
-    <g stroke="#016a71" stroke-width="14" stroke-linecap="round">
+    <circle cx="290" cy="255" r="86" fill="none" style="stroke:var(--teal,#016a71)" stroke-width="22"/>
+    <path d="M354 320 L404 370" style="stroke:var(--teal,#016a71)" stroke-width="30" stroke-linecap="round"/>
+    <g style="stroke:var(--teal,#016a71)" stroke-width="14" stroke-linecap="round">
       <path d="M250 228 H330"/><path d="M250 256 H318"/><path d="M250 284 H296"/>
     </g>
   </symbol>
@@ -261,6 +284,10 @@ footer{color:var(--ash);font-size:12px}
   <div class="brand" aria-label="raio-x">
     <svg class="logo-icon" aria-hidden="true"><use href="#logo-icon"/></svg>
     <span class="logo-word" aria-hidden="true">raio<em>-x</em></span>
+    <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
+      <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
+      <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+    </button>
   </div>
   <button class="ghost new" id="new" type="button">+ Nova consulta</button>
   <div class="rail-label">Recentes</div>
@@ -1251,6 +1278,18 @@ function goHome(){
   const q = $('#q'); q.value = ''; q.focus(); window.scrollTo({top:0});
 }
 $('#new').addEventListener('click', goHome);
+function syncThemeBtn(){
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const label = dark ? 'Ativar modo claro' : 'Ativar modo escuro';
+  $('#theme').setAttribute('aria-label', label); $('#theme').title = label;
+}
+$('#theme').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try{ localStorage.setItem('rx-theme', next); }catch{}
+  syncThemeBtn();
+});
+syncThemeBtn();
 document.querySelector('.examples').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if(b) run(b.dataset.d); });
 $('#copy').addEventListener('click', () => { const txt = report(); if(txt) copyText(txt, 'Relatório copiado'); });
 $('#c-dns').addEventListener('click', e => {
