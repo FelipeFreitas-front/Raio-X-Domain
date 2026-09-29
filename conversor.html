@@ -2,9 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Conversor de Imagens</title>
-<meta name="description" content="Converta imagens para WebP, AVIF, JPG ou PNG, reduza o peso, padronize tamanhos e nomes. Tudo no navegador, sem enviar arquivos.">
+<meta name="description" content="Converta imagens para WebP, AVIF, JPG ou PNG, gere kits responsivos com código picture, favicons e marca d'água. Tudo no navegador, sem enviar arquivos.">
 <script>
   (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
     if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
@@ -16,9 +16,10 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='15' height='13' rx='2.5' stroke='%2327251e'/%3E%3Crect x='12' y='12' width='13' height='11' rx='2.5' fill='%23fff' stroke='%23016a71'/%3E%3Cpath d='M15.5 17.5h6M19 15l2.5 2.5L19 20' stroke='%23016a71'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/base.css">
 <style>
-/* Layout: área de trabalho à esquerda (soltar imagens + lista), painel de configurações fixo à direita; no celular empilha */
-.cv{max-width:1180px;margin:0 auto;padding:24px 16px 64px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
-@media (max-width:900px){.cv{grid-template-columns:minmax(0,1fr)}}
+/* Layout: área de trabalho à esquerda (soltar imagens, lista, resultados extras), painel de configurações fixo à direita;
+   no celular empilha e ganha uma barra de ação fixa no rodapé */
+.cv{max-width:1180px;margin:0 auto;padding:24px 16px 64px;display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:24px;align-items:start}
+@media (max-width:900px){.cv{grid-template-columns:minmax(0,1fr);padding-bottom:112px}}
 .cv-main{display:grid;gap:16px;min-width:0}
 .cv-head h1{margin:0;font-size:24px;line-height:1.25;font-weight:500}
 .cv-head p{margin:4px 0 0;color:var(--graphite);font-size:14px}
@@ -29,12 +30,14 @@
 .drop.over{background:var(--parchment)}
 .drop svg{width:40px;height:40px;fill:none;stroke:var(--graphite);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .drop b{font-size:16px}
-.drop .small{max-width:48ch}
+.drop .small{max-width:52ch}
 .drop.compact{grid-template-columns:auto auto;justify-content:center;align-items:center;padding:14px 16px;gap:12px}
 .drop.compact svg{width:22px;height:22px}
 .drop.compact .small,.drop.compact .btn{display:none}
 .drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .kbd{display:inline-block;padding:0 5px;border:1px solid var(--mist);border-bottom-width:2px;border-radius:4px;font:500 11px/16px var(--mono)}
+.privacy{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--graphite)}
+.privacy svg{width:14px;height:14px;flex:none;margin-top:2px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
 /* lista */
 .listbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
@@ -44,9 +47,11 @@
 .it.drag-over-top{box-shadow:0 -2px 0 0 var(--teal)}
 .it.drag-over-bottom{box-shadow:0 2px 0 0 var(--teal)}
 .it.dragging{opacity:.4}
+.it.unused{opacity:.55}
 .grip{cursor:grab;color:var(--ash);display:grid;place-items:center;width:16px}
 .grip svg{width:10px;height:16px;fill:currentColor}
-.thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;background:var(--parchment);border:1px solid var(--hair);display:block}
+.thumbbox{width:64px;height:64px;border-radius:8px;overflow:hidden;background:var(--parchment);border:1px solid var(--hair);display:grid;place-items:center}
+.thumb{width:100%;height:100%;object-fit:cover;display:block;transition:transform .2s}
 .it-main{display:grid;gap:4px;min-width:0}
 .it-name{display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;min-width:0}
 .it-name .from{color:var(--graphite);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
@@ -54,45 +59,86 @@
 .it-meta{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:12px;color:var(--graphite)}
 .it-meta .res{color:var(--ink);font-weight:500}
 .arrow{color:var(--ash)}
-.it-act{display:flex;gap:6px;align-items:center}
-.icon-btn{display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--mist);border-radius:var(--r-btn);background:transparent;color:var(--graphite);cursor:pointer}
+.it-act{display:flex;flex-wrap:wrap;gap:4px;align-items:center;justify-content:flex-end}
+.icon-btn{display:grid;place-items:center;width:30px;height:30px;border:1px solid var(--mist);border-radius:var(--r-btn);background:transparent;color:var(--graphite);cursor:pointer}
 .icon-btn:hover{color:var(--ink);border-color:var(--graphite)}
 .icon-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.icon-btn.on{border-color:var(--teal);color:var(--teal)}
 .it.error{border-color:var(--ink)}
 .it .err{color:var(--ink);font-size:12px}
 @media (max-width:560px){
   .it{grid-template-columns:48px minmax(0,1fr);grid-template-areas:"t m" "a a"}
   .grip{display:none}
-  .thumb{width:48px;height:48px;grid-area:t}
+  .thumbbox{width:48px;height:48px;grid-area:t}
   .it-main{grid-area:m}
-  .it-act{grid-area:a;justify-content:flex-end}
+  .it-act{grid-area:a}
 }
 
+/* resultados extras (kit e favicon) */
+.extra{display:grid;gap:12px;padding:16px;background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);min-width:0}
+.extra:empty{display:none}
+.extra h2{margin:0;font-size:16px;font-weight:500}
+.extra-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.code{margin:0;max-height:320px;overflow:auto;padding:12px;border-radius:var(--r-input);background:var(--parchment);border:1px solid var(--hair);font:12px/1.6 var(--mono);white-space:pre;color:var(--ink)}
+.fav-grid{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.fav-cell{display:grid;gap:6px;justify-items:center;font-size:12px;color:var(--graphite)}
+.fav-cell .sw{display:grid;place-items:center;padding:10px;border-radius:10px;border:1px solid var(--hair)}
+.fav-cell .sw.l{background:#ffffff}
+.fav-cell .sw.d{background:#1f1d1a}
+.fav-cell img{display:block;image-rendering:auto}
+.tabs-mini{display:flex;gap:4px}
+.tabs-mini button{height:28px;padding:0 10px;border:1px solid var(--mist);border-radius:var(--r-pill);background:transparent;color:var(--graphite);font:400 12px var(--font);cursor:pointer}
+.tabs-mini button[aria-pressed="true"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+
 /* painel de configurações */
-.side{position:sticky;top:72px;display:grid;gap:16px;padding:16px;background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow)}
-@media (max-width:900px){.side{position:static}}
+.side{position:sticky;top:72px;display:grid;gap:16px;padding:16px;background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);max-height:calc(100vh - 88px);overflow:auto}
+@media (max-width:900px){.side{position:static;max-height:none;overflow:visible}}
+.side-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .side h2{margin:0;font-size:16px;font-weight:500}
 .fld{display:grid;gap:8px;padding-top:16px;border-top:1px solid var(--hair)}
-.fld:first-of-type{padding-top:0;border-top:0}
 .fld-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .fld-h label,.fld-h span.t{font-size:14px;font-weight:500}
 .fld-h output{font:500 14px var(--mono)}
 .hint{font-size:12px;color:var(--graphite);line-height:1.5}
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:3px;background:var(--parchment);border:1px solid var(--hair);border-radius:var(--r-input)}
-.seg button{height:32px;border:0;border-radius:9px;background:transparent;color:var(--graphite);font:400 14px var(--font);cursor:pointer;white-space:nowrap}
+.seg button{min-height:32px;border:0;border-radius:9px;background:transparent;color:var(--graphite);font:400 14px var(--font);cursor:pointer;padding:0 6px}
 .seg button:hover{color:var(--ink)}
 .seg button[aria-pressed="true"]{background:var(--teal);color:var(--on-teal)}
 .seg.two button{font-size:13px}
+.seg.mode button{min-height:36px;font-weight:500}
 .inp,.sel{height:40px;width:100%;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-input);background:var(--parchment);color:var(--ink);font:400 14px var(--font);min-width:0}
+.inp.sm{height:32px}
 .inp:focus,.sel:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.row2 label{display:grid;gap:4px;font-size:12px;color:var(--graphite)}
+.row2 label,.lbl{display:grid;gap:4px;font-size:12px;color:var(--graphite)}
 .chk{display:flex;gap:8px;align-items:flex-start;font-size:14px;cursor:pointer}
 .chk input{margin:2px 0 0;width:16px;height:16px;accent-color:var(--teal);flex:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips label{position:relative;cursor:pointer}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:inline-flex;align-items:center;height:30px;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-pill);font:400 13px var(--font);color:var(--graphite)}
+.chips input:checked + span{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.chips input:focus-visible + span{outline:2px solid var(--teal);outline-offset:2px}
 input[type="range"]{width:100%;accent-color:var(--teal)}
-input[type="color"]{width:40px;height:32px;padding:2px;border:1px solid var(--mist);border-radius:var(--r-btn);background:var(--parchment);cursor:pointer}
+input[type="color"]{width:40px;height:32px;padding:2px;border:1px solid var(--mist);border-radius:var(--r-btn);background:var(--parchment);cursor:pointer;flex:none}
 .bgrow{display:flex;align-items:center;gap:8px}
 .names-preview{font:12px/1.6 var(--mono);color:var(--graphite);overflow-wrap:anywhere}
+details.wm{border-top:1px solid var(--hair);padding-top:16px}
+details.wm summary{cursor:pointer;font-size:14px;font-weight:500;display:flex;justify-content:space-between;align-items:center;list-style:none}
+details.wm summary::-webkit-details-marker{display:none}
+details.wm summary::after{content:"+";font:400 18px var(--font);color:var(--graphite)}
+details.wm[open] summary::after{content:"−"}
+.wm-body{display:grid;gap:10px;margin-top:12px}
+.posgrid{display:grid;grid-template-columns:repeat(3,28px);gap:4px}
+.posgrid button{width:28px;height:28px;border:1px solid var(--mist);border-radius:6px;background:transparent;cursor:pointer;display:grid;place-items:center}
+.posgrid button::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--mist)}
+.posgrid button[aria-pressed="true"]{border-color:var(--teal)}
+.posgrid button[aria-pressed="true"]::after{background:var(--teal)}
+.wm-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:start}
+.profiles{display:flex;gap:6px;align-items:center}
+.profiles .sel{height:32px;font-size:13px}
+.profiles .icon-btn{flex:none}
+.saveprof{display:flex;gap:6px}
 .actions{display:grid;gap:8px;padding-top:16px;border-top:1px solid var(--hair)}
 .actions .btn{width:100%;height:44px}
 .total{display:grid;gap:4px;padding:12px;border-radius:var(--r-input);background:var(--parchment);border:1px solid var(--hair);font-size:14px}
@@ -100,17 +146,36 @@ input[type="color"]{width:40px;height:32px;padding:2px;border:1px solid var(--mi
 .progress{height:6px;border-radius:var(--r-pill);background:var(--hair);overflow:hidden}
 .progress span{display:block;height:100%;width:0;background:var(--teal);transition:width .2s}
 
-/* enquadramento */
-dialog{border:0;border-radius:var(--r-card);padding:0;background:var(--paper);color:var(--ink);box-shadow:0 12px 40px rgba(0,0,0,.25);max-width:min(920px,calc(100vw - 32px))}
+/* barra fixa no celular */
+.mbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;align-items:center;gap:8px;padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));background:var(--paper);border-top:1px solid var(--hair);box-shadow:0 -4px 16px rgba(0,0,0,.06)}
+.mbar-info{flex:1;min-width:0;font-size:12px;color:var(--graphite);line-height:1.4}
+.mbar-info b{display:block;color:var(--ink);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbar .btn{flex:none}
+@media (min-width:901px){.mbar{display:none!important}}
+@media (max-width:900px){.toast{bottom:calc(96px + env(safe-area-inset-bottom, 0px))}}
+
+/* janelas */
+dialog{border:0;border-radius:var(--r-card);padding:0;background:var(--paper);color:var(--ink);box-shadow:0 12px 40px rgba(0,0,0,.25);max-width:min(960px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(20,18,15,.55)}
 .dlg{display:grid;gap:12px;padding:16px}
 .dlg-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 .dlg-h b{font-size:16px}
+.dlg-f{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
 .stage{position:relative;justify-self:center;overflow:hidden;border-radius:8px;cursor:crosshair;touch-action:none;user-select:none;line-height:0}
-.stage img{display:block;max-width:min(880px,calc(100vw - 64px));max-height:calc(100vh - 220px);width:auto;height:auto;pointer-events:none}
+.stage img{display:block;max-width:min(900px,calc(100vw - 64px));max-height:calc(100vh - 220px);width:auto;height:auto;pointer-events:none}
 .cropbox{position:absolute;box-shadow:0 0 0 9999px rgba(15,14,12,.55);outline:2px solid #fff;pointer-events:none}
 .fdot{position:absolute;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;border:2px solid #fff;background:var(--teal);pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.4)}
-.dlg-f{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+/* comparar */
+.cmp{position:relative;justify-self:center;overflow:auto;max-width:min(900px,calc(100vw - 64px));max-height:calc(100vh - 220px);border-radius:8px;background:repeating-conic-gradient(var(--hair) 0 25%, transparent 0 50%) 0 0/16px 16px}
+.cmp-in{position:relative;line-height:0;cursor:ew-resize;touch-action:none;user-select:none}
+.cmp img{display:block;pointer-events:none}
+.cmp.fit img{max-width:min(900px,calc(100vw - 64px));max-height:calc(100vh - 220px);width:auto;height:auto}
+.cmp .after{position:absolute;inset:0;clip-path:inset(0 0 0 var(--cut,50%))}
+.cmp .after img{width:100%;height:100%}
+.cmp-line{position:absolute;top:0;bottom:0;left:var(--cut,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.5);pointer-events:none}
+.cmp-line::after{content:"‹ ›";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:4px 8px;border-radius:999px;background:#fff;color:#27251e;font:500 12px/1 var(--font);white-space:nowrap}
+.cmp-tag{position:absolute;top:8px;padding:2px 8px;border-radius:999px;background:rgba(20,18,15,.7);color:#fff;font:500 11px/1.6 var(--font);pointer-events:none}
+.cmp-tag.l{left:8px}.cmp-tag.r{right:8px}
 </style>
 </head>
 <body>
@@ -135,16 +200,17 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
   <section class="cv-main">
     <div class="cv-head">
       <h1>Conversor de imagens</h1>
-      <p>Converta, reduza o peso e padronize tamanhos e nomes. As imagens não saem do seu computador.</p>
+      <p id="mode-desc">Converta, reduza o peso e padronize tamanhos e nomes. As imagens não saem do seu computador.</p>
     </div>
 
     <div class="drop" id="drop" role="button" tabindex="0" aria-label="Adicionar imagens">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
       <b id="drop-title">Arraste as imagens aqui</b>
-      <span class="small muted">ou clique para escolher. Também dá para colar com <span class="kbd">Ctrl</span> + <span class="kbd">V</span>. Aceita JPG, PNG, WebP, AVIF, GIF, BMP e SVG.</span>
+      <span class="small muted">ou clique para escolher. Também dá para colar com <span class="kbd">Ctrl</span> + <span class="kbd">V</span>. Aceita JPG, PNG, WebP, AVIF, HEIC (iPhone), GIF, BMP e SVG.</span>
       <span class="btn">Escolher imagens</span>
-      <input type="file" id="file" accept="image/*,.avif,.svg" multiple tabindex="-1">
+      <input type="file" id="file" accept="image/*,.heic,.heif,.avif,.svg" multiple tabindex="-1">
     </div>
+    <div class="privacy"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l5 2v4c0 3.2-2.2 5.6-5 7-2.8-1.4-5-3.8-5-7v-4z"/><path d="M5.8 8l1.6 1.6 3-3.2"/></svg><span>Os arquivos convertidos saem sem metadados: localização GPS, modelo da câmera e data da foto não vão junto.</span></div>
 
     <div class="listbar" id="listbar" hidden>
       <span class="count" id="count"></span>
@@ -152,12 +218,30 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
       <button class="ghost" id="clear" type="button">Limpar tudo</button>
     </div>
     <ul class="list" id="list" aria-label="Imagens"></ul>
+    <section class="extra" id="extra" aria-live="polite"></section>
   </section>
 
   <aside class="side" aria-label="Configurações">
-    <h2>Configurações</h2>
+    <div class="side-h"><h2>Configurações</h2></div>
 
-    <div class="fld">
+    <div class="profiles">
+      <select class="sel" id="profile" aria-label="Perfil salvo"></select>
+      <button class="icon-btn" id="prof-save" type="button" title="Salvar configurações como perfil" aria-label="Salvar perfil"><svg viewBox="0 0 16 16"><path d="M3 2h8l2 2v10H3z"/><path d="M5 2v4h5V2M5 14v-4h6v4"/></svg></button>
+      <button class="icon-btn" id="prof-del" type="button" title="Excluir perfil" aria-label="Excluir perfil"><svg viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M4.5 4l.7 9.5h5.6l.7-9.5"/></svg></button>
+    </div>
+    <div class="saveprof" id="saveprof" hidden>
+      <input class="inp sm" id="prof-name" placeholder="Nome do perfil, ex.: Blog cliente X" maxlength="40">
+      <button class="ghost" id="prof-ok" type="button">Salvar</button>
+    </div>
+
+    <div class="seg mode" id="mode" role="group" aria-label="O que fazer">
+      <button type="button" data-v="convert">Converter</button>
+      <button type="button" data-v="kit">Kit responsivo</button>
+      <button type="button" data-v="favicon">Favicon</button>
+    </div>
+
+    <!-- converter -->
+    <div class="fld m-convert">
       <div class="fld-h"><span class="t">Formato final</span></div>
       <div class="seg" id="fmt" role="group" aria-label="Formato final">
         <button type="button" data-v="webp">WebP</button>
@@ -168,21 +252,40 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
       <div class="hint" id="fmt-hint"></div>
     </div>
 
-    <div class="fld" id="f-quality">
+    <!-- kit -->
+    <div class="fld m-kit">
+      <div class="fld-h"><span class="t">Formatos do kit</span></div>
+      <div class="chips" id="kit-fmts">
+        <label><input type="checkbox" value="avif"><span>AVIF</span></label>
+        <label><input type="checkbox" value="webp"><span>WebP</span></label>
+        <label><input type="checkbox" value="jpeg"><span>JPG (reserva)</span></label>
+      </div>
+      <div class="hint">O navegador usa o primeiro que suportar: AVIF, depois WebP, depois JPG.</div>
+      <div class="fld-h"><span class="t">Larguras (px)</span></div>
+      <div class="chips" id="kit-widths"></div>
+      <div class="hint">Larguras maiores que a foto original são puladas.</div>
+      <div class="row2">
+        <label>Pasta no site<input class="inp" id="kit-path" placeholder="img/" spellcheck="false" autocapitalize="off"></label>
+        <label>Atributo sizes<input class="inp" id="kit-sizes" placeholder="100vw" spellcheck="false" autocapitalize="off"></label>
+      </div>
+      <div class="hint">Em sizes, "100vw" serve para imagem de largura total. Para conteúdo com coluna de 800 px: <span class="mono">(max-width: 800px) 100vw, 800px</span>.</div>
+    </div>
+
+    <div class="fld m-convert m-kit" id="f-quality">
       <div class="fld-h"><label for="q">Qualidade</label><output id="q-out" for="q"></output></div>
       <input type="range" id="q" min="40" max="100" step="1">
       <div class="hint">Entre 75% e 85% a diferença quase não aparece e o arquivo fica bem menor.</div>
-      <div class="row2">
+      <div class="row2 m-convert">
         <label>Peso máximo por imagem (KB)<input class="inp" id="maxkb" type="number" min="5" step="5" placeholder="sem limite" inputmode="numeric"></label>
         <span class="hint" style="align-self:end">Se passar, a qualidade baixa sozinha até caber.</span>
       </div>
     </div>
 
-    <div class="fld" id="f-png" hidden>
-      <label class="chk"><input type="checkbox" id="optpng"> <span>Otimizar PNG <span class="hint">(bem mais leve, sem perder qualidade; leva alguns segundos)</span></span></label>
+    <div class="fld m-convert" id="f-png" hidden>
+      <label class="chk"><input type="checkbox" id="optpng"> <span>Otimizar PNG <span class="hint">(bem mais leve, sem perder qualidade)</span></span></label>
     </div>
 
-    <div class="fld">
+    <div class="fld m-convert">
       <div class="fld-h"><label for="size">Tamanho</label></div>
       <select class="sel" id="size"></select>
       <div class="row2" id="custom" hidden>
@@ -198,11 +301,61 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
       <div class="hint" id="size-hint"></div>
     </div>
 
-    <div class="fld" id="f-bg" hidden>
+    <div class="fld m-convert" id="f-bg" hidden>
       <div class="bgrow"><input type="color" id="bg" aria-label="Cor de fundo"><span class="hint" id="bg-hint"></span></div>
     </div>
 
-    <div class="fld">
+    <!-- favicon -->
+    <div class="fld m-favicon">
+      <div class="hint">Usa a <b>primeira imagem da lista</b>. De preferência um logo quadrado, PNG com fundo transparente ou SVG.</div>
+      <div class="fld-h"><span class="t">Fundo</span></div>
+      <div class="seg two" id="fav-bg" role="group" aria-label="Fundo do favicon">
+        <button type="button" data-v="transparent">Transparente</button>
+        <button type="button" data-v="color">Cor sólida</button>
+      </div>
+      <div class="bgrow"><input type="color" id="fav-color" aria-label="Cor de fundo do ícone"><span class="hint">Cor de fundo (o ícone do iPhone sempre usa ela)</span></div>
+      <div class="fld-h"><label for="fav-pad">Margem interna</label><output id="fav-pad-out"></output></div>
+      <input type="range" id="fav-pad" min="0" max="30" step="1">
+      <div class="row2">
+        <label>Nome do site<input class="inp" id="fav-name" placeholder="ex.: Goldline Painting"></label>
+        <label>Cor do tema<span class="bgrow"><input type="color" id="fav-theme" aria-label="Cor do tema"><span class="hint mono" id="fav-theme-out"></span></span></label>
+      </div>
+    </div>
+
+    <!-- marca d'água -->
+    <details class="wm m-convert m-kit" id="wm-box">
+      <summary>Marca d'água</summary>
+      <div class="wm-body">
+        <label class="chk"><input type="checkbox" id="wm-on"> <span>Aplicar marca d'água nas imagens</span></label>
+        <div class="seg two" id="wm-type" role="group" aria-label="Tipo de marca d'água">
+          <button type="button" data-v="text">Texto</button>
+          <button type="button" data-v="logo">Logo</button>
+        </div>
+        <input class="inp" id="wm-text" placeholder="© Nome da empresa" aria-label="Texto da marca d'água">
+        <div id="wm-logo-box" class="bgrow">
+          <button class="ghost" id="wm-logo-btn" type="button">Escolher logo</button>
+          <span class="hint" id="wm-logo-name">nenhum logo escolhido</span>
+          <input type="file" id="wm-logo" accept="image/*,.svg" hidden>
+        </div>
+        <div class="wm-row">
+          <div class="lbl">Posição<div class="posgrid" id="wm-pos" role="group" aria-label="Posição">
+            <button type="button" data-v="tl" aria-label="Topo esquerda"></button><button type="button" data-v="tc" aria-label="Topo centro"></button><button type="button" data-v="tr" aria-label="Topo direita"></button>
+            <button type="button" data-v="ml" aria-label="Meio esquerda"></button><button type="button" data-v="mc" aria-label="Centro"></button><button type="button" data-v="mr" aria-label="Meio direita"></button>
+            <button type="button" data-v="bl" aria-label="Base esquerda"></button><button type="button" data-v="bc" aria-label="Base centro"></button><button type="button" data-v="br" aria-label="Base direita"></button>
+          </div></div>
+          <div style="display:grid;gap:8px">
+            <label class="lbl">Tamanho <output id="wm-size-out"></output><input type="range" id="wm-size" min="5" max="60"></label>
+            <label class="lbl">Opacidade <output id="wm-op-out"></output><input type="range" id="wm-op" min="10" max="100"></label>
+            <div class="seg two" id="wm-color" role="group" aria-label="Cor do texto">
+              <button type="button" data-v="light">Texto claro</button>
+              <button type="button" data-v="dark">Texto escuro</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <div class="fld m-convert m-kit">
       <div class="fld-h"><span class="t">Nome dos arquivos</span></div>
       <div class="seg two" id="names" role="group" aria-label="Nome dos arquivos">
         <button type="button" data-v="prefix">Numerar em ordem</button>
@@ -225,6 +378,12 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
   </aside>
 </main>
 
+<div class="mbar" id="mbar" hidden>
+  <div class="mbar-info" id="mbar-info"></div>
+  <button class="btn" id="m-convert" type="button">Converter</button>
+  <button class="btn teal" id="m-download" type="button" hidden>Baixar</button>
+</div>
+
 <dialog id="dlg" aria-labelledby="dlg-title">
   <div class="dlg">
     <div class="dlg-h"><b id="dlg-title">Enquadramento</b><span class="small muted">Clique (ou arraste) no que não pode ficar de fora do recorte.</span></div>
@@ -236,458 +395,26 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
     </div>
   </div>
 </dialog>
-<div class="toast" id="toast"></div>
 
-<script>
-const $ = s => document.querySelector(s);
-const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const fmtBytes = n => n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(n < 10240 ? 1 : 0).replace('.', ',') + ' KB' : (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
-const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
-function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 2200); }
-
-// Bibliotecas carregadas só quando precisa: AVIF e PNG otimizado (WebAssembly) e ZIP
-const LIB = {
-  avif: 'https://cdn.jsdelivr.net/npm/@jsquash/avif@2.1.1/encode.js/+esm',
-  oxipng: 'https://cdn.jsdelivr.net/npm/@jsquash/oxipng@2.3.0/optimise.js/+esm',
-  zip: 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-};
-const mods = {};
-const loadMod = k => mods[k] ||= import(LIB[k]).catch(e => { delete mods[k]; throw new Error('não consegui carregar o codificador (sem internet?)'); });
-const loadZip = () => mods.zip ||= new Promise((res, rej) => { const s = document.createElement('script'); s.src = LIB.zip; s.onload = () => res(window.JSZip); s.onerror = () => { delete mods.zip; rej(new Error('não consegui carregar o gerador de .zip')); }; document.head.appendChild(s); });
-
-const FORMATS = {
-  webp: {label:'WebP', mime:'image/webp', ext:'webp', alpha:true,  hint:'Melhor escolha para sites: leve, com transparência e aceito por todos os navegadores atuais.'},
-  avif: {label:'AVIF', mime:'image/avif', ext:'avif', alpha:true,  hint:'O mais leve de todos, com transparência. Demora mais para gerar e alguns programas antigos não abrem.'},
-  jpeg: {label:'JPG',  mime:'image/jpeg', ext:'jpg',  alpha:false, hint:'Abre em qualquer lugar. Não tem transparência: áreas transparentes recebem a cor de fundo.'},
-  png:  {label:'PNG',  mime:'image/png',  ext:'png',  alpha:true,  hint:'Sem perda de qualidade e com transparência. Bom para logos e prints; para fotos fica pesado.'},
-};
-const SIZES = [
-  {id:'original', label:'Manter o tamanho original'},
-  {id:'w1920', label:'Largura máx. 1920 px (tela cheia)', maxW:1920},
-  {id:'w1200', label:'Largura máx. 1200 px (conteúdo de site)', maxW:1200},
-  {id:'w800',  label:'Largura máx. 800 px', maxW:800},
-  {id:'sq',    label:'1080 × 1080 (Instagram quadrado)', w:1080, h:1080},
-  {id:'ig',    label:'1080 × 1350 (Instagram retrato)', w:1080, h:1350},
-  {id:'story', label:'1080 × 1920 (Stories e Reels)', w:1080, h:1920},
-  {id:'og',    label:'1200 × 630 (link compartilhado)', w:1200, h:630},
-  {id:'1000x700', label:'1000 × 700', w:1000, h:700},
-  {id:'800x1000', label:'800 × 1000', w:800, h:1000},
-  {id:'custom', label:'Personalizado…'},
-];
-const DEFAULTS = {fmt:'webp', q:82, maxKB:'', optPng:true, size:'original', cw:'', ch:'', fit:'cover', bg:'#ffffff', names:'prefix', prefix:'imagem-', start:1, clean:true};
-let S = {...DEFAULTS};
-try{ Object.assign(S, JSON.parse(localStorage.getItem('cv-settings') || '{}')); }catch{}
-const saveS = () => { try{ localStorage.setItem('cv-settings', JSON.stringify(S)); }catch{} };
-
-let items = [], seq = 0, busy = false, manualOrder = false;
-
-/* ---------- entrada de arquivos ---------- */
-const isImage = f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|avif|gif|bmp|svg)$/i.test(f.name);
-function loadImg(url){ return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('formato não suportado pelo navegador')); i.src = url; }); }
-async function addFiles(list){
-  const files = [...list];
-  const imgs = files.filter(isImage);
-  const skipped = files.length - imgs.length;
-  if(skipped) toast(skipped === 1 ? '1 arquivo ignorado: não é imagem' : `${skipped} arquivos ignorados: não são imagens`);
-  if(!imgs.length) return;
-  const added = imgs.map(f => ({id: ++seq, file: f, name: f.name || `colada-${seq}.png`, base: (f.name || `colada-${seq}`).replace(/\.[^.]+$/, ''), url: URL.createObjectURL(f), size: f.size, focus: {x:.5, y:.5}, status: 'loading'}));
-  items.push(...added);
-  if(!manualOrder) sortByName(false);
-  invalidate(); render();
-  await Promise.all(added.map(async it => {
-    try{
-      it.img = await loadImg(it.url);
-      it.w = it.img.naturalWidth || 1000; it.h = it.img.naturalHeight || 1000;
-      it.status = 'ready';
-    }catch(e){ it.status = 'error'; it.err = /heic|heif/i.test(it.name) ? 'HEIC do iPhone não abre no navegador: exporte como JPG antes' : e.message; }
-  }));
-  render();
-}
-function sortByName(doRender = true){
-  items.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {numeric: true, sensitivity: 'base'}));
-  manualOrder = false;
-  if(doRender){ invalidate(); render(); }
-}
-
-/* ---------- geometria ---------- */
-const sizeOf = () => SIZES.find(s => s.id === S.size) || SIZES[0];
-function plan(it){
-  const s = sizeOf(), w = it.w, h = it.h;
-  if(s.maxW) return w <= s.maxW ? {W:w, H:h, mode:'plain'} : {W:s.maxW, H:Math.round(h * s.maxW / w), mode:'plain'};
-  let TW = s.w, TH = s.h;
-  if(s.id === 'custom'){
-    TW = parseInt(S.cw) || 0; TH = parseInt(S.ch) || 0;
-    if(!TW && !TH) return {W:w, H:h, mode:'plain'};
-    if(!TH) return {W:TW, H:Math.max(1, Math.round(h * TW / w)), mode:'plain'};
-    if(!TW) return {W:Math.max(1, Math.round(w * TH / h)), H:TH, mode:'plain'};
-  }
-  if(!TW) return {W:w, H:h, mode:'plain'};
-  return {W:TW, H:TH, mode:S.fit};
-}
-const isFixed = () => { const s = sizeOf(); return !!(s.w || (s.id === 'custom' && parseInt(S.cw) && parseInt(S.ch))); };
-// retângulo recortado da original (modo "recortar"), centrado no ponto de foco
-function coverRect(it, p){
-  const scale = Math.max(p.W / it.w, p.H / it.h), sw = p.W / scale, sh = p.H / scale;
-  return {sx: clamp(it.focus.x * it.w - sw / 2, 0, it.w - sw), sy: clamp(it.focus.y * it.h - sh / 2, 0, it.h - sh), sw, sh};
-}
-// redução em etapas (metade por vez) para não serrilhar ao diminuir muito
-function drawHQ(ctx, src, sx, sy, sw, sh, dx, dy, dw, dh){
-  let s = src, x = sx, y = sy, w = sw, h = sh;
-  while(w / dw > 2 && h / dh > 2){
-    const nw = Math.round(w / 2), nh = Math.round(h / 2), t = document.createElement('canvas');
-    t.width = nw; t.height = nh;
-    const tc = t.getContext('2d'); tc.imageSmoothingQuality = 'high'; tc.drawImage(s, x, y, w, h, 0, 0, nw, nh);
-    s = t; x = 0; y = 0; w = nw; h = nh;
-  }
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(s, x, y, w, h, dx, dy, dw, dh);
-}
-function render2canvas(it, p){
-  const c = document.createElement('canvas'); c.width = p.W; c.height = p.H;
-  const ctx = c.getContext('2d');
-  if(!FORMATS[S.fmt].alpha || p.mode === 'contain'){ ctx.fillStyle = S.bg; ctx.fillRect(0, 0, p.W, p.H); }
-  if(p.mode === 'cover'){ const r = coverRect(it, p); drawHQ(ctx, it.img, r.sx, r.sy, r.sw, r.sh, 0, 0, p.W, p.H); }
-  else if(p.mode === 'contain'){
-    const k = Math.min(p.W / it.w, p.H / it.h), dw = it.w * k, dh = it.h * k;
-    drawHQ(ctx, it.img, 0, 0, it.w, it.h, (p.W - dw) / 2, (p.H - dh) / 2, dw, dh);
-  } else drawHQ(ctx, it.img, 0, 0, it.w, it.h, 0, 0, p.W, p.H);
-  return c;
-}
-
-/* ---------- codificação ---------- */
-const toBlob = (c, type, q) => new Promise((res, rej) => c.toBlob(b => b ? res(b) : rej(new Error('falha ao gerar a imagem')), type, q));
-async function encode(c, fmt, q){
-  if(fmt === 'webp' || fmt === 'jpeg') return toBlob(c, FORMATS[fmt].mime, q);
-  if(fmt === 'png'){
-    const b = await toBlob(c, 'image/png');
-    if(!S.optPng) return b;
-    const m = await loadMod('oxipng');
-    return new Blob([await m.default(await b.arrayBuffer(), {level: 2})], {type: 'image/png'});
-  }
-  if(fmt === 'avif'){
-    // o Chrome não gera AVIF pelo canvas (devolve PNG): usamos um codificador de verdade
-    const m = await loadMod('avif');
-    const data = c.getContext('2d').getImageData(0, 0, c.width, c.height);
-    return new Blob([await m.default(data, {quality: Math.round(q * 100), speed: 8})], {type: 'image/avif'});
-  }
-}
-async function processItem(it, name){
-  const p = plan(it), c = render2canvas(it, p);
-  let q = S.q / 100, blob = await encode(c, S.fmt, q), fits = true;
-  const max = (parseInt(S.maxKB) || 0) * 1024;
-  if(max && S.fmt !== 'png' && blob.size > max){
-    // busca binária da maior qualidade que cabe no peso máximo
-    let lo = 0.1, hi = q, best = null;
-    for(let i = 0; i < 6; i++){
-      const mid = (lo + hi) / 2, b = await encode(c, S.fmt, mid);
-      if(b.size <= max){ best = {b, q: mid}; lo = mid; } else hi = mid;
-    }
-    if(best){ blob = best.b; q = best.q; } else { blob = await encode(c, S.fmt, 0.1); q = 0.1; fits = false; }
-  }
-  if(it.out?.url) URL.revokeObjectURL(it.out.url);
-  it.out = {blob, name, w: p.W, h: p.H, q, fits, url: URL.createObjectURL(blob)};
-}
-async function convertAll(){
-  const todo = items.filter(it => it.status !== 'error' && it.status !== 'loading');
-  if(!todo.length || busy) return;
-  busy = true; setBusy(true);
-  const names = outNames();
-  const bar = $('#progress span'); $('#progress').hidden = false;
-  let n = 0;
-  if(S.fmt === 'avif' || (S.fmt === 'png' && S.optPng)) $('#convert').textContent = 'Carregando codificador…';
-  for(const it of items){
-    if(it.status === 'error' || it.status === 'loading') continue;
-    it.status = 'working'; renderItem(it);
-    $('#convert').textContent = `Convertendo ${n + 1} de ${todo.length}…`;
-    try{ await processItem(it, names[items.indexOf(it)]); it.status = 'done'; }
-    catch(e){ it.status = 'error'; it.err = e.message; }
-    n++; bar.style.width = (n / todo.length * 100) + '%';
-    renderItem(it);
-    await new Promise(r => setTimeout(r)); // deixa a tela respirar entre as imagens
-  }
-  busy = false; setBusy(false);
-  setTimeout(() => { $('#progress').hidden = true; bar.style.width = '0'; }, 600);
-  render();
-  const ok = items.filter(i => i.status === 'done').length;
-  toast(ok === 1 ? '1 imagem pronta para baixar' : ok ? `${ok} imagens prontas para baixar` : 'Nenhuma imagem convertida');
-}
-function setBusy(on){
-  $('#convert').disabled = on; $('#download').disabled = on; $('#clear').disabled = on; $('#sort').disabled = on;
-  document.querySelector('.side').toggleAttribute('aria-busy', on);
-}
-// qualquer mudança nas configurações invalida os resultados já gerados
-function invalidate(){
-  for(const it of items){ if(it.out?.url) URL.revokeObjectURL(it.out.url); it.out = null; if(it.status === 'done' || it.status === 'working') it.status = 'ready'; }
-}
-
-/* ---------- nomes ---------- */
-const slug = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-function outNames(){
-  const ext = FORMATS[S.fmt].ext, used = new Set();
-  const start = parseInt(S.start); const st = isNaN(start) ? 1 : start;
-  const pad = String(st + items.length - 1).length;
-  let pre = S.prefix || '';
-  pre = slug(pre) + (pre && /[-_ ]$/.test(pre) ? '-' : '');
-  return items.map((it, i) => {
-    let b = S.names === 'prefix' ? pre + String(st + i).padStart(pad, '0') : (S.clean ? slug(it.base) : it.base.trim());
-    if(!b) b = 'imagem';
-    let name = b, k = 2;
-    while(used.has(name.toLowerCase())) name = `${b}-${k++}`;
-    used.add(name.toLowerCase());
-    return `${name}.${ext}`;
-  });
-}
-
-/* ---------- download ---------- */
-function save(blob, filename){
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = filename;
-  document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-}
-async function downloadAll(){
-  const done = items.filter(i => i.status === 'done' && i.out);
-  if(!done.length) return;
-  done.forEach(i => { i.saved = true; });
-  if(done.length === 1) return save(done[0].out.blob, done[0].out.name);
-  const btn = $('#download'); btn.disabled = true; btn.textContent = 'Montando o .zip…';
-  try{
-    const JSZip = await loadZip(), zip = new JSZip();
-    for(const it of done) zip.file(it.out.name, it.out.blob);
-    // imagens já são comprimidas: guardar sem recomprimir deixa o zip instantâneo
-    const blob = await zip.generateAsync({type: 'blob', compression: 'STORE'});
-    save(blob, `imagens-${FORMATS[S.fmt].ext}-${new Date().toISOString().slice(0, 10)}.zip`);
-  }catch(e){ toast(e.message); }
-  btn.disabled = false; renderTotals();
-}
-
-/* ---------- tela ---------- */
-const GRIP = '<svg viewBox="0 0 10 16" aria-hidden="true"><circle cx="3" cy="3" r="1.3"/><circle cx="7" cy="3" r="1.3"/><circle cx="3" cy="8" r="1.3"/><circle cx="7" cy="8" r="1.3"/><circle cx="3" cy="13" r="1.3"/><circle cx="7" cy="13" r="1.3"/></svg>';
-const I_CROP = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1v11h11M1 4h11v11"/></svg>';
-const I_DOWN = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"/></svg>';
-const I_X = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8"/></svg>';
-
-function itemHTML(it, name){
-  const fixedCover = isFixed() && S.fit === 'cover';
-  let meta = `<span>${it.w ? `${it.w} × ${it.h} · ` : ''}${fmtBytes(it.size)}</span>`;
-  if(it.status === 'loading') meta = '<span class="loading">lendo…</span>';
-  else if(it.status === 'error') meta = `<span class="err">Não deu: ${esc(it.err)}</span>`;
-  else if(it.status === 'working') meta += ` <span class="arrow">→</span> <span class="loading">convertendo</span>`;
-  else if(it.status === 'done'){
-    const o = it.out, diff = Math.round((1 - o.blob.size / it.size) * 100);
-    meta += ` <span class="arrow">→</span> <span class="res">${o.w} × ${o.h} · ${fmtBytes(o.blob.size)}</span>
-      <span class="pill ${diff > 0 ? 'ok' : 'warn'}">${diff > 0 ? '−' + diff + '%' : '+' + Math.abs(diff) + '%'}</span>
-      ${!o.fits ? '<span class="pill warn">não coube no peso máximo</span>' : ''}`;
-  } else {
-    const p = plan(it);
-    meta += ` <span class="arrow">→</span> <span>${p.W} × ${p.H}</span>`;
-  }
-  return `<li class="it${it.status === 'error' ? ' error' : ''}" draggable="true" data-id="${it.id}">
-    <span class="grip" title="Arraste para mudar a ordem">${GRIP}</span>
-    <img class="thumb" src="${it.status === 'done' ? it.out.url : it.url}" alt="" loading="lazy">
-    <div class="it-main">
-      <div class="it-name"><span class="from" title="${esc(it.name)}">${esc(it.name)}</span>${it.status !== 'error' ? `<span class="arrow">→</span><span class="to">${esc(name)}</span>` : ''}</div>
-      <div class="it-meta">${meta}</div>
+<dialog id="cmpdlg" aria-labelledby="cmp-title">
+  <div class="dlg">
+    <div class="dlg-h"><b id="cmp-title">Comparar</b><span class="small muted" id="cmp-info"></span></div>
+    <div class="cmp fit" id="cmp">
+      <div class="cmp-in" id="cmp-in">
+        <img id="cmp-before" alt="Original">
+        <div class="after"><img id="cmp-after" alt="Convertida"></div>
+        <div class="cmp-line"></div>
+        <span class="cmp-tag l">Original</span><span class="cmp-tag r" id="cmp-tag-r">Convertida</span>
+      </div>
     </div>
-    <div class="it-act">
-      ${fixedCover && it.status !== 'error' && it.status !== 'loading' ? `<button class="icon-btn" type="button" data-act="focus" title="Ajustar enquadramento" aria-label="Ajustar enquadramento de ${esc(it.name)}">${I_CROP}</button>` : ''}
-      ${it.status === 'done' ? `<button class="icon-btn" type="button" data-act="dl" title="Baixar esta imagem" aria-label="Baixar ${esc(name)}">${I_DOWN}</button>` : ''}
-      <button class="icon-btn" type="button" data-act="rm" title="Remover" aria-label="Remover ${esc(it.name)}">${I_X}</button>
+    <div class="dlg-f">
+      <div class="tabs-mini" role="group" aria-label="Zoom"><button type="button" id="cmp-fit" aria-pressed="true">Ajustar à tela</button><button type="button" id="cmp-100" aria-pressed="false">Tamanho real (100%)</button></div>
+      <button class="btn" id="cmp-close" type="button">Fechar</button>
     </div>
-  </li>`;
-}
-function render(){
-  const names = outNames();
-  $('#list').innerHTML = items.map((it, i) => itemHTML(it, names[i])).join('');
-  const n = items.length;
-  $('#listbar').hidden = !n;
-  $('#count').textContent = `${n} ${n === 1 ? 'imagem' : 'imagens'}`;
-  $('#drop').classList.toggle('compact', !!n);
-  $('#drop-title').textContent = n ? 'Adicionar mais imagens' : 'Arraste as imagens aqui';
-  renderNamesPreview(names);
-  renderTotals();
-}
-function renderItem(it){
-  const li = document.querySelector(`.it[data-id="${it.id}"]`);
-  if(li) li.outerHTML = itemHTML(it, outNames()[items.indexOf(it)]);
-}
-function renderTotals(){
-  const ready = items.filter(i => i.status !== 'error' && i.status !== 'loading');
-  const done = items.filter(i => i.status === 'done');
-  const cb = $('#convert'), db = $('#download'), tot = $('#total');
-  if(!busy){
-    cb.disabled = !ready.length;
-    cb.textContent = !ready.length ? 'Converter' : done.length === ready.length ? 'Converter de novo' : `Converter ${ready.length} ${ready.length === 1 ? 'imagem' : 'imagens'}`;
-  }
-  db.hidden = !done.length;
-  db.textContent = done.length > 1 ? `Baixar tudo (.zip · ${done.length} imagens)` : 'Baixar imagem';
-  if(done.length){
-    const before = done.reduce((s, i) => s + i.size, 0), after = done.reduce((s, i) => s + i.out.blob.size, 0);
-    const pct = Math.round((1 - after / before) * 100);
-    tot.hidden = false;
-    tot.innerHTML = `<span class="small muted">${done.length} convertida${done.length === 1 ? '' : 's'}</span>
-      <b>${fmtBytes(before)} → ${fmtBytes(after)}</b>
-      <span class="small">${pct > 0 ? `Economia de ${pct}% no peso` : 'Ficou maior que o original: tente outro formato ou menos qualidade'}</span>`;
-  } else tot.hidden = true;
-}
-function renderNamesPreview(names = outNames()){
-  const ex = names.length ? names.slice(0, 3) : outNamesSample();
-  $('#names-preview').textContent = ex.join(', ') + (names.length > 3 ? `, … (${names.length})` : '');
-}
-function outNamesSample(){
-  const fake = [{base:'Foto Fachada 01'}, {base:'Foto Fachada 02'}];
-  const keep = items; items = fake; const r = outNames(); items = keep; return r;
-}
-function renderSettings(){
-  for(const b of document.querySelectorAll('#fmt button')) b.setAttribute('aria-pressed', b.dataset.v === S.fmt);
-  for(const b of document.querySelectorAll('#fit button')) b.setAttribute('aria-pressed', b.dataset.v === S.fit);
-  for(const b of document.querySelectorAll('#names button')) b.setAttribute('aria-pressed', b.dataset.v === S.names);
-  $('#fmt-hint').textContent = FORMATS[S.fmt].hint;
-  $('#q').value = S.q; $('#q-out').textContent = S.q + '%';
-  $('#maxkb').value = S.maxKB;
-  $('#f-quality').hidden = S.fmt === 'png';
-  $('#f-png').hidden = S.fmt !== 'png'; $('#optpng').checked = S.optPng;
-  $('#size').value = S.size;
-  $('#custom').hidden = S.size !== 'custom'; $('#cw').value = S.cw; $('#ch').value = S.ch;
-  const fixed = isFixed();
-  $('#fitbox').hidden = !fixed;
-  const s = sizeOf();
-  $('#size-hint').textContent = s.maxW ? 'Imagens menores que isso ficam como estão (não aumenta).'
-    : fixed ? (S.fit === 'cover' ? 'Corta as sobras para preencher a medida. Use o botão de enquadrar em cada foto para escolher o que aparece.' : 'A imagem inteira cabe na medida; as sobras recebem a cor de fundo.')
-    : s.id === 'custom' ? 'Preencha só a largura (ou só a altura) para manter a proporção.' : '';
-  const needBg = !FORMATS[S.fmt].alpha || (fixed && S.fit === 'contain');
-  $('#f-bg').hidden = !needBg; $('#bg').value = S.bg;
-  $('#bg-hint').textContent = !FORMATS[S.fmt].alpha ? 'Cor de fundo (JPG não tem transparência)' : 'Cor de fundo das sobras';
-  $('#prefixbox').hidden = S.names !== 'prefix'; $('#prefix').value = S.prefix; $('#start').value = S.start;
-  $('#cleanbox').hidden = S.names !== 'original'; $('#clean').checked = S.clean;
-}
-function setS(patch){
-  Object.assign(S, patch); saveS();
-  invalidate(); renderSettings(); render();
-  if(S.fmt === 'avif') loadMod('avif').catch(() => {});             // já vai baixando o codificador
-  if(S.fmt === 'png' && S.optPng) loadMod('oxipng').catch(() => {});
-}
+  </div>
+</dialog>
+<div class="toast" id="toast" role="status"></div>
 
-/* ---------- enquadramento ---------- */
-let focusIt = null;
-function openFocus(it){
-  focusIt = it;
-  const img = $('#dlg-img');
-  img.src = it.url;
-  $('#dlg-title').textContent = `Enquadramento · ${it.name}`;
-  $('#dlg').showModal();
-  if(img.complete) drawFocus(); else img.onload = drawFocus;
-}
-function drawFocus(){
-  const it = focusIt; if(!it) return;
-  const p = plan(it), r = coverRect(it, p), box = $('#cropbox');
-  box.style.left = (r.sx / it.w * 100) + '%'; box.style.top = (r.sy / it.h * 100) + '%';
-  box.style.width = (r.sw / it.w * 100) + '%'; box.style.height = (r.sh / it.h * 100) + '%';
-  $('#fdot').style.left = (it.focus.x * 100) + '%'; $('#fdot').style.top = (it.focus.y * 100) + '%';
-}
-function setFocusFromEvent(e){
-  const r = $('#stage').getBoundingClientRect();
-  focusIt.focus = {x: clamp((e.clientX - r.left) / r.width, 0, 1), y: clamp((e.clientY - r.top) / r.height, 0, 1)};
-  drawFocus();
-}
-$('#stage').addEventListener('pointerdown', e => { $('#stage').setPointerCapture(e.pointerId); setFocusFromEvent(e); });
-$('#stage').addEventListener('pointermove', e => { if(e.buttons) setFocusFromEvent(e); });
-$('#dlg-center').addEventListener('click', () => { focusIt.focus = {x:.5, y:.5}; drawFocus(); });
-$('#dlg-all').addEventListener('click', () => { for(const it of items) it.focus = {...focusIt.focus}; toast('Mesmo enquadramento aplicado em todas'); closeFocus(); });
-$('#dlg-ok').addEventListener('click', closeFocus);
-$('#dlg').addEventListener('close', () => { if(focusIt){ const it = focusIt; focusIt = null; if(it.status === 'done'){ it.status = 'ready'; if(it.out?.url) URL.revokeObjectURL(it.out.url); it.out = null; } render(); } });
-function closeFocus(){ $('#dlg').close(); }
-
-/* ---------- eventos ---------- */
-const drop = $('#drop'), fileIn = $('#file');
-drop.addEventListener('click', () => fileIn.click());
-drop.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fileIn.click(); } });
-fileIn.addEventListener('change', () => { addFiles(fileIn.files); fileIn.value = ''; });
-// soltar arquivos em qualquer lugar da página
-const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
-let dragDepth = 0;
-window.addEventListener('dragenter', e => { if(hasFiles(e)){ dragDepth++; drop.classList.add('over'); } });
-window.addEventListener('dragleave', e => { if(hasFiles(e) && --dragDepth <= 0){ dragDepth = 0; drop.classList.remove('over'); } });
-window.addEventListener('dragover', e => { if(hasFiles(e)) e.preventDefault(); });
-window.addEventListener('drop', e => { if(hasFiles(e)){ e.preventDefault(); dragDepth = 0; drop.classList.remove('over'); addFiles(e.dataTransfer.files); } });
-// colar imagens (print, imagem copiada do navegador)
-window.addEventListener('paste', e => {
-  const files = [...(e.clipboardData?.items || [])].filter(i => i.kind === 'file').map(i => i.getAsFile()).filter(Boolean);
-  if(files.length){ e.preventDefault(); addFiles(files); }
-});
-
-// reordenar arrastando os itens da lista
-let dragId = null;
-$('#list').addEventListener('dragstart', e => { const li = e.target.closest('.it'); if(!li || busy) return e.preventDefault(); dragId = +li.dataset.id; li.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', li.dataset.id); });
-$('#list').addEventListener('dragend', () => { dragId = null; document.querySelectorAll('.it').forEach(li => li.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom')); });
-$('#list').addEventListener('dragover', e => {
-  if(dragId === null) return;
-  const li = e.target.closest('.it'); if(!li) return;
-  e.preventDefault();
-  const r = li.getBoundingClientRect(), top = e.clientY < r.top + r.height / 2;
-  document.querySelectorAll('.it').forEach(x => x.classList.remove('drag-over-top', 'drag-over-bottom'));
-  li.classList.add(top ? 'drag-over-top' : 'drag-over-bottom');
-});
-$('#list').addEventListener('drop', e => {
-  if(dragId === null) return;
-  e.preventDefault(); e.stopPropagation();
-  const li = e.target.closest('.it'); if(!li) return;
-  const r = li.getBoundingClientRect(), top = e.clientY < r.top + r.height / 2;
-  const from = items.findIndex(i => i.id === dragId), moved = items.splice(from, 1)[0];
-  let to = items.findIndex(i => i.id === +li.dataset.id); if(!top) to++;
-  items.splice(to, 0, moved);
-  manualOrder = true; dragId = null;
-  // a ordem muda os números dos nomes: os resultados antigos deixam de valer
-  if(S.names === 'prefix') invalidate();
-  render();
-});
-$('#list').addEventListener('click', e => {
-  const b = e.target.closest('[data-act]'); if(!b) return;
-  const it = items.find(i => i.id === +b.closest('.it').dataset.id); if(!it) return;
-  if(b.dataset.act === 'rm'){ URL.revokeObjectURL(it.url); if(it.out?.url) URL.revokeObjectURL(it.out.url); items.splice(items.indexOf(it), 1); if(S.names === 'prefix') invalidate(); render(); }
-  else if(b.dataset.act === 'dl'){ save(it.out.blob, it.out.name); it.saved = true; }
-  else if(b.dataset.act === 'focus') openFocus(it);
-});
-$('#list').addEventListener('dblclick', e => {
-  const li = e.target.closest('.it'); if(!li || !isFixed() || S.fit !== 'cover') return;
-  const it = items.find(i => i.id === +li.dataset.id); if(it && it.img) openFocus(it);
-});
-$('#sort').addEventListener('click', () => sortByName());
-$('#clear').addEventListener('click', () => { for(const it of items){ URL.revokeObjectURL(it.url); if(it.out?.url) URL.revokeObjectURL(it.out.url); } items = []; manualOrder = false; render(); });
-$('#convert').addEventListener('click', convertAll);
-$('#download').addEventListener('click', downloadAll);
-
-// configurações
-$('#fmt').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) setS({fmt: b.dataset.v}); });
-$('#fit').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) setS({fit: b.dataset.v}); });
-$('#names').addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) setS({names: b.dataset.v}); });
-$('#q').addEventListener('input', e => { $('#q-out').textContent = e.target.value + '%'; });
-$('#q').addEventListener('change', e => setS({q: +e.target.value}));
-$('#maxkb').addEventListener('change', e => setS({maxKB: e.target.value}));
-$('#optpng').addEventListener('change', e => setS({optPng: e.target.checked}));
-$('#size').addEventListener('change', e => setS({size: e.target.value}));
-$('#cw').addEventListener('change', e => setS({cw: e.target.value}));
-$('#ch').addEventListener('change', e => setS({ch: e.target.value}));
-$('#bg').addEventListener('change', e => setS({bg: e.target.value}));
-// nomes só mudam o texto: atualiza sem jogar fora as conversões
-const renameOnly = patch => { Object.assign(S, patch); saveS(); const names = outNames(); items.forEach((it, i) => { if(it.out) it.out.name = names[i]; }); render(); };
-$('#prefix').addEventListener('input', e => renameOnly({prefix: e.target.value}));
-$('#start').addEventListener('input', e => renameOnly({start: e.target.value}));
-$('#clean').addEventListener('change', e => renameOnly({clean: e.target.checked}));
-
-// tema
-const themeBtn = $('#theme');
-function syncThemeBtn(){ const dark = document.documentElement.dataset.theme === 'dark'; const l = dark ? 'Ativar modo claro' : 'Ativar modo escuro'; themeBtn.setAttribute('aria-label', l); themeBtn.title = l; }
-themeBtn.addEventListener('click', () => { const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next; try{ localStorage.setItem('rx-theme', next); }catch{} syncThemeBtn(); });
-syncThemeBtn();
-
-// avisa antes de sair com conversões não baixadas
-window.addEventListener('beforeunload', e => { if(items.some(i => i.status === 'done' && !i.saved) || busy){ e.preventDefault(); e.returnValue = ''; } });
-
-$('#size').innerHTML = SIZES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
-if(!FORMATS[S.fmt]) S.fmt = 'webp';
-if(!SIZES.some(s => s.id === S.size)) S.size = 'original';
-renderSettings(); render();
-</script>
+<script src="assets/conversor.js"></script>
 </body>
 </html>
