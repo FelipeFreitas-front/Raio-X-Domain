@@ -38,6 +38,15 @@ button,input,select{font-family:inherit}
 .topbar-in{max-width:1180px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:8px 16px;flex-wrap:wrap}
 .hub-brand{display:inline-flex;align-items:center;gap:8px;text-decoration:none;color:var(--ink);font-size:16px;font-weight:500;margin-right:auto}
 .hub-brand svg{width:22px;height:22px;flex:none}
+
+/* logo webkit: grade 2x2 (um quadrado teal com cursor) + palavra com o pingo do i em teal */
+.wk{display:inline-flex;align-items:center;gap:.34em;text-decoration:none;color:var(--logo-ink);font-size:24px;line-height:1}
+.wk-icon{width:1.3em;height:1.3em;flex:none;display:block}
+.wk-word{font-family:"Poppins", var(--font);font-weight:700;letter-spacing:-.035em;color:var(--logo-ink)}
+.wk-i{position:relative;display:inline-block}
+.wk-i::after{content:"";position:absolute;left:50%;top:.07em;width:.25em;height:.25em;margin-left:-.125em;border-radius:50%;background:var(--teal)}
+.hub-brand.wk{font-size:22px;margin-right:auto}
+.hub-brand .wk-icon{width:1.3em;height:1.3em}
 .topnav{display:flex;gap:4px;flex-wrap:wrap}
 .topnav a{display:inline-flex;align-items:center;height:32px;padding:0 12px;border-radius:var(--r-pill);color:var(--graphite);text-decoration:none;font-size:14px}
 .topnav a:hover{color:var(--ink);background:var(--parchment)}

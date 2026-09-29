@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Ferramentas Web · grátis para quem faz sites</title>
+<title>webkit · ferramentas grátis para quem faz sites</title>
 <meta name="description" content="Consulte domínio, DNS e e-mail, acompanhe propagação, converta imagens para WebP e AVIF, gere favicon e kit responsivo. Grátis, sem cadastro e tudo no navegador.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Ferramentas Web · grátis para quem faz sites">
+<meta property="og:title" content="webkit · ferramentas grátis para quem faz sites">
 <meta property="og:description" content="Raio-X de domínio, propagação de DNS, conversor de imagens, favicon e kit responsivo. Sem cadastro e sem enviar arquivos.">
 <meta name="twitter:card" content="summary">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"Ferramentas Web","applicationCategory":"DeveloperApplication","operatingSystem":"Qualquer navegador moderno","inLanguage":"pt-BR","offers":{"@type":"Offer","price":"0","priceCurrency":"BRL"},"description":"Consulta de domínio e DNS, propagação global, conversor de imagens, gerador de favicon e kit de imagem responsiva, direto no navegador."}
+{"@context":"https://schema.org","@type":"WebApplication","name":"webkit","applicationCategory":"DeveloperApplication","operatingSystem":"Qualquer navegador moderno","inLanguage":"pt-BR","offers":{"@type":"Offer","price":"0","priceCurrency":"BRL"},"description":"Consulta de domínio e DNS, propagação global, conversor de imagens, gerador de favicon e kit de imagem responsiva, direto no navegador."}
 </script>
 <script>
   // links antigos do Raio-X (index.html#dominio.com) continuam funcionando
@@ -22,8 +22,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-x&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='2' y='2' width='9' height='9' rx='2.5' fill='%2327251e'/%3E%3Crect x='13' y='2' width='9' height='9' rx='2.5' fill='%23016a71'/%3E%3Crect x='2' y='13' width='9' height='9' rx='2.5' fill='%2327251e'/%3E%3Crect x='13' y='13' width='9' height='9' rx='2.5' fill='%2327251e'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='1' y='1' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='1' width='21' height='21' rx='6' fill='%23016a71'/%3E%3Crect x='1' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Cpath d='M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/base.css">
 <style>
 /* Layout: landing comercial em coluna de 1120px. Hero em duas colunas (promessa + busca à esquerda, prévia do produto à direita),
@@ -165,6 +165,7 @@ section{scroll-margin-top:72px}
 footer.site{border-top:1px solid var(--hair);margin-top:72px}
 .foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;padding-block:28px;font-size:13px;color:var(--graphite)}
 .foot nav{display:flex;flex-wrap:wrap;gap:16px}
+.foot-brand{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
 .foot a{color:var(--graphite)}
 
 /* entrada suave, só com movimento permitido */
@@ -180,10 +181,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a class="hub-brand" href="./" aria-current="page">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="2.5" style="fill:var(--ink)"/><rect x="13" y="2" width="9" height="9" rx="2.5" style="fill:var(--teal)"/><rect x="2" y="13" width="9" height="9" rx="2.5" style="fill:var(--ink)"/><rect x="13" y="13" width="9" height="9" rx="2.5" style="fill:var(--ink)"/></svg>
-      Ferramentas Web
-    </a>
+    <a class="hub-brand wk" href="./" aria-current="page" aria-label="webkit, pÃ¡gina inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
     <nav class="topnav" aria-label="Ferramentas">
       <a href="raio-x.html">Raio-X de domínio</a>
       <a href="conversor.html">Conversor de imagens</a>
@@ -363,7 +361,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
 
 <footer class="site">
   <div class="wrap foot">
-    <span>Ferramentas Web · grátis para quem faz sites</span>
+    <span class="foot-brand"><span class="wk" style="font-size:18px"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/></svg><span class="wk-word">webk<span class="wk-i">&#305;</span>t</span></span> ferramentas grátis para quem faz sites</span>
     <nav aria-label="Rodapé">
       <a href="raio-x.html">Raio-X de domínio</a>
       <a href="conversor.html">Conversor de imagens</a>
