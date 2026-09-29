@@ -1,0 +1,1581 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Raio-X de Domínio</title>
+<script>
+  // aplica o tema antes de desenhar a página (evita piscar branco): escolha salva > preferência do sistema
+  (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
+    if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t); })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-x&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 430 400'%3E%3Ccircle cx='190' cy='195' r='165' fill='none' stroke='%231f1d19' stroke-width='34'/%3E%3Ccircle cx='290' cy='255' r='118' fill='%23fff'/%3E%3Ccircle cx='290' cy='255' r='84' fill='none' stroke='%23016a71' stroke-width='34'/%3E%3Cpath d='M354 320L404 370' stroke='%23016a71' stroke-width='44' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+/* Layout: trilho lateral de 260px com o histórico + coluna central de 900px; a busca é a peça principal e os resultados ficam em cartões de papel.
+   Design system: pergaminho quente, tinta marrom-escura, linhas finas cinza-quente e um único teal só em preenchimentos. Pesos 400/500, só a sombra sutil. */
+:root{
+  --parchment:#faf8f5; --paper:#fdfbfa; --rail:#f4f1ec; --mist:#d1d1cd; --hair:#e8e6e1; --soft:#e8e6e1;
+  --ash:#92918b; --graphite:#72706b; --ink:#27251e; --black:#000000;
+  --teal:#016a71; --on-teal:#ffffff;
+  --font:"Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --r-card:16px; --r-input:12px; --r-btn:6px; --r-pill:9999px;
+  --shadow:rgba(0,0,0,.08) 0 1px 2px 0;
+  --logo-ink:#1f1d19; --glow:1,106,113; --on-teal-soft:rgba(255,255,255,.22);
+  color-scheme:light;
+}
+/* Modo escuro: a mesma pegada de papel, em tons quentes escuros; o teal fica um pouco mais claro para manter o contraste */
+:root[data-theme="dark"]{
+  --parchment:#171613; --paper:#1f1d1a; --rail:#12110f; --mist:#3d3a34; --hair:#2b2925; --soft:#2b2925;
+  --ash:#85827a; --graphite:#a9a69d; --ink:#ece8df; --black:#ffffff;
+  --teal:#1a8a92; --on-teal:#ffffff;
+  --shadow:rgba(0,0,0,.45) 0 1px 2px 0;
+  --logo-ink:#ece8df; --glow:42,168,176;
+  color-scheme:dark;
+}
+body{transition:background-color .2s,color .2s}
+@media (prefers-reduced-motion:reduce){body{transition:none}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--parchment);color:var(--ink);font:400 14px/1.43 var(--font);-webkit-font-smoothing:antialiased}
+b,strong{font-weight:500}
+a{color:var(--ink);text-decoration:underline;text-decoration-color:var(--mist);text-underline-offset:2px}
+a:hover{text-decoration-color:var(--ink)}
+code,.mono{font-family:var(--mono);font-size:12px}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+
+/* estrutura */
+.app{display:grid;grid-template-columns:260px minmax(0,1fr);min-height:100vh}
+.rail{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--rail);border-right:1px solid var(--hair);padding:16px 12px;display:flex;flex-direction:column;gap:16px}
+/* logo */
+.logo-word{font-family:"Poppins", var(--font);font-weight:700;letter-spacing:-.02em;color:var(--logo-ink);line-height:1}
+.logo-word em{font-style:normal;color:var(--teal)}
+.logo-icon{flex:none;display:block}
+.brand{display:flex;align-items:center;gap:8px;padding:4px 12px;--logo-bg:var(--rail)}
+.brand .logo-icon{width:32px;height:30px}
+.brand .logo-word{font-size:24px}
+.theme-btn{margin-left:auto;display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--mist);border-radius:var(--r-pill);background:transparent;color:var(--graphite);cursor:pointer;flex:none}
+.theme-btn:hover{color:var(--ink);border-color:var(--graphite)}
+.theme-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.theme-btn .i-sun,:root[data-theme="dark"] .theme-btn .i-moon{display:none}
+:root[data-theme="dark"] .theme-btn .i-sun{display:block}
+.new{justify-content:flex-start;width:100%}
+.hub-back{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:4px 12px 0;color:var(--graphite);font-size:12px;text-decoration:none}
+.hub-back:hover{color:var(--ink)}
+.hub-back svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:900px){.hub-back{width:100%;padding:0}}
+.rail-label{padding:0 12px;font-size:12px;color:var(--graphite)}
+.recent{display:flex;flex-direction:column;gap:2px}
+.recent:empty::after{content:"Nenhuma consulta ainda.";padding:0 12px;font-size:12px;color:var(--ash)}
+.nav{display:block;width:100%;text-align:left;border:0;background:transparent;color:var(--graphite);padding:8px 12px;border-radius:var(--r-input);font:400 14px/1.43 var(--font);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav:hover{color:var(--ink);background:var(--parchment)}
+.nav.active{background:var(--teal);color:var(--on-teal)}
+.nav{display:flex;align-items:baseline;gap:8px}
+.nav .nd{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.nav .na{flex:none;font-size:11px;color:var(--ash)}
+.nav.active .na{color:var(--on-teal);opacity:.75}
+.rail-foot{margin-top:auto;padding:12px 12px 0;border-top:1px solid var(--hair);display:grid;gap:4px;font-size:12px;color:var(--ash)}
+.linkish{justify-self:start;border:0;background:none;padding:0;color:var(--graphite);font:400 12px var(--font);text-decoration:underline;text-decoration-color:var(--mist);text-underline-offset:2px;cursor:pointer}
+.linkish:hover{color:var(--ink);text-decoration-color:var(--ink)}
+.col{width:100%;max-width:900px;margin:0 auto;padding:32px 16px 48px;display:grid;gap:32px;align-content:start;min-width:0}
+
+@media (max-width:900px){
+  .app{grid-template-columns:minmax(0,1fr)}
+  .rail{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:8px;border-right:0;border-bottom:1px solid var(--hair);padding:12px 16px}
+  .brand{padding:4px 0;flex:1}
+  .new{width:auto}
+  .rail-label{display:none}
+  .recent{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;width:100%;gap:6px}
+  .recent:empty{display:none}
+  .nav{width:auto;flex:none;border:1px solid var(--mist);border-radius:var(--r-pill);padding:4px 12px;font-size:12px}
+  .nav.active{border-color:var(--teal)}
+  .nav .na{display:none}
+  .rail-foot{margin-top:0;padding:4px 0 0;border-top:0;width:100%;display:flex;flex-wrap:wrap;gap:4px 12px}
+}
+
+/* busca */
+.hero{display:grid;justify-items:center;gap:12px;text-align:center;padding-top:16px}
+.wordmark{margin:0;display:flex;align-items:center;gap:16px;--logo-bg:var(--parchment)}
+.wordmark .logo-icon{width:76px;height:71px}
+.wordmark .logo-word{font-size:64px}
+@media (max-width:440px){.wordmark .logo-icon{width:56px;height:52px}.wordmark .logo-word{font-size:46px}}
+.tag{margin:0;color:var(--graphite);font-size:14px}
+.search{width:min(640px,100%);display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 8px 8px 16px;background:var(--parchment);border:1px solid var(--mist);border-radius:var(--r-input);box-shadow:0 0 0 1px rgba(var(--glow),.4),0 0 24px rgba(var(--glow),.10);transition:box-shadow .2s}
+.search:focus-within{box-shadow:0 0 0 2px rgba(var(--glow),.55),0 0 28px rgba(var(--glow),.16)}
+.search input{flex:1;min-width:0;height:40px;border:0;background:transparent;color:var(--ink);font:400 16px/1.5 var(--font);outline:none}
+.search input::placeholder{color:var(--graphite)}
+.btn{height:40px;padding:0 16px;border:0;border-radius:var(--r-input);background:var(--ink);color:var(--parchment);font:500 14px var(--font);cursor:pointer;flex:none}
+.btn:hover{background:var(--black)}
+.btn[disabled]{opacity:.55;cursor:progress}
+
+/* cabeçalho do resultado */
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+.head h2{margin:0;font-size:24px;line-height:1.25;font-weight:500;overflow-wrap:anywhere}
+.head .sub{color:var(--graphite);font-size:12px;margin-top:4px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.ghost{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-btn);background:transparent;color:var(--graphite);font:400 14px var(--font);text-decoration:none;cursor:pointer;white-space:nowrap}
+.ghost:hover{color:var(--ink);border-color:var(--graphite)}
+
+/* respostas na lata */
+.titlerow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.site-link{color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:8px;border-radius:var(--r-btn)}
+.site-link svg{width:18px;height:18px;flex:none;fill:none;stroke:var(--graphite);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s}
+.site-link:hover{text-decoration:underline;text-decoration-color:var(--mist);text-underline-offset:4px}
+.site-link:hover svg{stroke:var(--ink)}
+.titlerow .pill{font-size:12px;padding:2px 10px}
+.answers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:-16px}
+@media (max-width:760px){.answers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:440px){.answers{grid-template-columns:minmax(0,1fr)}}
+.ans{background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);padding:16px;display:grid;gap:4px;align-content:start;min-width:0}
+.ans .q{font-size:12px;color:var(--graphite)}
+.ans .a{font-size:24px;line-height:1.25;font-weight:500;color:var(--ink);overflow-wrap:anywhere}
+.ans .d{font-size:12px;line-height:1.5;color:var(--ash);overflow-wrap:anywhere}
+.ans .d .pill{margin-top:4px}
+.wait{color:var(--mist)}
+
+/* DNS em grupos */
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:760px){.dgrid{grid-template-columns:minmax(0,1fr)}}
+.dg{background:var(--parchment);border:1px solid var(--hair);border-radius:var(--r-input);padding:12px;display:grid;gap:8px;align-content:start;min-width:0}
+.dg ul{list-style:none;margin:0;padding:0;display:grid}
+.dg-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
+.dg-h b{font-size:16px}
+.dg-h span{font-size:12px;color:var(--graphite)}
+.dg-sub{font-size:12px;color:var(--graphite);margin-top:4px}
+.rec{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--hair)}
+.rec:first-child{border-top:0}
+.rec .v{font:14px/1.5 var(--mono);color:var(--ink);overflow-wrap:anywhere;min-width:0}
+.dg .rec .v{font-size:13px}
+.rec .ttl{font:12px var(--mono);color:var(--ash);white-space:nowrap}
+.rec .prio{font:12px var(--font);color:var(--ash);white-space:nowrap}
+.rec.none{display:block;color:var(--ash);font-size:14px}
+.cp{height:24px;padding:0 8px;border:1px solid var(--mist);border-radius:var(--r-btn);background:var(--paper);color:var(--graphite);font:400 12px var(--font);cursor:pointer}
+.cp:hover{color:var(--ink);border-color:var(--graphite)}
+.where{font-size:24px;line-height:1.25;font-weight:500}
+details.dg summary{cursor:pointer;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+details.dg summary b{font-size:16px}
+@media (max-width:440px){.rec{grid-template-columns:auto minmax(0,1fr) auto}.rec .ttl{display:none}}
+
+/* cartões */
+/* tela inicial (sem resultado) */
+.col.empty{align-content:center;min-height:calc(100vh - 96px)}
+.col.empty .hero{gap:16px;padding-top:0}
+.col.empty .head,.col.empty .answers,.col.empty .alerts,.col.empty .details,.col.empty footer{display:none}
+.examples{display:none;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;font-size:14px;color:var(--graphite)}
+.col.empty .examples{display:flex}
+.chip-ex{height:32px;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-pill);background:transparent;color:var(--ink);font:400 14px var(--font);cursor:pointer}
+.chip-ex:hover{border-color:var(--graphite)}
+
+/* busca compacta quando já há resultado */
+.col.has-result{gap:24px}
+.col.has-result .hero{padding-top:0;justify-items:stretch}
+.col.has-result .wordmark,.col.has-result .tag{display:none}
+.col.has-result .search{width:100%;margin-top:0}
+
+/* ícones dos cartões */
+.ans .q{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--graphite)}
+.ans .q svg{width:16px;height:16px;flex:none;stroke:var(--ink);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ans{gap:8px;padding:16px 16px 20px}
+.ans .a{font-size:24px}
+.ans .d{font-size:14px;color:var(--graphite);line-height:1.43}
+
+/* pontos de atenção */
+.alerts{background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);padding:16px;display:grid;gap:8px}
+.alerts:empty{display:none}
+.alerts h3{margin:0 0 4px;font-size:16px;font-weight:500}
+.al{display:grid;grid-template-columns:88px minmax(0,1fr);gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--hair);font-size:14px}
+.al:first-of-type{border-top:0}
+.al .pill{justify-self:start}
+.al small{display:block;color:var(--graphite);font-size:12px;margin-top:2px}
+.allgood{display:flex;align-items:center;gap:12px;font-size:16px}
+
+/* abas de detalhes */
+.details{display:grid;gap:12px}
+.tabbar{display:flex;gap:8px;overflow-x:auto;padding:2px;scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tab{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--mist);border-radius:var(--r-pill);background:transparent;color:var(--ink);font:400 14px var(--font);cursor:pointer;white-space:nowrap}
+.tab:hover{border-color:var(--graphite)}
+.tab[aria-selected="true"]{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.tb{font-size:11px;font-weight:500;padding:1px 6px;border-radius:var(--r-pill);background:var(--hair);color:var(--graphite)}
+.tb:empty{display:none}
+.tb.alert{background:var(--ink);color:var(--parchment)}
+.tab[aria-selected="true"] .tb{background:var(--on-teal-soft);color:var(--on-teal)}
+.card{background:var(--paper);border-radius:var(--r-card);box-shadow:var(--shadow);min-width:0}
+.card>h2{margin:0;padding:16px 16px 0;font-size:14px;line-height:1.43;font-weight:500;color:var(--ink);display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.card>h2 .src{font:400 12px var(--mono);color:var(--ash)}
+.body{padding:12px 16px 16px;display:grid;gap:12px;min-width:0}
+dl.kv{display:grid;grid-template-columns:minmax(104px,max-content) minmax(0,1fr);gap:8px 16px;margin:0}
+dl.kv dt{color:var(--graphite);font-size:14px}
+dl.kv dd{margin:0;overflow-wrap:anywhere;font-size:14px}
+.pills{display:flex;flex-wrap:wrap;gap:4px}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--r-pill);font:500 11px/1.5 var(--font);border:1px solid var(--mist);color:var(--graphite);background:transparent;white-space:nowrap}
+.pill.ok{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.pill.warn{border-color:var(--ink);color:var(--ink)}
+.pill.bad{background:var(--ink);border-color:var(--ink);color:var(--parchment)}
+.pill.info{color:var(--ink)}
+.muted{color:var(--graphite)}
+.small{font-size:12px}
+.sect{font-size:12px;color:var(--graphite);padding-top:8px;border-top:1px solid var(--hair)}
+
+.tbl-wrap{overflow-x:auto;margin:0 -16px;padding:0 16px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-weight:400;font-size:12px;color:var(--graphite);padding:8px 12px 8px 0;border-bottom:1px solid var(--hair)}
+td{padding:8px 12px 8px 0;border-bottom:1px solid var(--hair);vertical-align:top}
+tr:last-child td{border-bottom:0}
+td.t{width:72px}
+td.ttl{width:72px;color:var(--ash);font:12px var(--mono);white-space:nowrap;text-align:right;padding-right:0}
+td.val{font-family:var(--mono);font-size:12px;line-height:1.6;overflow-wrap:anywhere;word-break:break-word}
+.typ{display:inline-block;min-width:48px;text-align:center;padding:2px 6px;border-radius:var(--r-btn);font:500 11px/1.5 var(--mono);background:var(--parchment);border:1px solid var(--hair);color:var(--ink)}
+tr.empty td,tr.empty .typ{color:var(--ash)}
+
+.check{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:start;padding:12px;background:var(--parchment);border:1px solid var(--hair);border-radius:var(--r-input)}
+.check .val{grid-column:2;font:12px/1.6 var(--mono);color:var(--graphite);overflow-wrap:anywhere}
+.check b{font-size:14px}
+
+.export .sep{margin-left:8px}
+
+.col > *{min-width:0}
+
+/* propagação global */
+.pg-intro{margin:0;max-width:65ch}
+.pg-form{display:grid;grid-template-columns:minmax(0,2fr) 104px minmax(0,2fr) auto;gap:8px;align-items:end}
+.pg-f{display:grid;gap:4px;min-width:0}
+.pg-f span{font-size:12px;color:var(--graphite)}
+.pg-f em{font-style:normal;color:var(--ash)}
+.pg-f input,.pg-f select{height:40px;padding:0 12px;border:1px solid var(--mist);border-radius:var(--r-input);background:var(--parchment);color:var(--ink);font:400 14px var(--font);min-width:0;width:100%}
+.pg-f input{font-family:var(--mono);font-size:13px}
+.pg-f input:focus,.pg-f select:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+@media (max-width:640px){.pg-form{grid-template-columns:minmax(0,1fr) 104px}.pg-exp{grid-column:1/-1}.pg-form .btn{grid-column:1/-1}}
+.pg-auto{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;font-size:14px}
+.pg-auto label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.pg-auto input{width:16px;height:16px;accent-color:var(--teal)}
+.pg-sum{display:grid;gap:8px;padding:16px;border-radius:var(--r-input);background:var(--parchment);border:1px solid var(--hair)}
+.pg-sum.is-done{border-color:var(--teal)}
+.pg-sum-top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px}
+.pg-sum-top b{font-size:16px}
+.pg-bar{height:8px;border-radius:var(--r-pill);background:var(--hair);overflow:hidden}
+.pg-bar span{display:block;height:100%;background:var(--teal);border-radius:inherit;transition:width .4s}
+@media (prefers-reduced-motion:reduce){.pg-bar span{transition:none}}
+.pg-tbl td{vertical-align:middle}
+.pg-tbl .val{font-size:12.5px;word-break:normal;overflow-wrap:normal}
+.pg-tbl .v1{display:block;white-space:nowrap}
+.pg-tbl .v-long{display:block;overflow-wrap:anywhere}
+@media (max-width:560px){.pg-tbl td.ttl div{display:none}.pg-tbl td.ttl{width:56px}}
+.pg-tbl td.ttl{width:88px;text-align:right;line-height:1.4}
+.pg-st{width:36px}
+.pg-dot{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font:500 12px var(--font);border:1px solid var(--mist);color:var(--ash)}
+.s-good .pg-dot{background:var(--teal);border-color:var(--teal);color:var(--on-teal)}
+.s-bad .pg-dot{background:var(--ink);border-color:var(--ink);color:var(--parchment)}
+.s-err .pg-dot{border-color:var(--ink);color:var(--ink)}
+.s-loading .pg-dot{border-top-color:var(--teal);animation:spin .8s linear infinite}
+@media (prefers-reduced-motion:reduce){.s-loading .pg-dot{animation:none}}
+.s-bad .val{color:var(--ink);font-weight:500}
+.cc{display:inline-block;min-width:22px;padding:0 4px;border:1px solid var(--hair);border-radius:4px;font:500 10px/16px var(--mono);text-align:center;color:var(--graphite)}
+.pg-tbl .loading{font-size:12px}
+.export{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.loading{color:var(--graphite);font-size:14px;display:flex;align-items:center;gap:8px}
+.loading::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid var(--mist);border-top-color:var(--teal);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.loading::before{animation:none}.search{transition:none}}
+.err{padding:12px;border-radius:var(--r-input);border:1px solid var(--ink);color:var(--ink);font-size:14px;background:var(--parchment)}
+pre.raw{margin:8px 0 0;max-height:460px;overflow:auto;background:var(--parchment);border:1px solid var(--hair);border-radius:var(--r-input);padding:12px;font:12px/1.5 var(--mono);white-space:pre;color:var(--ink)}
+details summary{cursor:pointer;font-size:14px;padding:4px 0;color:var(--ink)}
+details+details{margin-top:4px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--parchment);padding:8px 16px;border-radius:var(--r-input);font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+footer{color:var(--ash);font-size:12px}
+</style>
+</head>
+<body>
+<!-- Logo raio-x: globo com nós + lupa. Um símbolo reaproveitado no menu e na tela inicial. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <clipPath id="globe-clip"><circle cx="190" cy="195" r="170"/></clipPath>
+  </defs>
+  <symbol id="logo-icon" viewBox="0 0 430 400">
+    <g fill="none" style="stroke:var(--logo-ink,#1f1d19)" stroke-width="20" stroke-linecap="round">
+      <circle cx="190" cy="195" r="170"/>
+      <g clip-path="url(#globe-clip)">
+        <ellipse cx="190" cy="195" rx="78" ry="178"/>
+        <path d="M10 118 Q190 88 370 118"/>
+        <path d="M10 195 H370"/>
+        <path d="M10 272 Q190 302 370 272"/>
+      </g>
+    </g>
+    <g style="fill:var(--teal,#016a71);stroke:var(--logo-bg,#faf8f5)" stroke-width="12">
+      <circle cx="126" cy="104" r="24"/>
+      <circle cx="113" cy="195" r="24"/>
+      <circle cx="126" cy="286" r="24"/>
+    </g>
+    <circle cx="290" cy="255" r="112" style="fill:var(--logo-bg,#faf8f5)"/>
+    <circle cx="290" cy="255" r="86" fill="none" style="stroke:var(--teal,#016a71)" stroke-width="22"/>
+    <path d="M354 320 L404 370" style="stroke:var(--teal,#016a71)" stroke-width="30" stroke-linecap="round"/>
+    <g style="stroke:var(--teal,#016a71)" stroke-width="14" stroke-linecap="round">
+      <path d="M250 228 H330"/><path d="M250 256 H318"/><path d="M250 284 H296"/>
+    </g>
+  </symbol>
+</svg>
+
+<div class="app">
+<aside class="rail">
+  <a class="hub-back" href="./"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>Ferramentas Web</a>
+  <div class="brand" aria-label="raio-x">
+    <svg class="logo-icon" aria-hidden="true"><use href="#logo-icon"/></svg>
+    <span class="logo-word" aria-hidden="true">raio<em>-x</em></span>
+    <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
+      <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
+      <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+    </button>
+  </div>
+  <button class="ghost new" id="new" type="button">+ Nova consulta</button>
+  <div class="rail-label">Recentes</div>
+  <nav class="recent" id="recent" aria-label="Consultas recentes"></nav>
+  <div class="rail-foot">
+    <div id="cache-info"></div>
+    <button class="linkish" id="clear" type="button">Limpar histórico</button>
+  </div>
+</aside>
+
+<main class="col empty" id="col">
+  <section class="hero">
+    <h1 class="wordmark" aria-label="raio-x">
+      <svg class="logo-icon" aria-hidden="true"><use href="#logo-icon"/></svg>
+      <span class="logo-word" aria-hidden="true">raio<em>-x</em></span>
+    </h1>
+    <p class="tag">WHOIS, DNS, hospedagem e e-mail de qualquer domínio.</p>
+    <form id="f" class="search" autocomplete="off">
+      <label for="q" hidden>Domínio</label>
+      <input id="q" name="q" placeholder="exemplo.com.br, uma URL ou um e-mail" spellcheck="false" autocapitalize="off">
+      <button id="go" class="btn" type="submit">Consultar</button>
+    </form>
+    <div class="examples">Experimente:
+      <button class="chip-ex" type="button" data-d="registro.br">registro.br</button>
+      <button class="chip-ex" type="button" data-d="shopify.com">shopify.com</button>
+      <button class="chip-ex" type="button" data-d="github.com">github.com</button>
+    </div>
+  </section>
+
+  <div class="head">
+    <div>
+      <div class="titlerow"><h2 id="title">—</h2><span id="status"></span></div>
+      <div class="sub" id="subtitle">Digite um domínio para começar.</div>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="refresh" type="button">Consultar de novo</button>
+      <button class="ghost" id="copy" type="button">Copiar relatório</button>
+      <a class="ghost" id="ext" target="_blank" rel="noopener">Abrir no rdap.org ↗</a>
+    </div>
+  </div>
+
+  <section class="answers" id="summary" aria-label="Resumo do domínio"></section>
+
+  <section class="alerts" id="alerts" aria-label="Pontos de atenção"></section>
+
+  <div class="details">
+    <div class="tabbar" role="tablist" id="tabbar" aria-label="Detalhes">
+      <button class="tab" role="tab" type="button" data-tab="c-dns">DNS<span class="tb" id="tb-dns"></span></button>
+      <button class="tab" role="tab" type="button" data-tab="c-mail">E-mail<span class="tb" id="tb-mail"></span></button>
+      <button class="tab" role="tab" type="button" data-tab="c-reg">WHOIS completo</button>
+      <button class="tab" role="tab" type="button" data-tab="c-host">Hospedagem e IP</button>
+      <button class="tab" role="tab" type="button" data-tab="c-prop">Propagação global<span class="tb" id="tb-prop"></span></button>
+      <button class="tab" role="tab" type="button" data-tab="c-raw">Dados brutos</button>
+    </div>
+    <section class="card" role="tabpanel" id="c-dns"><h2>Registros DNS <span class="src" id="dns-src"></span></h2><div class="body"></div></section>
+    <section class="card" role="tabpanel" id="c-mail"><h2>E-mail: quem recebe e se está protegido contra spam</h2><div class="body"></div></section>
+    <section class="card" role="tabpanel" id="c-reg"><h2>Registro (WHOIS) <span class="src" id="reg-src"></span></h2><div class="body"></div></section>
+    <section class="card" role="tabpanel" id="c-host"><h2>Hospedagem e IP</h2><div class="body"></div></section>
+    <section class="card" role="tabpanel" id="c-prop"><h2>Propagação global de DNS</h2><div class="body"></div></section>
+    <section class="card" role="tabpanel" id="c-raw"><h2>Dados brutos</h2><div class="body"></div></section>
+  </div>
+  <footer>Consulta feita direto do seu navegador: RDAP (sucessor oficial do WHOIS, via bootstrap da IANA) e DNS-over-HTTPS do Google e da Cloudflare. Nada passa por servidor próprio.</footer>
+</main>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const TYPE_NUM = {A:1,NS:2,CNAME:5,SOA:6,PTR:12,MX:15,TXT:16,AAAA:28,SRV:33,DS:43,CAA:257};
+const DNS_TYPES = ['A','AAAA','CNAME','MX','NS','TXT','SOA','CAA','DS'];
+const DKIM_SELECTORS = ['google','selector1','selector2','default','k1','k2','s1','s2','mail','dkim','hostingermail1','titan1','zoho','mandrill','smtp'];
+let runId = 0, S = null;
+
+/* ---------- utilidades ---------- */
+async function fetchJSON(url, opts = {}, ms = 12000){
+  const c = new AbortController(); const t = setTimeout(() => c.abort(), ms);
+  try{
+    const r = await fetch(url, {...opts, signal:c.signal});
+    if(!r.ok){ const e = new Error('HTTP ' + r.status); e.status = r.status; throw e; }
+    return await r.json();
+  } catch(e){
+    if(e.name === 'AbortError') throw new Error('tempo esgotado');
+    throw e;
+  } finally { clearTimeout(t); }
+}
+function store(k, v){ try{ if(v === undefined) return JSON.parse(localStorage.getItem(k)); localStorage.setItem(k, JSON.stringify(v)); }catch{ return null; } }
+const fmtDate = s => { const d = new Date(s); return isNaN(d) ? s : d.toLocaleDateString('pt-BR',{day:'2-digit',month:'short',year:'numeric'}); };
+function daysFrom(s){ const d = new Date(s); return isNaN(d) ? null : Math.round((d - Date.now()) / 864e5); }
+function rel(s){
+  const days = daysFrom(s); if(days === null) return '';
+  const a = Math.abs(days);
+  const txt = a < 60 ? `${a} dia${a===1?'':'s'}` : a < 730 ? `${Math.round(a/30.44)} meses` : `${(a/365.25).toFixed(1).replace('.',',')} anos`;
+  return days >= 0 ? `em ${txt}` : `há ${txt}`;
+}
+function ttl(s){ s = +s; if(s < 60) return s+'s'; if(s < 3600) return Math.round(s/60)+' min'; if(s < 86400) return +(s/3600).toFixed(1)+' h'; return +(s/86400).toFixed(1)+' d'; }
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 1800); }
+const loading = txt => `<div class="loading">${esc(txt)}</div>`;
+
+function normalize(raw){
+  let s = (raw || '').trim().toLowerCase();
+  if(!s) return null;
+  if(s.includes('@') && !s.includes('/')) s = s.split('@').pop();
+  if(!/^[a-z][a-z0-9+.-]*:\/\//.test(s)) s = 'http://' + s;
+  let host;
+  try{ host = new URL(s).hostname; }catch{ return null; }
+  host = host.replace(/\.$/, '');
+  if(host.startsWith('www.')) host = host.slice(4);
+  if(!/^([a-z0-9-]+\.)+[a-z0-9-]{2,}$/.test(host)) return null;
+  return host;
+}
+
+/* ---------- DNS over HTTPS ---------- */
+async function dnsQuery(name, type, resolver = 'google'){
+  const url = resolver === 'cloudflare'
+    ? `https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(name)}&type=${type}`
+    : `https://dns.google/resolve?name=${encodeURIComponent(name)}&type=${type}`;
+  const j = await fetchJSON(url, {headers:{accept:'application/dns-json'}}, 8000);
+  const want = TYPE_NUM[type];
+  return {
+    status: j.Status, ad: !!j.AD,
+    records: (j.Answer || []).filter(a => a.type === want).map(a => ({name:a.name, type, ttl:a.TTL, data: type === 'TXT' ? cleanTxt(a.data) : a.data}))
+  };
+}
+async function dns(name, type){
+  try{ return await dnsQuery(name, type, 'google'); }
+  catch{ return await dnsQuery(name, type, 'cloudflare'); }
+}
+const cleanTxt = d => String(d).replace(/^"|"$/g,'').replace(/"\s*"/g,'');
+
+async function loadDNS(name){
+  const out = {records:{}, www:{}, nx:false, dnssec:false};
+  await Promise.all([
+    ...DNS_TYPES.map(async t => {
+      try{ const r = await dns(name, t); out.records[t] = r.records; if(r.status === 3) out.nx = true; if(r.ad) out.dnssec = true; }
+      catch(e){ out.records[t] = null; }
+    }),
+    ...['CNAME','A','AAAA'].map(async t => {
+      try{ out.www[t] = (await dns('www.' + name, t)).records; }catch{ out.www[t] = null; }
+    })
+  ]);
+  if(DNS_TYPES.every(t => out.records[t] === null)) throw new Error('Nenhum resolvedor DNS respondeu. Verifique sua conexão.');
+  return out;
+}
+
+/* ---------- RDAP ---------- */
+async function bootstrap(){
+  const c = store('rx-rdap-boot');
+  if(c && Date.now() - c.ts < 7*864e5) return c.data;
+  const data = await fetchJSON('https://data.iana.org/rdap/dns.json', {}, 10000);
+  store('rx-rdap-boot', {ts:Date.now(), data});
+  return data;
+}
+function rdapBase(domain, boot){
+  const tld = domain.split('.').pop();
+  for(const [tlds, urls] of boot.services) if(tlds.includes(tld)) return urls.find(u => u.startsWith('https')) || urls[0];
+  return null;
+}
+async function rdapFetch(domain){
+  let base = null;
+  try{ base = rdapBase(domain, await bootstrap()); }catch{}
+  const urls = [];
+  if(base) urls.push(base.replace(/\/?$/, '/') + 'domain/' + domain);
+  urls.push('https://rdap.org/domain/' + domain);
+  let last;
+  for(const u of urls){
+    try{ return {data: await fetchJSON(u, {headers:{accept:'application/rdap+json'}}), url:u}; }
+    catch(e){ last = e; if(e.status === 404) throw e; }
+  }
+  throw last;
+}
+const SLD_LIKE = /^(com|net|org|gov|edu|co|ac|mil|nom|blog|art|eco|app|dev|ltd|plc|me|biz|info|adv|arq|eng|med|jus|leg|tv|net)$/;
+async function loadRDAP(name){
+  const labels = name.split('.');
+  let lastErr;
+  for(let i = 0; labels.length - i >= 2; i++){
+    const cand = labels.slice(i).join('.');
+    if(i > 0 && labels.length - i === 2 && SLD_LIKE.test(labels[i])) break;
+    try{
+      const r = await rdapFetch(cand);
+      r.domain = cand;
+      const rel = (r.data.links || []).find(l => l.rel === 'related' && /\/domain\//i.test(l.href || '') && l.href !== r.url);
+      if(rel){ try{ r.registrarData = await fetchJSON(rel.href, {headers:{accept:'application/rdap+json'}}, 8000); r.registrarUrl = rel.href; }catch{} }
+      return r;
+    }catch(e){ lastErr = e; if(e.status !== 404) throw e; }
+  }
+  const e = lastErr || new Error('não encontrado'); e.notFound = true; throw e;
+}
+function vcard(ent){
+  const v = {};
+  for(const [k, params, , val] of (ent?.vcardArray?.[1] || [])){
+    const txt = Array.isArray(val) ? val.flat().filter(Boolean).join(', ') : val;
+    if(k === 'fn') v.name = txt;
+    else if(k === 'org') v.org = txt;
+    else if(k === 'email') v.email = txt;
+    else if(k === 'tel') v.tel = String(txt).replace(/^tel:/, '');
+    else if(k === 'adr') v.adr = params?.label || txt;
+  }
+  return v;
+}
+function flatEntities(list, out = []){ for(const e of list || []){ out.push(e); flatEntities(e.entities, out); } return out; }
+function parseRDAP(r){
+  const d = r.data, extra = r.registrarData;
+  const ents = flatEntities(d.entities), extraEnts = extra ? flatEntities(extra.entities) : [];
+  const byRole = (role, list) => list.find(e => (e.roles || []).includes(role));
+  const registrar = byRole('registrar', ents) || byRole('registrar', extraEnts);
+  const ev = {};
+  for(const e of [...(extra?.events || []), ...(d.events || [])]) ev[e.eventAction] = e.eventDate;
+  const contacts = [];
+  for(const role of ['registrant','administrative','technical','billing']){
+    const e = byRole(role, ents) || byRole(role, extraEnts);
+    if(e){ const v = vcard(e); if(Object.keys(v).length || e.handle) contacts.push({role, handle:e.handle, ...v}); }
+  }
+  const abuseEnt = byRole('abuse', ents) || byRole('abuse', extraEnts);
+  return {
+    domain: (d.ldhName || r.domain).toLowerCase(),
+    unicode: d.unicodeName,
+    handle: d.handle,
+    registrar: registrar ? (vcard(registrar).name || registrar.handle) : null,
+    registrarId: registrar?.publicIds?.find(p => /iana/i.test(p.type))?.identifier,
+    registrarUrl: registrar?.links?.find(l => l.rel === 'about' || l.rel === 'self')?.href || (registrar?.url),
+    abuse: abuseEnt ? vcard(abuseEnt) : null,
+    created: ev['registration'], updated: ev['last changed'], expires: ev['expiration'], dbUpdated: ev['last update of RDAP database'],
+    status: d.status || [],
+    ns: (d.nameservers || []).map(n => (n.ldhName || '').toLowerCase()).filter(Boolean),
+    dnssec: d.secureDNS ? !!d.secureDNS.delegationSigned : null,
+    whois: d.port43 || extra?.port43,
+    contacts,
+  };
+}
+
+/* ---------- IP / hospedagem ---------- */
+async function loadIP(ip){
+  const out = {ip};
+  const ptrName = ip.includes(':') ? null : ip.split('.').reverse().join('.') + '.in-addr.arpa';
+  await Promise.all([
+    (async () => {
+      try{
+        const j = await fetchJSON('https://rdap.org/ip/' + ip, {headers:{accept:'application/rdap+json'}}, 10000);
+        const ents = flatEntities(j.entities);
+        const org = ents.find(e => (e.roles||[]).includes('registrant')) || ents[0];
+        out.net = j.name; out.handle = j.handle; out.country = j.country;
+        out.org = org ? (vcard(org).name || org.handle) : null;
+        const c = j.cidr0_cidrs?.[0];
+        out.cidr = c ? `${c.v4prefix || c.v6prefix}/${c.length}` : (j.startAddress ? `${j.startAddress} – ${j.endAddress}` : null);
+      }catch(e){ out.err = e.message; }
+    })(),
+    (async () => { if(ptrName){ try{ out.ptr = (await dns(ptrName, 'PTR')).records.map(r => r.data); }catch{} } })()
+  ]);
+  return out;
+}
+async function loadHost(D){
+  const a = (D.records.A || []).map(r => r.data), aaaa = (D.records.AAAA || []).map(r => r.data);
+  const ips = [...a.slice(0, 2), ...aaaa.slice(0, 1)];
+  return Promise.all(ips.map(loadIP));
+}
+
+/* ---------- propagação ---------- */
+async function loadProp(name){
+  const types = ['A','AAAA','NS','MX','TXT'];
+  return Promise.all(types.map(async t => {
+    let minTtl = Infinity;
+    const [g, c] = await Promise.all(['google','cloudflare'].map(r => dnsQuery(name, t, r).then(x => {
+      for(const rec of x.records) minTtl = Math.min(minTtl, rec.ttl);
+      return x.records.map(r => r.data.toLowerCase()).sort();
+    }).catch(() => null)));
+    // IPs com TTL curto que mudam a cada consulta = balanceamento (Hostinger, CDNs), não propagação
+    const rotating = ['A','AAAA'].includes(t) && minTtl <= 300;
+    return {type:t, g, c, rotating};
+  }));
+}
+
+/* ---------- detecção de provedores ---------- */
+const DNS_PROV = [
+  [/cloudflare\.com/, 'Cloudflare'], [/foundationdns/, 'Cloudflare'], [/domaincontrol\.com/, 'GoDaddy'], [/awsdns/, 'AWS Route 53'], [/googledomains|ns-cloud-.*\.googledomains|google\.com$/, 'Google Cloud DNS'],
+  [/azure-dns/, 'Azure DNS'], [/dns-parking|hostinger/, 'Hostinger'], [/registro\.br|dns\.br$/, 'Registro.br'], [/wixdns/, 'Wix'], [/squarespacedns|squarespace/, 'Squarespace'],
+  [/vercel-dns/, 'Vercel'], [/netlify/, 'Netlify'], [/nsone\.net/, 'NS1 (IBM)'], [/hostgator/, 'HostGator'], [/locaweb/, 'Locaweb'], [/kinghost/, 'KingHost'], [/umbler/, 'Umbler'],
+  [/digitalocean/, 'DigitalOcean'], [/registrar-servers|namecheap/, 'Namecheap'], [/bluehost/, 'Bluehost'], [/dnsmadeeasy/, 'DNS Made Easy'], [/ultradns/, 'UltraDNS'],
+  [/akam/, 'Akamai'], [/shopify/, 'Shopify'], [/hostgator|websitewelcome/, 'HostGator'], [/name-services\.com|enom/, 'eNom'], [/linode/, 'Linode'], [/ovh/, 'OVH'],
+  [/hetzner/, 'Hetzner'], [/porkbun/, 'Porkbun'], [/dynect|dyn\.com/, 'Oracle Dyn'], [/dreamhost/, 'DreamHost'], [/siteground/, 'SiteGround'], [/hostnet|redehost/, 'Redehost'],
+];
+const MAIL_PROV = [
+  [/google\.com|googlemail/, 'Google Workspace'], [/protection\.outlook|outlook\.com/, 'Microsoft 365'], [/zoho/, 'Zoho Mail'], [/titan\.email/, 'Titan'],
+  [/hostinger/, 'Hostinger'], [/secureserver/, 'GoDaddy'], [/mx\.cloudflare\.net/, 'Cloudflare Email Routing'], [/protonmail|proton\.me/, 'Proton Mail'],
+  [/mimecast/, 'Mimecast'], [/pphosted/, 'Proofpoint'], [/amazonaws|amazonses/, 'Amazon SES / WorkMail'], [/improvmx/, 'ImprovMX'], [/icloud/, 'iCloud'],
+  [/locaweb/, 'Locaweb'], [/kinghost/, 'KingHost'], [/umbler/, 'Umbler'], [/hostgator|websitewelcome/, 'HostGator'], [/yandex/, 'Yandex'], [/mailgun/, 'Mailgun'],
+  [/registrar-servers|privateemail/, 'Namecheap Private Email'], [/barracuda/, 'Barracuda'], [/uolhost|uol\.com/, 'UOL Host'],
+];
+const WEB_PROV = [
+  [/vercel/, 'Vercel'], [/netlify/, 'Netlify'], [/myshopify|shopify/, 'Shopify'], [/wixdns|wix/, 'Wix'], [/squarespace/, 'Squarespace'], [/github\.io/, 'GitHub Pages'], [/github/, 'GitHub'],
+  [/pages\.dev/, 'Cloudflare Pages'], [/webflow/, 'Webflow'], [/heroku/, 'Heroku'], [/azurewebsites|azurefd|azureedge/, 'Microsoft Azure'], [/cloudfront|amazon|aws/, 'AWS'],
+  [/cloudflare/, 'Cloudflare (proxy)'], [/google/, 'Google'], [/hostinger/, 'Hostinger'], [/fastly/, 'Fastly'], [/akamai/, 'Akamai'], [/digitalocean/, 'DigitalOcean'],
+  [/hetzner/, 'Hetzner'], [/ovh/, 'OVH'], [/linode/, 'Linode (Akamai)'], [/godaddy|secureserver/, 'GoDaddy'], [/locaweb/, 'Locaweb'], [/hostgator|unifiedlayer|websitewelcome/, 'HostGator / Newfold'],
+  [/kinghost/, 'KingHost'], [/umbler/, 'Umbler'], [/wpengine/, 'WP Engine'], [/kinsta/, 'Kinsta'], [/siteground/, 'SiteGround'], [/framer/, 'Framer'], [/hubspot/, 'HubSpot'],
+];
+function detect(list, table){
+  for(const s of list) for(const [re, label] of table) if(re.test(String(s).toLowerCase())) return label;
+  return null;
+}
+function mxHosts(D){ return (D?.records.MX || []).map(r => { const [p, h] = r.data.split(/\s+/); return {prio:+p, host:(h||'').replace(/\.$/,'')}; }).sort((a,b) => a.prio - b.prio); }
+
+/* ---------- render ---------- */
+function setBody(id, html){ $(`#${id} .body`).innerHTML = html; }
+
+function ageText(s){
+  const d = new Date(s); if(isNaN(d)) return '—';
+  const now = new Date();
+  let m = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+  if(now.getDate() < d.getDate()) m--;
+  const y = Math.floor(m / 12), mm = m % 12;
+  if(y >= 1) return `${y} ano${y > 1 ? 's' : ''}` + (mm && y < 10 ? ` e ${mm} ${mm > 1 ? 'meses' : 'mês'}` : '');
+  if(m >= 1) return `${m} ${m > 1 ? 'meses' : 'mês'}`;
+  const days = Math.max(0, Math.round((now - d) / 864e5));
+  return `${days} dia${days === 1 ? '' : 's'}`;
+}
+const dots = '<span class="wait">…</span>';
+function renderSummary(){
+  if(!S) return;
+  const R = S.rdap ? parseRDAP(S.rdap) : null;
+  const D = S.dns;
+  const rdapDone = !!(R || S.rdapErr);
+
+  // status ao lado do nome
+  let st = '';
+  if(S.rdapErr?.notFound) st = '<span class="pill warn">Não registrado — pode estar disponível</span>';
+  else if(R) st = R.status.some(s => /hold|redemption|pending delete/i.test(s)) ? '<span class="pill bad">Suspenso / em exclusão</span>' : '<span class="pill ok">Registrado</span>';
+  else if(S.rdapErr) st = '<span class="pill warn">WHOIS indisponível</span>';
+  $('#status').innerHTML = st;
+
+  const cards = [];
+  // onde está registrado
+  const isBr = /\.br$/.test(R?.domain || S.domain);
+  const registrar = (R?.registrar || (R && isBr ? 'Registro.br' : '')).replace(/,?\s+(inc|llc|ltd|ltda|gmbh|s\.?a|corp|corporation|co)\.?$/i, '') || null;
+  cards.push(['Onde o domínio está registrado', rdapDone ? esc(registrar || '—') : dots,
+    R ? (R.registrarId ? `Registrador · IANA #${esc(R.registrarId)}` : isBr ? 'Registro direto no NIC.br' : 'Registrador atual') : '']);
+  // idade
+  cards.push(['Idade do domínio', R?.created ? esc(ageText(R.created)) : rdapDone ? '—' : dots, R?.created ? `Criado em ${esc(fmtDate(R.created))}` : '']);
+  // expiração
+  if(R?.expires){
+    const d = daysFrom(R.expires);
+    const cls = d < 30 ? 'bad' : d < 90 ? 'warn' : 'ok';
+    cards.push(['Quando expira', esc(fmtDate(R.expires)), `<span class="pill ${cls}">${d < 0 ? 'Expirou ' : 'Vence '}${esc(rel(R.expires))}</span>`]);
+  } else cards.push(['Quando expira', rdapDone ? '—' : dots, R ? 'O registro não informa a data' : '']);
+  // hospedagem
+  const wwwC = (D?.www.CNAME || []).map(r => r.data);
+  const byCname = detect(wwwC, WEB_PROV);
+  const byIp = detect((S.host || []).flatMap(h => [h.org, h.net, ...(h.ptr || [])]).filter(Boolean), WEB_PROV);
+  const web = byCname || byIp || S.host?.[0]?.org;
+  let webNote = '';
+  if(S.host?.[0]) webNote = `IP ${esc(S.host[0].ip)}` + (byCname ? ' · pelo CNAME do www' : ' · pelo dono do IP');
+  if(/cloudflare/i.test(web || '')) webNote += '<br>A Cloudflare pode estar na frente, escondendo o servidor real';
+  cards.push(['Hospedagem provável', S.host ? esc(web || (S.host.length ? '—' : 'Sem site (sem IP)')) : S.dnsErr ? '—' : dots, webNote]);
+  // e-mail
+  const mx = mxHosts(D);
+  const nullMx = mx.length === 1 && (mx[0].host === '' || mx[0].host === '.');
+  const mailProv = nullMx ? 'Não recebe e-mail' : mx.length ? (detect(mx.map(m => m.host), MAIL_PROV) || mx[0].host) : 'Sem e-mail configurado';
+  let mailNote = mx.length && !nullMx ? `${mx.length} servidor${mx.length > 1 ? 'es' : ''} MX` : '';
+  if(S.mail && mx.length && !nullMx) mailNote += `${mailNote ? ' · ' : ''}SPF ${S.mail.spf.length === 1 ? 'ok' : S.mail.spf.length ? 'duplicado' : 'ausente'} · DMARC ${S.mail.dmarc ? 'ok' : 'ausente'}`;
+  cards.push(['Provedor de e-mail', D ? esc(mailProv) : S.dnsErr ? '—' : dots, mailNote]);
+  // DNS
+  const ns = (D?.records.NS || []).map(r => r.data.replace(/\.$/, ''));
+  const nsList = ns.length ? ns : (R?.ns || []);
+  cards.push(['DNS gerenciado em', D || R ? esc(detect(nsList, DNS_PROV) || nsList[0] || '—') : dots, nsList.slice(0, 2).map(esc).join('<br>')]);
+
+  $('#summary').innerHTML = cards.map(([q, a, d], i) => `<div class="ans"><div class="q">${ICONS[i]}${q}</div><div class="a">${a}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`).join('');
+  renderAlerts();
+  renderTabBadges();
+}
+const svg = p => `<svg viewBox="0 0 16 16" aria-hidden="true">${p}</svg>`;
+const ICONS = [
+  svg('<path d="M2 8.5V2.5h6l6 6-6 6z"/><circle cx="5.25" cy="5.75" r="1"/>'),                 // etiqueta: registro
+  svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>'),                              // relógio: idade
+  svg('<rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5 1.5v3M11 1.5v3"/>'), // calendário: expira
+  svg('<rect x="2" y="2" width="12" height="5" rx="1"/><rect x="2" y="9" width="12" height="5" rx="1"/><path d="M4.5 4.5h.01M4.5 11.5h.01"/>'), // servidor
+  svg('<rect x="1.5" y="3" width="13" height="10" rx="1.5"/><path d="M2 4l6 5 6-5"/>'),          // envelope
+  svg('<circle cx="8" cy="8" r="6"/><path d="M2 8h12M8 2c-1.8 1.7-2.5 3.7-2.5 6s.7 4.3 2.5 6M8 2c1.8 1.7 2.5 3.7 2.5 6s-.7 4.3-2.5 6"/>'), // globo: DNS
+];
+
+// Lista em português claro do que precisa de atenção
+function collectAlerts(){
+  const A = [], R = S.rdap ? parseRDAP(S.rdap) : null, D = S.dns;
+  const add = (lvl, txt, why) => A.push({lvl, txt, why});
+  if(S.rdapErr?.notFound) add('warn', 'Domínio não registrado', 'Ninguém é dono dele hoje: pode estar disponível para compra.');
+  if(R?.status.some(s => /hold|redemption|pending delete/i.test(s))) add('bad', 'Domínio suspenso ou em exclusão', 'O site e o e-mail podem estar fora do ar. Falar com o registrador.');
+  if(R?.expires){
+    const d = daysFrom(R.expires);
+    if(d < 0) add('bad', 'Domínio expirado', `Venceu ${rel(R.expires)}. Renovar urgente antes que seja liberado.`);
+    else if(d < 30) add('bad', `Vence em ${d} dia${d === 1 ? '' : 's'}`, 'Renovar agora para não derrubar site e e-mail.');
+    else if(d < 90) add('warn', `Vence ${rel(R.expires)}`, 'Bom avisar o cliente e ativar a renovação automática.');
+  }
+  if(D){
+    if(D.nx) add('bad', 'O DNS diz que este domínio não existe', 'Nenhum registro responde por ele.');
+    else {
+      const hasA = (D.records.A || []).length || (D.records.AAAA || []).length || (D.records.CNAME || []).length;
+      const hasWww = ['CNAME','A','AAAA'].some(t => (D.www[t] || []).length);
+      if(!hasA) add('warn', 'O domínio não aponta para nenhum site', 'Falta o registro A (ou CNAME) no domínio principal.');
+      if(hasA && !hasWww) add('warn', 'O www não funciona', `Quem digitar www.${S.domain} não vai abrir o site. Criar um CNAME www.`);
+      const mx = mxHosts(D);
+      if(!mx.length) add('info', 'Sem e-mail configurado', 'Não há registro MX: o domínio não recebe e-mails.');
+    }
+  }
+  if(S.mail && mxHosts(D).length){
+    if(S.mail.spf.length > 1) add('bad', `SPF duplicado (${S.mail.spf.length} registros)`, 'Só pode existir um. Do jeito que está, o SPF é ignorado e os e-mails vão para o spam.');
+    else if(!S.mail.spf.length) add('warn', 'Falta o SPF', 'Os e-mails enviados pelo domínio tendem a cair no spam.');
+    if(!S.mail.dmarc) add('warn', 'Falta o DMARC', 'Gmail e Yahoo exigem DMARC. Sem ele, e-mails podem ser rejeitados.');
+    else if(/\bp=none\b/i.test(S.mail.dmarc)) add('info', 'DMARC só monitora (p=none)', 'Não bloqueia quem falsifica o domínio. Dá para endurecer depois.');
+  }
+  const diverge = (S.prop || []).filter(p => !p.rotating && p.g && p.c && (p.g.length || p.c.length) && JSON.stringify(p.g) !== JSON.stringify(p.c));
+  if(diverge.length) add('info', 'DNS ainda propagando', `Google e Cloudflare respondem diferente para ${diverge.map(p => p.type).join(', ')}. Normal logo após uma mudança.`);
+  return A;
+}
+function renderAlerts(){
+  const el = $('#alerts');
+  const done = (S.rdap || S.rdapErr) && (S.dnsErr || (S.dns && S.mail && S.host));
+  const A = collectAlerts();
+  const order = {bad:0, warn:1, info:2};
+  A.sort((a, b) => order[a.lvl] - order[b.lvl]);
+  const label = {bad:'Urgente', warn:'Atenção', info:'Aviso'};
+  if(!A.length){
+    el.innerHTML = done ? `<div class="allgood"><span class="pill ok">Tudo certo</span><span>Registro, site, e-mail e DNS sem problemas visíveis.</span></div>` : '';
+    return;
+  }
+  el.innerHTML = `<h3>Pontos de atenção</h3>` + A.map(a => `<div class="al"><span class="pill ${a.lvl === 'info' ? '' : a.lvl}">${label[a.lvl]}</span><div>${esc(a.txt)}<small>${esc(a.why)}</small></div></div>`).join('');
+}
+function renderTabBadges(){
+  const D = S.dns;
+  $('#tb-dns').textContent = D ? String(DNS_TYPES.reduce((n, t) => n + (D.records[t] || []).length, 0)) : '';
+  const mailIssues = collectAlerts().filter(a => /SPF|DMARC/.test(a.txt) && a.lvl !== 'info').length;
+  const tbm = $('#tb-mail'); tbm.textContent = mailIssues ? String(mailIssues) : ''; tbm.classList.toggle('alert', !!mailIssues);
+}
+function setTab(id){
+  for(const b of document.querySelectorAll('#tabbar .tab')){
+    const on = b.dataset.tab === id;
+    b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1;
+    document.getElementById(b.dataset.tab).hidden = !on;
+  }
+  store('rx-tab', id);
+  if(id === 'c-prop' && S && PG.doneFor !== S.domain) renderProp();
+}
+
+function renderReg(){
+  if(S.rdapErr){
+    const nf = S.rdapErr.notFound;
+    $('#reg-src').textContent = '';
+    setBody('c-reg', nf
+      ? `<div class="check"><span class="pill ok">livre?</span><div><b>Nenhum registro encontrado</b><div class="small muted">O registro da extensão respondeu 404. O domínio pode estar disponível para compra.</div></div></div>`
+      : `<div class="err">Não consegui ler o WHOIS/RDAP (${esc(S.rdapErr.message)}). Algumas extensões não têm RDAP público ou bloqueiam consultas do navegador.</div>
+         <div class="small muted">Tente em <a href="https://rdap.org/domain/${esc(S.domain)}" target="_blank" rel="noopener">rdap.org</a> ou <a href="https://lookup.icann.org/pt/lookup?name=${esc(S.domain)}" target="_blank" rel="noopener">lookup.icann.org</a>.</div>`);
+    return;
+  }
+  const R = parseRDAP(S.rdap);
+  $('#reg-src').textContent = new URL(S.rdap.url).hostname;
+  const row = (k, v) => v ? `<dt>${k}</dt><dd>${v}</dd>` : '';
+  const dateRow = (k, s) => s ? row(k, `${esc(fmtDate(s))} <span class="muted small">(${esc(rel(s))})</span>`) : '';
+  const statusPills = R.status.map(s => {
+    const cls = /hold|redemption|pending delete|inactive/i.test(s) ? 'bad' : /prohibited|lock/i.test(s) ? 'info' : /active|ok/i.test(s) ? 'ok' : '';
+    return `<span class="pill ${cls}">${esc(s)}</span>`;
+  }).join('');
+  let html = `<dl class="kv">
+    ${row('Domínio', `<span class="mono">${esc(R.domain)}</span>${R.unicode && R.unicode !== R.domain ? ` <span class="muted">(${esc(R.unicode)})</span>` : ''}`)}
+    ${R.domain !== S.domain ? row('Consultado', `<span class="mono">${esc(S.domain)}</span> <span class="muted small">(subdomínio)</span>`) : ''}
+    ${row('Registrador', esc(R.registrar) + (R.registrarId ? ` <span class="muted small">IANA #${esc(R.registrarId)}</span>` : ''))}
+    ${dateRow('Criado', R.created)}
+    ${dateRow('Atualizado', R.updated)}
+    ${dateRow('Expira', R.expires)}
+    ${row('Status', `<div class="pills">${statusPills || '—'}</div>`)}
+    ${row('DNSSEC', R.dnssec === null ? '' : R.dnssec ? '<span class="pill ok">assinado</span>' : '<span class="pill">não assinado</span>')}
+    ${row('Nameservers', R.ns.map(n => `<div class="mono">${esc(n)}</div>`).join(''))}
+    ${row('Servidor WHOIS', R.whois ? `<span class="mono">${esc(R.whois)}</span>` : '')}
+    ${row('Abuso', R.abuse ? esc([R.abuse.email, R.abuse.tel].filter(Boolean).join(' · ')) : '')}
+    ${row('Handle', R.handle ? `<span class="mono">${esc(R.handle)}</span>` : '')}
+  </dl>`;
+  if(R.contacts.length){
+    const roleName = {registrant:'Titular', administrative:'Administrativo', technical:'Técnico', billing:'Cobrança'};
+    html += `<div class="sect">Contatos</div>` + R.contacts.map(c => {
+      const redacted = /redact|privacy|withheld|proxy|guard|protect/i.test([c.name, c.org, c.email].join(' '));
+      return `<dl class="kv">
+        ${row(roleName[c.role] || c.role, esc(c.name || c.org || c.handle || '—') + (redacted ? ' <span class="pill">privacidade</span>' : ''))}
+        ${c.org && c.org !== c.name ? row('Organização', esc(c.org)) : ''}
+        ${row('E-mail', esc(c.email))}
+        ${row('Telefone', esc(c.tel))}
+        ${row('Endereço', esc(c.adr))}
+        ${c.handle && c.name ? row('ID', `<span class="mono">${esc(c.handle)}</span>`) : ''}
+      </dl>`;
+    }).join('');
+  } else {
+    html += `<div class="small muted">Dados do titular não publicados (padrão pós-GDPR para .com/.net e a maioria das extensões).</div>`;
+  }
+  setBody('c-reg', html);
+}
+
+function renderDNS(){
+  if(S.dnsErr){ setBody('c-dns', `<div class="err">${esc(S.dnsErr.message)}</div>`); return; }
+  const D = S.dns;
+  $('#dns-src').textContent = 'dns.google · fallback cloudflare-dns.com';
+  const rec = (t, r, shown) => `<li class="rec"><span class="typ">${t}</span><span class="v">${shown ?? esc(r.data)}</span><span class="ttl" title="TTL">${ttl(r.ttl)}</span><button class="cp" type="button" data-copy="${esc(r.data)}" aria-label="Copiar valor">Copiar</button></li>`;
+  const none = txt => `<li class="rec none">${txt}</li>`;
+  const recs = t => D.records[t] || [];
+  const www = t => D.www[t] || [];
+  const plain = v => esc(String(v).replace(/\.$/, ''));
+
+  // Site
+  const apex = [...recs('CNAME').map(r => rec('CNAME', r, plain(r.data))), ...recs('A').map(r => rec('A', r)), ...recs('AAAA').map(r => rec('AAAA', r))];
+  const wwwRecs = www('CNAME').length
+    ? www('CNAME').map(r => rec('CNAME', r, plain(r.data)))
+    : [...www('A').map(r => rec('A', r)), ...www('AAAA').map(r => rec('AAAA', r))];
+  const site = `<div class="dg"><div class="dg-h"><b>Site</b><span>para onde o domínio aponta</span></div>
+    <div class="dg-sub">${esc(S.domain)}</div><ul>${apex.join('') || none('não aponta para nenhum servidor')}</ul>
+    <div class="dg-sub">www.${esc(S.domain)}</div><ul>${wwwRecs.join('') || none('www não configurado')}</ul></div>`;
+
+  // E-mail
+  const mx = [...recs('MX')].sort((a, b) => parseInt(a.data) - parseInt(b.data));
+  const mail = `<div class="dg"><div class="dg-h"><b>E-mail</b><span>servidores que recebem (MX)</span></div>
+    <ul>${mx.map(r => { const [p, h] = r.data.split(/\s+/); return rec('MX', r, `${plain(h)} <span class="prio">prioridade ${esc(p)}</span>`); }).join('') || none('nenhum MX: o domínio não recebe e-mail')}</ul></div>`;
+
+  // Nameservers
+  const ns = `<div class="dg"><div class="dg-h"><b>Nameservers</b><span>quem responde pelo DNS (NS)</span></div>
+    <ul>${recs('NS').map(r => rec('NS', r, plain(r.data))).join('') || none('nenhum NS encontrado')}</ul></div>`;
+
+  // TXT
+  const txt = recs('TXT');
+  const verif = {}, others = [];
+  for(const r of txt){
+    if(/^v=spf1/i.test(r.data)) continue;
+    const s = verifService(r.data);
+    if(s) (verif[s] = verif[s] || []).push(r); else others.push(r);
+  }
+  const spf = txt.filter(r => /^v=spf1/i.test(r.data));
+  const verifNames = Object.keys(verif).sort();
+  const txtBlock = `<div class="dg span2"><div class="dg-h"><b>TXT</b><span>SPF, verificações de serviços e outros textos</span></div>
+    ${spf.length ? `<div class="dg-sub">SPF · quem pode enviar e-mail pelo domínio</div><ul>${spf.map(r => rec('TXT', r)).join('')}</ul>` : ''}
+    ${verifNames.length ? `<div class="dg-sub">Domínio verificado em ${verifNames.length} serviço${verifNames.length > 1 ? 's' : ''}</div>
+      <div class="pills">${verifNames.map(n => `<span class="pill info">${esc(n)}${verif[n].length > 1 ? ` ×${verif[n].length}` : ''}</span>`).join('')}</div>
+      <details><summary class="small">Ver os códigos de verificação</summary><ul>${verifNames.flatMap(n => verif[n]).map(r => rec('TXT', r)).join('')}</ul></details>` : ''}
+    ${others.length ? `<div class="dg-sub">Outros</div><ul>${others.map(r => rec('TXT', r)).join('')}</ul>` : ''}
+    ${!txt.length ? `<ul>${none('nenhum registro TXT')}</ul>` : ''}</div>`;
+
+  // Avançado
+  const adv = ['SOA','CAA','DS'].flatMap(t => recs(t).map(r => rec(t, r, t === 'SOA' ? formatRecord('SOA', r.data) : esc(r.data))));
+  const advBlock = `<details class="dg span2"><summary><b>Avançado</b> <span class="muted small">SOA, CAA (quem pode emitir SSL) e DS (DNSSEC) · ${adv.length} registro${adv.length === 1 ? '' : 's'}</span></summary>
+    <ul>${adv.join('') || none('nenhum')}</ul>
+    <div class="small muted">DNSSEC validado pelo resolvedor: ${D.dnssec ? 'sim' : 'não'}</div></details>`;
+
+  setBody('c-dns', `
+    <div class="export">
+      <span class="small muted">Copiar:</span>
+      <button class="ghost" type="button" data-exp="readable" title="Lista organizada para colar no WhatsApp, e-mail ou chamado">Lista legível</button>
+      <button class="ghost" type="button" data-exp="copy" title="Formato BIND, para colar no painel de importação">Arquivo de zona</button>
+      <span class="small muted sep">Baixar:</span>
+      <button class="ghost" type="button" data-exp="zone" title="Formato BIND, importável na Cloudflare, Hostinger, cPanel, Route 53">Zona (.txt)</button>
+      <button class="ghost" type="button" data-exp="csv">Planilha (.csv)</button>
+      <button class="ghost" type="button" data-exp="json">JSON</button>
+    </div>
+    ${D.nx ? `<div class="err">O DNS respondeu NXDOMAIN: o nome não existe na zona.</div>` : ''}
+    <div class="dgrid">${site}${mail}${ns}<div class="dg">${nsHint(recs('NS'))}</div>${txtBlock}${advBlock}</div>`);
+}
+function nsHint(nsRecs){
+  const prov = detect(nsRecs.map(r => r.data), DNS_PROV);
+  return `<div class="dg-h"><b>Onde editar o DNS</b><span>painel que manda nos registros</span></div>
+    <div class="where">${esc(prov || (nsRecs[0] ? nsRecs[0].data.replace(/\.$/, '') : '—'))}</div>
+    <div class="small muted">Qualquer mudança de DNS (apontar site, trocar e-mail) é feita no painel de quem responde pelos nameservers, não necessariamente onde o domínio foi comprado.</div>`;
+}
+const VERIF_NAMES = {google:'Google', facebook:'Meta', ms:'Microsoft', apple:'Apple', openai:'OpenAI', globalsign:'GlobalSign', atlassian:'Atlassian', stripe:'Stripe', zapier:'Zapier', klaviyo:'Klaviyo', adobe:'Adobe', 'adobe-idp':'Adobe', twilio:'Twilio', docusign:'DocuSign', hubspot:'HubSpot', zoom:'Zoom', slack:'Slack', dropbox:'Dropbox', pinterest:'Pinterest', yandex:'Yandex', bing:'Bing', mailru:'Mail.ru', notion:'Notion', figma:'Figma', canva:'Canva', shopify:'Shopify', webex:'Webex', miro:'Miro', dtm:'Adobe DTM', rzp:'Razorpay', bitrise:'Bitrise', cisco:'Cisco', citrix:'Citrix', onetrust:'OneTrust', smartsheet:'Smartsheet', mongodb:'MongoDB', postman:'Postman', 'anthropic':'Anthropic'};
+function verifService(t){
+  let m = t.match(/^_?([a-z0-9.-]+?)[-_](?:site[-_]|domain[-_]|idp[-_]site[-_])?verification(?:[-_]challenge|[-_]code)?\s*[=:]/i);
+  if(m){ const k = m[1].toLowerCase(); return VERIF_NAMES[k] || k.charAt(0).toUpperCase() + k.slice(1); }
+  if(/^MS=/i.test(t)) return 'Microsoft';
+  if(/^amazonses:/i.test(t)) return 'Amazon SES';
+  if(/^(atlassian|apple|webexdomainverification|docusign|zoom)[^=]*=/i.test(t)) return VERIF_NAMES[t.split(/[-=_.]/)[0].toLowerCase()] || t.split(/[-=_.]/)[0];
+  return null;
+}
+function formatRecord(t, data){
+  if(t === 'MX'){ const [p, h] = data.split(/\s+/); return `<span class="muted">${esc(p)}</span> ${esc(h)}`; }
+  if(t === 'SOA'){
+    const [m, r, serial, refresh, retry, expire, min] = data.split(/\s+/);
+    return `${esc(m)} <span class="muted">· ${esc(r)}<br>serial ${esc(serial)} · refresh ${ttl(refresh)} · retry ${ttl(retry)} · expire ${ttl(expire)} · min ${ttl(min)}</span>`;
+  }
+  if(t === 'TXT'){
+    const tag = /^v=spf1/i.test(data) ? 'SPF' : /^google-site-verification/i.test(data) ? 'Google' : /^facebook-domain-verification/i.test(data) ? 'Meta' : /^MS=/i.test(data) ? 'Microsoft' : /^apple-domain/i.test(data) ? 'Apple' : null;
+    return (tag ? `<span class="pill info">${tag}</span> ` : '') + esc(data);
+  }
+  return esc(data);
+}
+
+function renderMail(){
+  if(!S.mail){ setBody('c-mail', loading('Checando SPF, DMARC e DKIM…')); return; }
+  const {spf, dmarc, dkim} = S.mail;
+  const mx = mxHosts(S.dns);
+  const blocks = [];
+  const nullMx = mx.length === 1 && (mx[0].host === '' || mx[0].host === '.');
+  blocks.push(`<div class="check"><span class="pill ${mx.length && !nullMx ? 'ok' : 'warn'}">MX</span><div><b>${nullMx ? 'Não recebe e-mail (null MX)' : mx.length ? esc(detect(mx.map(m => m.host), MAIL_PROV) || 'Servidor próprio / outro') : 'Sem registro MX'}</b></div>
+    <div class="val">${mx.map(m => `${m.prio} ${esc(m.host)}`).join('<br>') || '—'}</div></div>`);
+  if(spf.length > 1) blocks.push(`<div class="check"><span class="pill bad">SPF</span><div><b>${spf.length} registros SPF</b> <span class="small muted">— só pode existir um; isso invalida o SPF.</span></div><div class="val">${spf.map(esc).join('<br>')}</div></div>`);
+  else if(spf.length){
+    const all = (spf[0].match(/[~\-?+]all\b/) || ['sem all'])[0];
+    const cls = all === '-all' ? 'ok' : all === '~all' ? 'ok' : 'warn';
+    const lookups = (spf[0].match(/\b(include:|a\b|a:|mx\b|mx:|exists:|redirect=|ptr)/gi) || []).length;
+    blocks.push(`<div class="check"><span class="pill ${cls}">SPF</span><div><b>Configurado</b> <span class="small muted">política ${esc(all)} · ~${lookups} lookup${lookups===1?'':'s'}${lookups > 10 ? ' (acima do limite de 10!)' : ''}</span></div><div class="val">${esc(spf[0])}</div></div>`);
+  } else blocks.push(`<div class="check"><span class="pill bad">SPF</span><div><b>Ausente</b> <span class="small muted">e-mails do domínio tendem a cair no spam.</span></div></div>`);
+  if(dmarc){
+    const p = (dmarc.match(/\bp=(\w+)/i) || [,'?'])[1].toLowerCase();
+    const cls = p === 'reject' || p === 'quarantine' ? 'ok' : 'warn';
+    const rua = (dmarc.match(/rua=([^;]+)/i) || [,''])[1];
+    blocks.push(`<div class="check"><span class="pill ${cls}">DMARC</span><div><b>p=${esc(p)}</b> <span class="small muted">${p === 'none' ? 'só monitora, não bloqueia' : p === 'quarantine' ? 'manda falhas pro spam' : p === 'reject' ? 'rejeita falhas' : ''}${rua ? ' · relatórios ativos' : ''}</span></div><div class="val">${esc(dmarc)}</div></div>`);
+  } else blocks.push(`<div class="check"><span class="pill bad">DMARC</span><div><b>Ausente</b> <span class="small muted">Gmail e Yahoo exigem DMARC para remetentes em volume.</span></div></div>`);
+  blocks.push(dkim.length
+    ? `<div class="check"><span class="pill ok">DKIM</span><div><b>${dkim.length} seletor${dkim.length>1?'es':''} encontrado${dkim.length>1?'s':''}</b></div><div class="val">${dkim.map(d => `${esc(d.sel)}._domainkey — ${esc(d.val.slice(0, 70))}${d.val.length > 70 ? '…' : ''}`).join('<br>')}</div></div>`
+    : `<div class="check"><span class="pill">DKIM</span><div><b>Nenhum seletor comum achado</b> <span class="small muted">O DKIM pode existir com outro nome de seletor; confira no cabeçalho de um e-mail enviado.</span></div></div>`);
+  setBody('c-mail', blocks.join(''));
+}
+async function loadMail(name, D){
+  const spf = (D.records.TXT || []).map(r => r.data).filter(t => /^v=spf1/i.test(t));
+  const [dm, ...dk] = await Promise.all([
+    dns('_dmarc.' + name, 'TXT').catch(() => ({records:[]})),
+    ...DKIM_SELECTORS.map(s => dns(`${s}._domainkey.${name}`, 'TXT').then(r => ({sel:s, recs:r.records})).catch(() => ({sel:s, recs:[]})))
+  ]);
+  const dmarcRec = dm.records.find(r => /^v=DMARC1/i.test(r.data)) || null;
+  const dkim = dk.filter(x => x.recs.some(r => /p=|k=rsa|v=DKIM1/i.test(r.data))).map(x => ({sel:x.sel, val:x.recs.map(r => r.data).join(''), ttl:x.recs[0].ttl}));
+  return { spf, dmarc: dmarcRec?.data || null, dmarcTtl: dmarcRec?.ttl, dkim };
+}
+
+function renderHost(){
+  if(S.dnsErr){ setBody('c-host', '<div class="muted small">Sem DNS, sem IP.</div>'); return; }
+  if(!S.host){ setBody('c-host', loading('Identificando dono dos IPs…')); return; }
+  if(!S.host.length){ setBody('c-host', `<div class="muted">O domínio não aponta para nenhum IP (sem A/AAAA).</div>`); return; }
+  const cname = (S.dns.www.CNAME || []).map(r => r.data);
+  let html = cname.length ? `<dl class="kv"><dt>www aponta p/</dt><dd class="mono">${cname.map(esc).join('<br>')}</dd></dl>` : '';
+  html += S.host.map(h => `<dl class="kv">
+    <dt>IP</dt><dd class="mono">${esc(h.ip)}</dd>
+    ${h.org ? `<dt>Dono da rede</dt><dd><b>${esc(h.org)}</b></dd>` : ''}
+    ${h.net ? `<dt>Rede</dt><dd class="mono">${esc(h.net)}${h.handle ? ` <span class="muted">${esc(h.handle)}</span>` : ''}</dd>` : ''}
+    ${h.cidr ? `<dt>Bloco</dt><dd class="mono">${esc(h.cidr)}</dd>` : ''}
+    ${h.country ? `<dt>País</dt><dd>${esc(h.country)}</dd>` : ''}
+    ${h.ptr?.length ? `<dt>DNS reverso</dt><dd class="mono">${h.ptr.map(esc).join('<br>')}</dd>` : ''}
+    ${h.err ? `<dt>RDAP do IP</dt><dd class="muted small">falhou (${esc(h.err)})</dd>` : ''}
+  </dl>`).join('<hr style="border:0;border-top:1px solid var(--soft);margin:0">');
+  setBody('c-host', html);
+}
+
+/* ---------- propagação global (estilo whatsmydns) ---------- */
+// Servidores DNS públicos que aceitam consulta direto do navegador (testados). Os "globais" são anycast:
+// respondem pelo nó mais próximo de quem consulta.
+const RESOLVERS = [
+  {name:'Google Public DNS', where:'Global (anycast)', cc:'US', kind:'json', url:'https://dns.google/resolve'},
+  {name:'Cloudflare',        where:'Global (anycast)', cc:'US', kind:'wire', url:'https://cloudflare-dns.com/dns-query'},
+  {name:'CleanBrowsing',     where:'Estados Unidos',   cc:'US', kind:'wire', url:'https://doh.cleanbrowsing.org/doh/security-filter/'},
+  {name:'Control D',         where:'Canadá',           cc:'CA', kind:'wire', url:'https://freedns.controld.com/p0'},
+  {name:'DNS.SB',            where:'Alemanha',         cc:'DE', kind:'wire', url:'https://doh.dns.sb/dns-query'},
+  {name:'DNS4EU',            where:'União Europeia',   cc:'EU', kind:'wire', url:'https://unfiltered.joindns4.eu/dns-query'},
+  {name:'CZ.NIC ODVR',       where:'Tchéquia',         cc:'CZ', kind:'wire', url:'https://odvr.nic.cz/doh'},
+  {name:'RethinkDNS',        where:'Índia',            cc:'IN', kind:'wire', url:'https://sky.rethinkdns.com/dns-query'},
+  {name:'IIJ Public DNS',    where:'Japão',            cc:'JP', kind:'wire', url:'https://public.dns.iij.jp/dns-query'},
+  {name:'Tiarap',            where:'Singapura',        cc:'SG', kind:'wire', url:'https://doh.tiar.app/dns-query'},
+  {name:'AliDNS',            where:'China',            cc:'CN', kind:'json', url:'https://dns.alidns.com/resolve'},
+];
+// Visão por cidade: o Google responde "como se" a consulta viesse de uma rede daquela região (EDNS Client Subnet).
+// Mostra diferenças de CDNs e DNS geográfico; as sub-redes são de provedores locais conhecidos.
+const REGIONS = [
+  {name:'São Paulo',   cc:'BR', net:'200.147.0.0/24'},
+  {name:'Nova York',   cc:'US', net:'72.229.0.0/24'},
+  {name:'Los Angeles', cc:'US', net:'76.170.0.0/24'},
+  {name:'Londres',     cc:'GB', net:'81.2.69.0/24'},
+  {name:'Frankfurt',   cc:'DE', net:'80.187.0.0/24'},
+  {name:'Joanesburgo', cc:'ZA', net:'41.13.0.0/24'},
+  {name:'Mumbai',      cc:'IN', net:'49.36.0.0/24'},
+  {name:'Tóquio',      cc:'JP', net:'126.0.0.0/24'},
+  {name:'Sydney',      cc:'AU', net:'1.128.0.0/24'},
+];
+const PG_TYPES = ['A','AAAA','CNAME','MX','NS','TXT','CAA','SOA'];
+
+// DNS em formato binário (RFC 8484): monta a pergunta e lê a resposta
+function wireQuery(name, type){
+  const b = [Math.random() * 256 | 0, Math.random() * 256 | 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+  for(const l of name.replace(/\.$/, '').split('.')){ b.push(l.length); for(const c of l) b.push(c.charCodeAt(0)); }
+  b.push(0, TYPE_NUM[type] >> 8, TYPE_NUM[type] & 255, 0, 1);
+  return btoa(String.fromCharCode(...b)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function ipv6(bytes){
+  const g = []; for(let i = 0; i < 16; i += 2) g.push(((bytes[i] << 8) | bytes[i + 1]).toString(16));
+  let best = -1, len = 0;
+  for(let i = 0; i < 8; i++){ let j = i; while(j < 8 && g[j] === '0') j++; if(j - i > len && j - i > 1){ best = i; len = j - i; } if(j > i) i = j; }
+  if(best < 0) return g.join(':');
+  return g.slice(0, best).join(':') + '::' + g.slice(best + len).join(':');
+}
+function parseWire(buf){
+  const v = new DataView(buf.buffer, buf.byteOffset, buf.byteLength), dec = new TextDecoder();
+  const readName = off => {
+    const labels = []; let end = null, guard = 0;
+    while(guard++ < 128){
+      const len = buf[off];
+      if(len === 0){ off++; break; }
+      if((len & 0xC0) === 0xC0){ if(end === null) end = off + 2; off = ((len & 0x3F) << 8) | buf[off + 1]; continue; }
+      labels.push(dec.decode(buf.subarray(off + 1, off + 1 + len))); off += len + 1;
+    }
+    return {name: labels.join('.') + '.', next: end ?? off};
+  };
+  const status = v.getUint16(2) & 15, qd = v.getUint16(4), an = v.getUint16(6);
+  let o = 12;
+  for(let i = 0; i < qd; i++) o = readName(o).next + 4;
+  const answers = [];
+  for(let i = 0; i < an; i++){
+    o = readName(o).next;
+    const type = v.getUint16(o), ttl = v.getUint32(o + 4), len = v.getUint16(o + 8), rd = o + 10;
+    o = rd + len;
+    let data;
+    if(type === 1) data = [...buf.subarray(rd, rd + 4)].join('.');
+    else if(type === 28) data = ipv6(buf.subarray(rd, rd + 16));
+    else if(type === 2 || type === 5 || type === 12) data = readName(rd).name;
+    else if(type === 15) data = v.getUint16(rd) + ' ' + readName(rd + 2).name;
+    else if(type === 16){ const parts = []; for(let p = rd; p < rd + len; p += buf[p] + 1) parts.push(dec.decode(buf.subarray(p + 1, p + 1 + buf[p]))); data = parts.join(''); }
+    else if(type === 257){ const tl = buf[rd + 1]; data = `${buf[rd]} ${dec.decode(buf.subarray(rd + 2, rd + 2 + tl))} "${dec.decode(buf.subarray(rd + 2 + tl, rd + len))}"`; }
+    else if(type === 6){ const m = readName(rd), r = readName(m.next); const n = [0, 4, 8, 12, 16].map(k => v.getUint32(r.next + k)); data = `${m.name} ${r.name} ${n.join(' ')}`; }
+    else continue;
+    answers.push({type, ttl, data});
+  }
+  return {status, answers};
+}
+async function resolveWith(res, name, type, ecs){
+  const want = TYPE_NUM[type], t0 = performance.now();
+  let status, answers;
+  if(res.kind === 'json'){
+    const url = `${res.url}?name=${encodeURIComponent(name)}&type=${want}${ecs ? '&edns_client_subnet=' + ecs : ''}`;
+    const j = await fetchJSON(url, {headers:{accept:'application/dns-json'}}, 8000);
+    status = j.Status; answers = (j.Answer || []).map(a => ({type:a.type, ttl:a.TTL, data: a.type === 16 ? cleanTxt(a.data) : a.data}));
+  } else {
+    // alguns operadores têm endereços alternativos; tenta em sequência até um responder
+    let lastErr;
+    for(const u of [res.url, ...(res.alt || [])]){
+      const c = new AbortController(), tm = setTimeout(() => c.abort(), 8000);
+      try{
+        const r = await fetch(`${u}?dns=${wireQuery(name, type)}`, {headers:{accept:'application/dns-message'}, signal:c.signal});
+        if(!r.ok) throw new Error('HTTP ' + r.status);
+        ({status, answers} = parseWire(new Uint8Array(await r.arrayBuffer())));
+        lastErr = null; break;
+      } catch(e){ lastErr = new Error(e.name === 'AbortError' ? 'tempo esgotado' : 'bloqueado ou fora do ar'); }
+      finally{ clearTimeout(tm); }
+    }
+    if(lastErr) throw lastErr;
+  }
+  const recs = answers.filter(a => a.type === want);
+  return {status, values: recs.map(a => normVal(a.data)).sort(), ttl: recs.length ? Math.min(...recs.map(a => a.ttl)) : null, ms: Math.round(performance.now() - t0)};
+}
+const normVal = v => String(v).trim().toLowerCase().replace(/\.$/, '').replace(/\s+/g, ' ');
+
+const PG = {name:null, qname:null, type:'A', expect:'', rows:[], regions:[], running:false, timer:null, next:0, doneFor:null, runId:0};
+function pgBuild(){
+  if($('#pg-form')) return;
+  setBody('c-prop', `
+    <p class="small muted pg-intro">Consulta o mesmo registro em ${RESOLVERS.length} servidores DNS públicos de vários países e em ${REGIONS.length} regiões. Depois de mudar um DNS, é aqui que você vê se a mudança já chegou no mundo todo.</p>
+    <form class="pg-form" id="pg-form" autocomplete="off">
+      <label class="pg-f pg-name"><span>Nome</span><input id="pg-name" spellcheck="false" autocapitalize="off"></label>
+      <label class="pg-f"><span>Tipo</span><select id="pg-type">${PG_TYPES.map(t => `<option>${t}</option>`).join('')}</select></label>
+      <label class="pg-f pg-exp"><span>Valor esperado <em>(opcional)</em></span><input id="pg-expect" placeholder="ex.: o IP novo do servidor" spellcheck="false" autocapitalize="off"></label>
+      <button class="btn" id="pg-go" type="submit">Verificar</button>
+    </form>
+    <div class="pg-auto">
+      <label><input type="checkbox" id="pg-auto"> Verificar de novo a cada 30 s até propagar</label>
+      <span class="small muted" id="pg-count"></span>
+    </div>
+    <div id="pg-summary"></div>
+    <div id="pg-results"></div>`);
+  $('#pg-form').addEventListener('submit', e => { e.preventDefault(); pgRun(); });
+  $('#pg-type').addEventListener('change', () => pgRun());
+  $('#pg-auto').addEventListener('change', e => e.target.checked ? pgSchedule() : pgStop());
+}
+// chamada quando um domínio novo é carregado
+function renderProp(){
+  if(!S) return;
+  pgBuild();
+  if(PG.name !== S.domain){
+    pgStop(); $('#pg-auto').checked = false;
+    PG.name = S.domain; PG.rows = []; PG.regions = []; PG.doneFor = null;
+    $('#pg-name').value = S.domain; $('#pg-expect').value = '';
+    $('#pg-summary').innerHTML = ''; $('#pg-results').innerHTML = '';
+  }
+  if(!$('#c-prop').hidden && PG.doneFor !== S.domain) pgRun();
+}
+async function pgRun(){
+  // aqui o www e subdomínios são mantidos: dá para checar www.dominio.com ou _dmarc.dominio.com
+  const name = $('#pg-name').value.trim().toLowerCase().replace(/^[a-z]+:\/\//, '').replace(/[\/?#:].*$/, '').replace(/\.$/, '');
+  if(!/^[a-z0-9_.-]+\.[a-z0-9-]{2,}$/.test(name)){ toast('Digite um nome válido, ex.: www.dominio.com'); return; }
+  const type = $('#pg-type').value, expect = normVal($('#pg-expect').value.replace(/^"|"$/g, ''));
+  const id = ++PG.runId;
+  Object.assign(PG, {qname: name, type, expect, running: true, doneFor: S?.domain});
+  PG.rows = RESOLVERS.map(r => ({r, state:'loading'}));
+  PG.regions = REGIONS.map(g => ({g, state:'loading'}));
+  $('#pg-go').disabled = true;
+  pgRender();
+  const settle = (list, i, p) => p.then(x => { list[i] = {...list[i], state:'ok', ...x}; }).catch(e => { list[i] = {...list[i], state:'err', err:e.message}; }).finally(() => { if(PG.runId === id) pgRender(); });
+  await Promise.all([
+    ...RESOLVERS.map((r, i) => settle(PG.rows, i, resolveWith(r, name, type))),
+    ...REGIONS.map((g, i) => settle(PG.regions, i, resolveWith(RESOLVERS[0], name, type, g.net))),
+  ]);
+  if(PG.runId !== id) return;
+  PG.running = false; $('#pg-go').disabled = false;
+  PG.at = new Date();
+  pgRender();
+  const sum = pgSummary();
+  if($('#pg-auto').checked){
+    if(sum.complete){ pgStop(); $('#pg-auto').checked = false; toast('Propagação completa'); flashTitle(); }
+    else pgSchedule();
+  }
+}
+// resposta de referência: o valor esperado, se houver; senão, a resposta mais comum
+function pgReference(){
+  if(PG.expect) return null;
+  const count = {};
+  for(const x of PG.rows) if(x.state === 'ok' && x.values.length){ const k = x.values.join('|'); count[k] = (count[k] || 0) + 1; }
+  return Object.entries(count).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+}
+function rowStatus(x, ref){
+  if(x.state === 'loading') return 'loading';
+  if(x.state === 'err') return 'err';
+  if(x.status === 3 || !x.values.length) return PG.expect ? 'bad' : 'empty';
+  if(PG.expect) return x.values.some(v => v === PG.expect || v.includes(PG.expect)) ? 'good' : 'bad';
+  return x.values.join('|') === ref ? 'good' : 'bad';
+}
+function pgSummary(){
+  const ref = pgReference();
+  let st = PG.rows.map(x => rowStatus(x, ref));
+  // Rodízio: IPs com TTL curto que mudam a cada consulta (Hostinger, CDNs). Muitas respostas diferentes
+  // não é propagação; sem valor esperado, todo servidor que respondeu com IP conta como ok.
+  const okRows = PG.rows.filter(x => x.state === 'ok' && x.values.length);
+  const distinct = new Set(okRows.map(x => x.values.join('|'))).size;
+  const rotating = !PG.expect && ['A','AAAA'].includes(PG.type) && distinct >= 3 && okRows.every(x => x.ttl <= 300);
+  if(rotating) st = st.map((s, i) => s === 'bad' && PG.rows[i].values.length ? 'good' : s);
+  const answered = st.filter(s => s !== 'err' && s !== 'loading').length;
+  const good = st.filter(s => s === 'good').length;
+  const empty = st.filter(s => s === 'empty').length;
+  const loadingN = st.filter(s => s === 'loading').length;
+  const complete = !loadingN && answered > 0 && (good === answered || empty === answered);
+  return {ref, st, answered, good, empty, loadingN, complete, rotating};
+}
+function flashTitle(){
+  const base = document.title; let n = 0;
+  const h = setInterval(() => { document.title = n++ % 2 ? base : '✓ Propagado · ' + PG.qname; if(n > 9){ clearInterval(h); document.title = base; } }, 800);
+}
+function pgSchedule(){
+  pgStop(true);
+  PG.next = Date.now() + 30000;
+  PG.timer = setInterval(() => {
+    const s = Math.max(0, Math.ceil((PG.next - Date.now()) / 1000));
+    $('#pg-count').textContent = `próxima verificação em ${s} s`;
+    if(s <= 0){ clearInterval(PG.timer); PG.timer = null; $('#pg-count').textContent = 'verificando…'; pgRun(); }
+  }, 250);
+}
+function pgStop(keepText){ if(PG.timer){ clearInterval(PG.timer); PG.timer = null; } if(!keepText && $('#pg-count')) $('#pg-count').textContent = ''; }
+
+const ST_LABEL = {good:'✓', bad:'✕', empty:'—', err:'!', loading:''};
+function pgRender(){
+  const {ref, st, answered, good, empty, loadingN, complete, rotating} = pgSummary();
+  const total = RESOLVERS.length;
+  // cada valor inteiro numa linha (IPs e nomes não quebram no meio); só textos longos quebram
+  const shown = v => v.length ? v.map(x => `<span class="${x.length > 40 ? 'v-long' : 'v1'}">${esc(x)}</span>`).join('') : '<span class="muted">sem registro</span>';
+  // resumo
+  let head, sub;
+  if(loadingN === total){ head = 'Consultando servidores…'; sub = ''; }
+  else if(PG.expect){ head = `${good} de ${answered} servidores já mostram o valor esperado`; sub = complete ? 'Propagação completa.' : loadingN ? 'Ainda chegando respostas…' : 'Os que ainda não mostram estão com o valor antigo no cache.'; }
+  else if(rotating && !loadingN){ head = `IPs em rodízio: ${answered} de ${answered} servidores responderam`; sub = 'O provedor entrega IPs diferentes a cada consulta (balanceamento de carga), então as respostas não batem entre si, e isso é normal. Para acompanhar uma migração, preencha o valor esperado com o IP novo.'; }
+  else if(empty === answered && answered){ head = `Nenhum servidor encontrou registro ${PG.type}`; sub = `O nome ${PG.qname} não tem registro ${PG.type}.`; }
+  else { head = `${good} de ${answered} servidores dão a mesma resposta`; sub = complete ? 'Tudo igual no mundo todo.' : loadingN ? 'Ainda chegando respostas…' : 'Quem está diferente ainda tem o valor antigo no cache, ou o provedor usa IPs diferentes por região.'; }
+  const pct = answered ? Math.round((PG.expect || empty !== answered ? good : answered) / total * 100) : 0;
+  $('#pg-summary').innerHTML = `<div class="pg-sum ${complete ? 'is-done' : ''}">
+    <div class="pg-sum-top"><b>${esc(head)}</b>${PG.at && !PG.running ? `<span class="small muted">verificado às ${PG.at.toLocaleTimeString('pt-BR')}</span>` : ''}</div>
+    <div class="pg-bar" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></div>
+    ${sub ? `<div class="small muted">${esc(sub)}</div>` : ''}
+    ${ref && !PG.expect && !rotating ? `<div class="small muted">Resposta mais comum: <span class="mono">${ref.split('|').map(esc).join(', ')}</span></div>` : ''}
+  </div>`;
+  // tabela de servidores
+  const row = (label, where, cc, x, s) => `<tr class="pg-row s-${s}">
+    <td class="pg-st"><span class="pg-dot" title="${{good:'Resposta igual',bad:'Resposta diferente',empty:'Sem registro',err:'Erro',loading:'Consultando'}[s]}">${ST_LABEL[s]}</span></td>
+    <td><b>${esc(label)}</b><div class="small muted"><span class="cc">${cc}</span> ${esc(where)}</div></td>
+    <td class="val">${s === 'loading' ? '<span class="loading">consultando</span>' : s === 'err' ? `<span class="muted">sem resposta (${esc(x.err)})</span>` : shown(x.values)}</td>
+    <td class="ttl">${x.ttl != null ? ttl(x.ttl) : ''}${x.ms ? `<div>${x.ms} ms</div>` : ''}</td></tr>`;
+  const regRef = ref;
+  $('#pg-results').innerHTML = `
+    <div class="dg-sub">Servidores DNS públicos</div>
+    <div class="tbl-wrap"><table class="pg-tbl"><tbody>${PG.rows.map((x, i) => row(x.r.name, x.r.where, x.r.cc, x, st[i])).join('')}</tbody></table></div>
+    <div class="dg-sub">Por região <span class="muted">· o que o Google responde para quem está em cada cidade (útil para CDN e DNS geográfico)</span></div>
+    <div class="tbl-wrap"><table class="pg-tbl"><tbody>${PG.regions.map(x => { let s = rowStatus(x, regRef); if(rotating && s === 'bad' && x.values?.length) s = 'good'; return row(x.g.name, 'via Google', x.g.cc, x, s); }).join('')}</tbody></table></div>
+    <div class="small muted">TTL é quanto tempo cada servidor ainda guarda a resposta atual antes de buscar de novo. Quando todos os TTLs zerarem, o valor novo aparece em todo lugar.</div>`;
+  // selo na aba
+  const tbp = $('#tb-prop');
+  const bad = st.filter(s => s === 'bad').length;
+  if(!loadingN){ tbp.textContent = bad ? String(bad) : ''; tbp.classList.toggle('alert', !!bad); }
+}
+
+function renderRaw(){
+  const parts = [];
+  if(S.rdap) parts.push(`<details><summary>RDAP do registro · ${esc(new URL(S.rdap.url).hostname)}</summary><pre class="raw">${esc(JSON.stringify(S.rdap.data, null, 2))}</pre></details>`);
+  if(S.rdap?.registrarData) parts.push(`<details><summary>RDAP do registrador · ${esc(new URL(S.rdap.registrarUrl).hostname)}</summary><pre class="raw">${esc(JSON.stringify(S.rdap.registrarData, null, 2))}</pre></details>`);
+  if(S.dns) parts.push(`<details><summary>Respostas DNS</summary><pre class="raw">${esc(JSON.stringify(S.dns, null, 2))}</pre></details>`);
+  if(S.host) parts.push(`<details><summary>IPs</summary><pre class="raw">${esc(JSON.stringify(S.host, null, 2))}</pre></details>`);
+  setBody('c-raw', parts.join('') || loading('Aguardando respostas…'));
+}
+
+function report(){
+  if(!S) return '';
+  const when = new Date().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'});
+  const L = [`RAIO-X · ${S.domain}`, `Consultado em ${when}`, ''];
+  // resumo: os mesmos 6 cartões do topo da página
+  const cards = [...document.querySelectorAll('#summary .ans')].map(c => [
+    c.querySelector('.q').textContent.trim(), c.querySelector('.a').textContent.trim(),
+    (c.querySelector('.d')?.innerText || '').replace(/\s*\n\s*/g, ' · ').trim()]);
+  const short = {'Onde o domínio está registrado':'Registrado em', 'Idade do domínio':'Idade', 'Quando expira':'Expira', 'Hospedagem provável':'Hospedagem', 'Provedor de e-mail':'E-mail', 'DNS gerenciado em':'DNS'};
+  L.push('RESUMO');
+  for(const [q, a, d] of cards) L.push(`  ${(short[q] || q).padEnd(16)}${a}${d ? `  (${d})` : ''}`);
+  const A = collectAlerts();
+  L.push('', 'PONTOS DE ATENÇÃO');
+  if(A.length) for(const a of A) L.push(`  • ${a.txt}: ${a.why}`);
+  else L.push('  Tudo certo: registro, site, e-mail e DNS sem problemas visíveis.');
+  const recs = collectRecords();
+  if(recs.length) L.push('', ...toReadable(recs).split('\n').slice(S.rdap ? 4 : 3));
+  return L.join('\n').replace(/\n+$/, '') + '\n';
+}
+
+/* ---------- exportação DNS ---------- */
+function collectRecords(){
+  if(!S?.dns) return [];
+  const out = [];
+  const add = (host, type, ttlv, data) => out.push({host, name: host === '@' ? S.domain : `${host}.${S.domain}`, type, ttl: ttlv, data});
+  for(const t of DNS_TYPES) for(const r of (S.dns.records[t] || [])) add('@', t, r.ttl, r.data);
+  for(const t of ['CNAME','A','AAAA']){
+    const recs = S.dns.www[t] || [];
+    if(t !== 'CNAME' && (S.dns.www.CNAME || []).length) continue; // www é CNAME: os A/AAAA vêm do alvo
+    for(const r of recs) add('www', t, r.ttl, r.data);
+  }
+  if(S.mail?.dmarc) add('_dmarc', 'TXT', S.mail.dmarcTtl || 3600, S.mail.dmarc);
+  for(const d of (S.mail?.dkim || [])) add(`${d.sel}._domainkey`, 'TXT', d.ttl || 3600, d.val);
+  return out;
+}
+// Agrupa os registros por finalidade, na ordem em que aparecem nos arquivos exportados
+const GROUPS = [
+  ['site',  'Site'],
+  ['mail',  'E-mail · servidores que recebem (MX)'],
+  ['auth',  'E-mail · autenticação (SPF, DKIM, DMARC)'],
+  ['verif', 'Verificações de serviços (Google, Meta, etc.)'],
+  ['txt',   'Outros TXT'],
+  ['caa',   'Segurança · quem pode emitir certificado SSL (CAA)'],
+  ['infra', 'Referência · NÃO importar'],
+];
+function groupOf(r){
+  if(r.host === '@' && ['SOA','NS','DS'].includes(r.type)) return 'infra';
+  if(r.type === 'MX') return 'mail';
+  if(r.type === 'CAA') return 'caa';
+  if(r.type === 'TXT'){
+    if(/^v=spf1/i.test(r.data) || /_domainkey$|^_dmarc$/.test(r.host)) return 'auth';
+    return verifService(r.data) ? 'verif' : 'txt';
+  }
+  return 'site';
+}
+function grouped(recs){
+  const typeOrder = {A:0, AAAA:1, CNAME:2, MX:3, TXT:4, CAA:5, NS:6, SOA:7, DS:8};
+  const hostOrder = h => h === '@' ? 0 : h === 'www' ? 1 : 2;
+  const sorted = [...recs].sort((a, b) =>
+    hostOrder(a.host) - hostOrder(b.host) || typeOrder[a.type] - typeOrder[b.type] ||
+    (a.type === 'MX' ? parseInt(a.data) - parseInt(b.data) : 0));
+  return GROUPS.map(([k, title]) => ({k, title, recs: sorted.filter(r => groupOf(r) === k)})).filter(g => g.recs.length);
+}
+const txtEsc = v => String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+function toZone(recs){
+  const hw = Math.max(4, ...recs.map(r => r.host.length)) + 2;
+  const tw = Math.max(4, ...recs.map(r => String(r.ttl).length));
+  const lead = r => `${r.host.padEnd(hw)}${String(r.ttl).padStart(tw)}  IN  ${r.type.padEnd(6)}`;
+  const line = r => {
+    const pre = lead(r);
+    if(r.type !== 'TXT') return pre + r.data;
+    const v = txtEsc(r.data);
+    if(v.length <= 80) return `${pre}"${v}"`;
+    // texto longo (ex.: chave DKIM): quebra em pedaços entre parênteses, formato padrão BIND
+    const parts = v.match(/[\s\S]{1,64}/g), pad = ' '.repeat(pre.length + 2);
+    return `${pre}( "${parts[0]}"\n` + parts.slice(1).map((p, i) => `${pad}"${p}"${i === parts.length - 2 ? ' )' : ''}`).join('\n');
+  };
+  const rule = t => `;; ${t} `.padEnd(70, '-');
+  const L = [
+    ';; ' + '='.repeat(67),
+    `;;  Zona DNS de ${S.domain}`,
+    `;;  Exportado pelo raio-x em ${new Date().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'})}`,
+    ';;  Pronto para importar na Cloudflare, Hostinger, cPanel, Route 53 etc.',
+    ';;  Obs.: só entram nomes visíveis publicamente (subdomínios extras podem faltar).',
+    ';; ' + '='.repeat(67),
+    '',
+    `$ORIGIN ${S.domain}.`,
+    '$TTL 3600',
+  ];
+  for(const g of grouped(recs)){
+    L.push('', rule(g.title));
+    if(g.k === 'infra') L.push(';; O novo provedor define os próprios NS e SOA; o DS é cadastrado no registrador.');
+    for(const r of g.recs) L.push(g.k === 'infra' ? line(r).split('\n').map(x => '; ' + x).join('\n') : line(r));
+  }
+  return L.join('\n') + '\n';
+}
+// Versão para humanos: colar no WhatsApp, e-mail ou chamado de suporte
+function toReadable(recs){
+  const R = S.rdap ? parseRDAP(S.rdap) : null;
+  const full = h => h === '@' ? S.domain : `${h}.${S.domain}`;
+  const clean = v => String(v).replace(/\.$/, '');
+  const mxProv = detect(recs.filter(r => r.type === 'MX').map(r => r.data), MAIL_PROV);
+  const nsProv = detect(recs.filter(r => r.type === 'NS').map(r => r.data), DNS_PROV);
+  const L = [`DNS de ${S.domain}`, `Consultado pelo raio-x em ${new Date().toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'})}`];
+  if(R?.registrar) L.push(`Registrado em: ${R.registrar}${R.expires ? ` · vence em ${fmtDate(R.expires)}` : ''}`);
+  // rótulo amigável: SPF/DKIM/DMARC em vez de "TXT"
+  const kind = r => r.type !== 'TXT' ? r.type : /^v=spf1/i.test(r.data) ? 'SPF' : /_domainkey$/.test(r.host) ? 'DKIM' : r.host === '_dmarc' ? 'DMARC' : 'TXT';
+  const value = r => {
+    let v = clean(r.data);
+    if(r.type === 'MX'){ const [p, h] = r.data.split(/\s+/); v = `${clean(h)}  (prioridade ${p})`; }
+    if(kind(r) === 'DKIM') v = `seletor ${r.host.replace(/\._domainkey$/, '')} · chave de ${r.data.length} caracteres`;
+    else if(r.type === 'TXT' && v.length > 90) v = v.slice(0, 60) + `…  (${v.length} caracteres)`;
+    return v;
+  };
+  // grupo só com o domínio raiz: sem coluna de nome; senão o nome aparece uma vez por bloco
+  const rows = list => {
+    const out = [];
+    if(list.every(r => r.host === '@')) return list.map(r => `  ${kind(r).padEnd(7)}${value(r)}`);
+    let last = null;
+    for(const r of list){
+      if(r.host !== last){ out.push(`  ${full(r.host)}`); last = r.host; }
+      out.push(`    ${kind(r).padEnd(7)}${value(r)}`);
+    }
+    return out;
+  };
+  const titles = {site:'SITE', mail:`E-MAIL${mxProv ? ' · ' + mxProv : ''}`, auth:'AUTENTICAÇÃO DE E-MAIL', verif:'VERIFICAÇÕES DE SERVIÇOS', txt:'OUTROS TXT', caa:'CERTIFICADO SSL (CAA)', infra:`NAMESERVERS${nsProv ? ' · ' + nsProv : ''}`};
+  for(const g of grouped(recs)){
+    const list = g.k === 'infra' ? g.recs.filter(r => r.type === 'NS') : g.recs;
+    if(!list.length) continue;
+    L.push('', titles[g.k]);
+    if(g.k === 'verif'){
+      const names = [...new Set(list.map(r => verifService(r.data)))];
+      L.push('  ' + names.join(', '));
+      continue;
+    }
+    if(g.k === 'auth'){
+      // autenticação lida melhor como checklist: SPF, DKIM, DMARC sempre nessa ordem
+      const spf = list.filter(r => kind(r) === 'SPF'), dkim = list.filter(r => kind(r) === 'DKIM'), dm = list.filter(r => kind(r) === 'DMARC');
+      L.push(...(spf.length ? spf.map(r => `  SPF    ${value(r)}`) : ['  SPF    não configurado']));
+      L.push(...(dkim.length ? dkim.map(r => `  DKIM   ${value(r)}`) : ['  DKIM   nenhum seletor comum encontrado']));
+      L.push(...(dm.length ? dm.map(r => `  DMARC  ${value(r)}`) : ['  DMARC  não configurado']));
+      continue;
+    }
+    L.push(...rows(list));
+  }
+  return L.join('\n') + '\n';
+}
+function toCSV(recs){
+  const q = v => /[";\n,]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v);
+  const label = Object.fromEntries(GROUPS.map(([k, t]) => [k, t.split(' (')[0].replace(/ · NÃO importar.*/, '')]));
+  const rows = [['Finalidade','Nome','Host','Tipo','TTL','Valor'], ...grouped(recs).flatMap(g => g.recs.map(r => [label[g.k], r.name, r.host, r.type, r.ttl, r.data]))];
+  return '﻿' + rows.map(r => r.map(q).join(';')).join('\r\n'); // BOM + ";" para abrir certo no Excel em português
+}
+function download(filename, text, type){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type}));
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+async function copyText(txt, okMsg){
+  try{ await navigator.clipboard.writeText(txt); toast(okMsg); }
+  catch{
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast(okMsg); }catch{ toast('Não consegui copiar'); }
+    ta.remove();
+  }
+}
+function exportDNS(kind){
+  const recs = collectRecords();
+  if(!recs.length){ toast('Nenhum registro para exportar'); return; }
+  const base = `dns-${S.domain}-${new Date().toISOString().slice(0,10)}`;
+  if(kind === 'zone') download(base + '.txt', toZone(recs), 'text/plain;charset=utf-8');
+  else if(kind === 'csv') download(base + '.csv', toCSV(recs), 'text/csv;charset=utf-8');
+  else if(kind === 'json') download(base + '.json', JSON.stringify({domain:S.domain, exportedAt:new Date().toISOString(), records:recs}, null, 2), 'application/json');
+  else if(kind === 'copy') return copyText(toZone(recs), 'Arquivo de zona copiado');
+  else if(kind === 'readable') return copyText(toReadable(recs), 'Lista copiada, pronta pra colar');
+  toast(`${recs.length} registros exportados${S.mail ? '' : ' (DMARC/DKIM ainda carregando)'}`);
+}
+
+/* ---------- cache no navegador ---------- */
+// Cada consulta completa fica salva no localStorage deste navegador. Reabrir um domínio com menos de 24 h usa o que está salvo.
+const CACHE_KEY = 'rx-cache', CACHE_MAX = 40, CACHE_TTL = 24 * 36e5;
+const errOut = e => e ? {message: e.message, status: e.status, notFound: !!e.notFound} : null;
+const errIn = o => o ? Object.assign(new Error(o.message), o) : null;
+function cacheAll(){ return store(CACHE_KEY) || {}; }
+function cacheGet(d){ return cacheAll()[d] || null; }
+function cacheSave(){
+  if(!S || (!S.rdap && !S.dns)) return; // não salva consulta que falhou por completo
+  const all = cacheAll();
+  all[S.domain] = {domain:S.domain, ts:Date.now(), rdap:S.rdap || null, rdapErr:errOut(S.rdapErr), dns:S.dns || null, dnsErr:errOut(S.dnsErr), host:S.host || null, mail:S.mail || null, prop:S.prop || null};
+  const keys = Object.keys(all).sort((a, b) => all[b].ts - all[a].ts);
+  for(const k of keys.splice(CACHE_MAX)) delete all[k];
+  // se o armazenamento encher, descarta as consultas mais antigas até caber
+  while(keys.length){
+    try{ localStorage.setItem(CACHE_KEY, JSON.stringify(all)); return; }
+    catch{ if(keys.length === 1) return; delete all[keys.pop()]; }
+  }
+}
+function cacheClear(){ try{ localStorage.removeItem(CACHE_KEY); localStorage.removeItem('rx-recent'); }catch{} }
+function agoShort(ts){
+  const m = Math.round((Date.now() - ts) / 6e4);
+  if(m < 1) return 'agora'; if(m < 60) return m + ' min';
+  const h = Math.round(m / 60); if(h < 24) return h + ' h';
+  return Math.round(h / 24) + ' d';
+}
+function cacheSizeKB(){ try{ return Math.round((localStorage.getItem(CACHE_KEY) || '').length / 1024); }catch{ return 0; } }
+
+/* ---------- fluxo ---------- */
+function renderRecent(){
+  const list = store('rx-recent') || [];
+  const cache = cacheAll();
+  $('#recent').innerHTML = list.map(d => {
+    const on = d === S?.domain, c = cache[d];
+    return `<button class="nav${on ? ' active' : ''}" type="button" data-d="${esc(d)}"${on ? ' aria-current="page"' : ''}${c ? ` title="Salvo ${esc(new Date(c.ts).toLocaleString('pt-BR'))}"` : ''}><span class="nd">${esc(d)}</span>${c ? `<span class="na">${agoShort(c.ts)}</span>` : ''}</button>`;
+  }).join('');
+  const n = Object.keys(cache).length;
+  $('#cache-info').textContent = n ? `${n} consulta${n > 1 ? 's' : ''} salva${n > 1 ? 's' : ''} neste navegador · ${cacheSizeKB()} KB` : 'Nada salvo ainda.';
+  $('#clear').hidden = !n && !list.length;
+}
+function saveRecent(d){
+  const list = (store('rx-recent') || []).filter(x => x !== d);
+  list.unshift(d); store('rx-recent', list.slice(0, CACHE_MAX)); renderRecent();
+}
+function renderAll(){
+  $('#reg-src').textContent = ''; $('#dns-src').textContent = '';
+  renderSummary();
+  if(S.rdap || S.rdapErr) renderReg();
+  if(S.dns || S.dnsErr){ renderDNS(); renderHost(); renderProp(); }
+  if(S.mail) renderMail(); else if(S.dnsErr) setBody('c-mail', '<div class="muted small">—</div>');
+  renderRaw();
+}
+function showCached(c){
+  S = {domain:c.domain, rdap:c.rdap, rdapErr:errIn(c.rdapErr), dns:c.dns, dnsErr:errIn(c.dnsErr), host:c.host, mail:c.mail, prop:c.prop, cachedAt:c.ts};
+  renderAll();
+  $('#subtitle').innerHTML = `Salvo no navegador · consultado ${esc(agoShort(c.ts) === 'agora' ? 'agora há pouco' : 'há ' + agoShort(c.ts))} (${esc(new Date(c.ts).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}))})`;
+  $('#refresh').textContent = 'Atualizar agora';
+}
+
+async function run(input, opts = {}){
+  const domain = normalize(input);
+  if(!domain){ toast('Domínio inválido'); return; }
+  const id = ++runId;
+  const live = () => id === runId;
+  $('#q').value = domain;
+  try{ history.replaceState(null, '', '#' + domain); }catch{ location.hash = domain; }
+  $('#title').innerHTML = `<a class="site-link" href="https://${esc(domain)}" target="_blank" rel="noopener" title="Abrir ${esc(domain)} em nova aba">${esc(domain)}<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 3H3.5A1.5 1.5 0 0 0 2 4.5v8A1.5 1.5 0 0 0 3.5 14h8a1.5 1.5 0 0 0 1.5-1.5V10M9 2h5v5M14 2L7.5 8.5"/></svg></a>`;
+  $('#ext').href = 'https://rdap.org/domain/' + domain;
+  $('#col').classList.add('has-result');
+  $('#col').classList.remove('empty');
+
+  const cached = !opts.force && cacheGet(domain);
+  if(cached && Date.now() - cached.ts < CACHE_TTL){
+    $('#go').disabled = false;
+    showCached(cached);
+    saveRecent(domain);
+    return;
+  }
+  S = {domain};
+  saveRecent(domain);
+  $('#refresh').textContent = 'Consultar de novo';
+  $('#subtitle').textContent = 'Consultando registro e DNS…';
+  $('#ext').href = 'https://rdap.org/domain/' + domain;
+  $('#go').disabled = true;
+  $('#reg-src').textContent = ''; $('#dns-src').textContent = '';
+  setBody('c-reg', loading('Buscando no RDAP do registro…'));
+  setBody('c-dns', loading('Resolvendo A, AAAA, MX, NS, TXT, SOA, CAA…'));
+  setBody('c-host', loading('Aguardando DNS…'));
+  setBody('c-mail', loading('Aguardando DNS…'));
+  setBody('c-raw', loading('Aguardando respostas…'));
+  renderSummary();
+  const t0 = performance.now();
+
+  const rdapP = loadRDAP(domain)
+    .then(r => { if(live()){ S.rdap = r; renderReg(); renderSummary(); } })
+    .catch(e => { if(live()){ S.rdapErr = e; renderReg(); renderSummary(); } });
+
+  const dnsP = loadDNS(domain).then(async D => {
+    if(!live()) return;
+    S.dns = D; renderDNS(); renderSummary(); renderHost(); renderMail(); renderProp();
+    await Promise.all([
+      loadHost(D).then(h => { if(live()){ S.host = h; renderHost(); renderSummary(); } }),
+      loadMail(domain, D).then(m => { if(live()){ S.mail = m; renderMail(); renderSummary(); } }),
+      loadProp(domain).then(p => { if(live()){ S.prop = p; renderProp(); renderSummary(); } }),
+    ]);
+  }).catch(e => { if(live()){ S.dnsErr = e; renderDNS(); renderHost(); renderProp(); setBody('c-mail', '<div class="muted small">—</div>'); } });
+
+  await Promise.all([rdapP, dnsP]);
+  if(!live()) return;
+  renderRaw();
+  $('#go').disabled = false;
+  cacheSave();
+  renderRecent();
+  $('#subtitle').textContent = `Consulta ao vivo em ${((performance.now() - t0)/1000).toFixed(1).replace('.',',')} s · ${new Date().toLocaleTimeString('pt-BR')} · salva no navegador`;
+}
+
+$('#f').addEventListener('submit', e => { e.preventDefault(); run($('#q').value); });
+$('#recent').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if(b) run(b.dataset.d); });
+$('#tabbar').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if(b) setTab(b.dataset.tab); });
+$('#tabbar').addEventListener('keydown', e => {
+  if(!['ArrowRight','ArrowLeft'].includes(e.key)) return;
+  const tabs = [...document.querySelectorAll('#tabbar .tab')], i = tabs.indexOf(document.activeElement);
+  if(i < 0) return;
+  const next = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+  next.focus(); setTab(next.dataset.tab);
+});
+setTab(document.getElementById(store('rx-tab') || '') ? store('rx-tab') : 'c-dns');
+$('#refresh').addEventListener('click', () => { if(S?.domain) run(S.domain, {force:true}); });
+$('#clear').addEventListener('click', e => {
+  const b = e.currentTarget;
+  if(!b.dataset.armed){ b.dataset.armed = '1'; b.textContent = 'Clique de novo para apagar tudo'; setTimeout(() => { delete b.dataset.armed; b.textContent = 'Limpar histórico'; }, 3000); return; }
+  delete b.dataset.armed; b.textContent = 'Limpar histórico';
+  cacheClear(); renderRecent(); toast('Histórico apagado');
+});
+function goHome(){
+  runId++; S = null;
+  pgStop(); PG.runId++; if($('#pg-auto')) $('#pg-auto').checked = false;
+  $('#col').classList.add('empty'); $('#col').classList.remove('has-result');
+  $('#go').disabled = false;
+  try{ history.replaceState(null, '', location.pathname + location.search); }catch{}
+  renderRecent();
+  const q = $('#q'); q.value = ''; q.focus(); window.scrollTo({top:0});
+}
+$('#new').addEventListener('click', goHome);
+function syncThemeBtn(){
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const label = dark ? 'Ativar modo claro' : 'Ativar modo escuro';
+  $('#theme').setAttribute('aria-label', label); $('#theme').title = label;
+}
+$('#theme').addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = next;
+  try{ localStorage.setItem('rx-theme', next); }catch{}
+  syncThemeBtn();
+});
+syncThemeBtn();
+document.querySelector('.examples').addEventListener('click', e => { const b = e.target.closest('[data-d]'); if(b) run(b.dataset.d); });
+$('#copy').addEventListener('click', () => { const txt = report(); if(txt) copyText(txt, 'Relatório copiado'); });
+$('#c-dns').addEventListener('click', e => {
+  const b = e.target.closest('[data-exp]'); if(b) return exportDNS(b.dataset.exp);
+  const c = e.target.closest('[data-copy]'); if(c) copyText(c.dataset.copy, 'Valor copiado');
+});
+window.addEventListener('hashchange', () => { const d = normalize(decodeURIComponent(location.hash.slice(1))); if(d && d !== S?.domain) run(d); });
+
+renderRecent();
+// com domínio no endereço (#dominio.com) abre direto; sem, mostra a tela inicial
+if(location.hash.length > 1) run(decodeURIComponent(location.hash.slice(1)));
+else $('#q').focus();
+</script>
+</body>
+</html>
