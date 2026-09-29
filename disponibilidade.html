@@ -29,6 +29,14 @@
 .dv-search input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:400 18px var(--font);outline:none}
 .dv-search input::placeholder{color:var(--graphite)}
 .dv-search .btn{height:46px;padding:0 20px}
+.recent{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:-12px}
+.recent .lbl{font-size:13px;color:var(--graphite);margin-right:2px}
+.rc{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 6px 0 12px;border:1px solid var(--hair);border-radius:var(--r-pill);background:var(--paper);color:var(--ink);font:500 13px var(--mono);cursor:pointer}
+.rc:hover{border-color:var(--mist)}
+.rc.on{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal)}
+.rc small{padding:1px 7px;border-radius:var(--r-pill);background:var(--parchment);color:var(--graphite);font:500 11px var(--font)}
+.rc-clear{border:0;background:none;padding:0 4px;color:var(--ash);font:400 12px var(--font);text-decoration:underline;text-decoration-color:var(--mist);cursor:pointer}
+.dv-search .btn.busy::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid rgba(255,255,255,.35);border-top-color:currentColor;animation:spin .8s linear infinite}
 .exts{display:grid;gap:10px}
 .exts-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;font-size:13px;color:var(--graphite)}
 .exts-h button{border:0;background:none;padding:0;color:var(--graphite);font:400 13px var(--font);text-decoration:underline;text-decoration-color:var(--mist);text-underline-offset:3px;cursor:pointer}
@@ -118,6 +126,8 @@
     <input id="q" placeholder="ex.: goldlinepainting ou meusite.com.br" spellcheck="false" autocapitalize="off" inputmode="url">
     <button class="btn" id="go" type="submit">Verificar</button>
   </form>
+
+  <div class="recent" id="recent" hidden aria-label="Buscas recentes"></div>
 
   <section class="exts" aria-label="Extensões verificadas" data-reveal>
     <div class="exts-h"><span>Extensões verificadas</span><span><button type="button" id="all">Marcar todas</button> · <button type="button" id="popular">Só as principais</button></span></div>
@@ -224,7 +234,16 @@ function rdapBase(boot, domain){
   return null;
 }
 function vcardName(ent){ for(const [k, , , v] of ent?.vcardArray?.[1] || []) if(k === 'fn') return v; return ent?.handle; }
+// resultados ficam guardados por 10 minutos: repetir uma busca é instantâneo
+const CHECK_TTL = 10 * 60 * 1000, checkCache = new Map();
 async function check(domain){
+  const hit = checkCache.get(domain);
+  if(hit && Date.now() - hit.ts < CHECK_TTL) return hit.res;
+  const res = await checkLive(domain);
+  if(res.state !== 'unknown') checkCache.set(domain, {ts: Date.now(), res});
+  return res;
+}
+async function checkLive(domain){
   const boot = await bootReady, base = rdapBase(boot, domain);
   if(base){
     try{
@@ -335,7 +354,9 @@ async function search(raw){
   $('#q').value = parsed.ext ? `${parsed.base}.${parsed.ext}` : parsed.base;
   try{ history.replaceState(null, '', '#' + encodeURIComponent($('#q').value)); }catch{}
   rows = tlds.map((tld, order) => ({tld, order, domain: `${parsed.base}.${tld}`, state: 'load'}));
-  $('#go').disabled = true;
+  // o botão nunca trava: uma busca nova cancela a anterior
+  setBusy(true);
+  $('#sugg').hidden = true;
   render();
   pricesReady.then(() => { if(id === run) render(); });
   // .br um por vez (o Registro.br limita consultas seguidas); as outras em paralelo
@@ -343,9 +364,33 @@ async function search(raw){
   const br = rows.filter(r => isBr(r.tld)), other = rows.filter(r => !isBr(r.tld));
   await Promise.all([Promise.all(other.map(doRow)), (async () => { for(const r of br){ await doRow(r); await new Promise(res => setTimeout(res, 250)); } })()]);
   if(id !== run) return;
-  $('#go').disabled = false;
+  setBusy(false);
+  saveRecent(parsed, rows);
   suggestions(parsed.base, id);
 }
+function setBusy(on){ const b = $('#go'); b.classList.toggle('busy', on); b.textContent = on ? 'Verificando…' : 'Verificar'; }
+
+/* ---------- buscas recentes ---------- */
+function saveRecent(parsed, list){
+  const label = parsed.ext ? `${parsed.base}.${parsed.ext}` : parsed.base;
+  const free = list.filter(r => ['free', 'maybe'].includes(r.state)).length;
+  const rec = (store('dv-recent') || []).filter(x => x.q !== label);
+  rec.unshift({q: label, free, total: list.length});
+  store('dv-recent', rec.slice(0, 8));
+  renderRecent();
+}
+function renderRecent(){
+  const rec = store('dv-recent') || [], box = $('#recent');
+  box.hidden = !rec.length;
+  const cur = $('#q').value;
+  box.innerHTML = rec.length ? '<span class="lbl">Recentes:</span>' + rec.map(x =>
+    `<button class="rc${x.q === cur ? ' on' : ''}" type="button" data-q="${esc(x.q)}" title="Verificar de novo">${esc(x.q)}<small>${x.free}/${x.total} livres</small></button>`).join('') +
+    '<button class="rc-clear" type="button" id="rc-clear">limpar</button>' : '';
+}
+$('#recent').addEventListener('click', e => {
+  if(e.target.id === 'rc-clear'){ store('dv-recent', []); renderRecent(); return; }
+  const b = e.target.closest('[data-q]'); if(b){ $('#q').value = b.dataset.q; search(b.dataset.q); window.scrollTo({top: 0, behavior: 'smooth'}); }
+});
 
 // variações do nome, checadas em .com.br e .com
 async function suggestions(base, id){
@@ -394,6 +439,7 @@ themeBtn.addEventListener('click', () => { const next = document.documentElement
 syncThemeBtn();
 
 renderChips();
+renderRecent();
 // link direto: disponibilidade.html#nome
 const fromHash = () => decodeURIComponent(location.hash.slice(1));
 addEventListener('hashchange', () => { const v = fromHash(); if(v && v !== $('#q').value) search(v); });
