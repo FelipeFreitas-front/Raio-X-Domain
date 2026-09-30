@@ -395,7 +395,7 @@ function clipHTML(e){
   if(hasSound(c)){
     // a saída suave termina onde o vídeo acaba, se o clipe passar do fim
     const fi = (c.fi || 0) * pps, fo = (c.fo || 0) * pps, cut = (e.end - cutEnd(e)) * pps;
-    inner += `${fi ? `<span class="fade in" style="width:${fi}px"></span>` : ''}${fo ? `<span class="fade out" style="width:${fo}px;right:${cut}px"></span>` : ''}
+    inner += `${fi ? `<span class="afade in" style="width:${fi}px"></span>` : ''}${fo ? `<span class="afade out" style="width:${fo}px;right:${cut}px"></span>` : ''}
       <span class="fh in${fi ? ' on' : ''}" style="left:${Math.max(6, fi)}px" title="Arraste: o som começa baixinho e vai subindo"></span>
       <span class="fh out${fo ? ' on' : ''}" style="right:${Math.max(6, fo + cut)}px" title="Arraste: o som vai sumindo no fim"></span>`;
   }
