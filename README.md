@@ -53,6 +53,8 @@ Editor simples no estilo do [OpenCut](https://github.com/OpenCut-app/OpenCut): a
 - Biblioteca em abas:
   - **Músicas e efeitos sonoros** do [Openverse](https://openverse.org) (músicas do Jamendo, efeitos do Freesound), só com licenças que permitem uso comercial e edição; prévia antes de usar e créditos prontos para copiar na exportação
   - **Elementos**: emojis, figurinhas, ícones e logos de redes sociais do [Iconify](https://iconify.design) (coleções MIT, Apache ou CC0), coloridos ou em uma cor
+  - **Texto**: 8 estilos prontos (Título, Subtítulo, Legenda, Destaque, Neon, Elegante, Manuscrito, Etiqueta) com fonte, peso, cor, alinhamento, contorno, caixa de fundo, sombra/neon e animação de entrada e saída (aparecer, subir, pop, máquina de escrever); dois cliques no texto do preview vão direto para a edição
+  - **Legendas**: cole o texto (uma legenda por linha) e elas são espalhadas no vídeo ou no clipe selecionado, numa trilha "Legendas"; importa e baixa `.srt`
   - **Transições**: Dissolver, Preto, Flash, Deslizar, Subir, Zoom, Cortina e Círculo, com duração ajustável
 - Tela cheia, sem o topo do site: só uma seta ao lado do nome do projeto para voltar à home
 - Trilhas: começa com a de vídeo principal (magnética, os clipes ficam colados) e uma de áudio. "+ Trilha" cria quantas quiser: a trilha nasce genérica e vira de vídeo (por cima da principal) ou de áudio conforme o primeiro arquivo solto nela

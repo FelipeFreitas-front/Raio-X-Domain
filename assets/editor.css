@@ -358,6 +358,28 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
 .multi-list{display:grid;gap:4px;max-height:180px;overflow:auto}
 .multi-list span{font-size:12px;color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* ===== texto e legendas ===== */
+.lib-tabs{grid-template-columns:repeat(5,1fr)}
+.lib-tabs button{font-size:10.5px;padding-inline:0}
+.txt-add{width:100%;height:40px}
+.txt-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.txt-card{display:grid;place-items:center;height:62px;padding:6px;border:1px solid var(--hair);border-radius:10px;cursor:grab;overflow:hidden;
+  background:linear-gradient(135deg,#4a5a63,#2a3136);transition:transform .15s,border-color .15s}
+.txt-card:hover{transform:scale(1.03);border-color:var(--teal)}
+.txt-card span{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.1;pointer-events:none}
+.cap{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--hair)}
+.cap-txt,.p-text{width:100%;resize:vertical;padding:8px 10px;border:1px solid var(--mist);border-radius:10px;background:var(--parchment);color:var(--ink);font:400 13px/1.45 var(--font)}
+.cap-txt:focus,.p-text:focus{outline:2px solid var(--teal);outline-offset:1px;border-color:transparent}
+.cap-row{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;font-size:12px;color:var(--graphite)}
+.cap .btn{height:36px}
+.clip.t{background:color-mix(in srgb, #8b5cf6 22%, var(--paper));border-color:color-mix(in srgb, #8b5cf6 75%, transparent)}
+.clip .txt-prev{position:absolute;left:8px;right:8px;bottom:5px;font-size:14px;line-height:1.1;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;opacity:.8}
+.clip.t .clip-name{background:#6d28d9}
+.pr-colors{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--graphite)}
+.pr-colors label{display:flex;align-items:center;gap:6px}
+.pr-grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pr-grid2 label{display:grid;gap:4px;font-size:12px;color:var(--graphite)}
+
 /* telas menores: tudo em coluna, rolando a página */
 @media (max-width:1100px){.ed{grid-template-columns:240px minmax(0,1fr) 240px}}
 @media (max-width:900px){
