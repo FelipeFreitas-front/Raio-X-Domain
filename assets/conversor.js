@@ -110,7 +110,7 @@ const MODE_DESC = {
 };
 const DEFAULTS = {
   mode:'convert', fmt:'webp', q:82, maxKB:'', optPng:true, size:'original', cw:'', ch:'', fit:'cover', bg:'#ffffff',
-  names:'prefix', prefix:'imagem-', start:1, clean:true,
+  names:'original', prefix:'imagem-', start:1, clean:true,
   kitFmts:['avif','webp','jpeg'], kitWidths:[480, 800, 1200, 1920], kitPath:'img/', kitSizes:'100vw',
   favBg:'transparent', favColor:'#ffffff', favPad:8, favName:'', favTheme:'#ffffff',
   wmOn:false, wmType:'text', wmText:'', wmLogo:'', wmLogoName:'', wmPos:'br', wmSize:20, wmOp:70, wmColor:'light',
@@ -119,7 +119,7 @@ let S = {...DEFAULTS};
 try{ Object.assign(S, JSON.parse(localStorage.getItem('cv-settings') || '{}')); }catch{}
 const saveS = () => { try{ localStorage.setItem('cv-settings', JSON.stringify(S)); }catch{ /* logo grande demais para guardar: segue sem salvar */ } };
 
-let items = [], seq = 0, busy = false, manualOrder = false, FAV = null, wmImg = null, currentProfile = '';
+let items = [], queue = [], seq = 0, busy = false, manualOrder = false, FAV = null, wmImg = null, currentProfile = '';
 
 /* ---------- entrada de arquivos ---------- */
 const isHeic = f => /\.(heic|heif)$/i.test(f.name || '') || /heic|heif/i.test(f.type || '');
@@ -310,22 +310,24 @@ async function encodeCanvas(c, fmt, q){
 }
 
 /* ---------- modo converter ---------- */
+// cada imagem pode ter o seu formato; sem escolha própria, vale o formato geral
+const fmtOf = it => FORMATS[it.fmt] ? it.fmt : S.fmt;
 async function processConvert(it, base){
-  const p = plan(it);
-  const bg = (!FORMATS[S.fmt].alpha || p.mode === 'contain') ? S.bg : null;
+  const p = plan(it), fmt = fmtOf(it);
+  const bg = (!FORMATS[fmt].alpha || p.mode === 'contain') ? S.bg : null;
   const c = renderCanvas(it, p, bg);
-  let q = S.q / 100, blob = await encodeCanvas(c, S.fmt, q), fits = true;
+  let q = S.q / 100, blob = await encodeCanvas(c, fmt, q), fits = true;
   const max = (parseInt(S.maxKB) || 0) * 1024;
-  if(max && S.fmt !== 'png' && blob.size > max){
+  if(max && fmt !== 'png' && blob.size > max){
     // busca binária da maior qualidade que cabe no peso máximo
     let lo = .1, hi = q, best = null;
     for(let i = 0; i < 6; i++){
-      const mid = (lo + hi) / 2, b = await encodeCanvas(c, S.fmt, mid);
+      const mid = (lo + hi) / 2, b = await encodeCanvas(c, fmt, mid);
       if(b.size <= max){ best = {b, q: mid}; lo = mid; } else hi = mid;
     }
-    if(best){ blob = best.b; q = best.q; } else { blob = await encodeCanvas(c, S.fmt, .1); q = .1; fits = false; }
+    if(best){ blob = best.b; q = best.q; } else { blob = await encodeCanvas(c, fmt, .1); q = .1; fits = false; }
   }
-  it.out = {blob, name: `${base}.${FORMATS[S.fmt].ext}`, w: p.W, h: p.H, q, fits, url: URL.createObjectURL(blob)};
+  it.out = {blob, fmt, name: `${base}.${FORMATS[fmt].ext}`, w: p.W, h: p.H, q, fits, url: URL.createObjectURL(blob)};
 }
 
 /* ---------- modo kit responsivo ---------- */
@@ -430,48 +432,60 @@ function invalidate(){
 }
 function clearOut(it){
   if(it.out?.url) URL.revokeObjectURL(it.out.url);
+  it.gen = (it.gen || 0) + 1; // resultado que ainda estiver sendo gerado com o ajuste antigo é descartado
   it.out = null; it.outs = null; it.snippet = null; it.saved = false;
-  if(it.status === 'done' || it.status === 'working') it.status = 'ready';
+  if(it.status === 'done' || it.status === 'working' || it.status === 'queued') it.status = 'ready';
+  const qi = queue.indexOf(it); if(qi >= 0) queue.splice(qi, 1);
 }
 const usable = () => items.filter(i => i.status !== 'error' && i.status !== 'loading');
-async function runAll(){
-  const todo = S.mode === 'favicon' ? usable().slice(0, 1) : usable();
-  if(!todo.length || busy) return;
-  busy = true; setBusy(true); invalidate(); render();
+// o que ainda falta converter (no favicon só conta a primeira imagem)
+const pending = () => (S.mode === 'favicon' ? usable().slice(0, 1) : usable()).filter(it => it.status === 'ready');
+// Converte quando a pessoa clica (numa linha ou em "Converter tudo"). Enquanto roda, dá para pôr mais na fila.
+let progress = {done: 0, total: 0};
+function enqueue(list){
+  if(S.mode === 'kit' && !kitFmts().length){ toast('Escolha pelo menos um formato no modo avançado'); return; }
+  const add = list.filter(it => it.status === 'ready' && !queue.includes(it));
+  if(!add.length) return;
+  add.forEach(it => { it.status = 'queued'; queue.push(it); renderItemById(it.id); });
+  if(busy){ progress.total += add.length; renderTotals(); }
+  else runQueue();
+}
+async function runQueue(){
+  busy = true;
+  progress = {done: 0, total: queue.length};
+  setBusy(true);
   if(S.wmOn && S.wmType === 'text') await document.fonts.load('500 40px Inter').catch(() => {});
-  const bases = outBases();
-  const bar = $('#progress span'); $('#progress').hidden = false; bar.style.width = '0';
-  const label = S.mode === 'kit' ? 'Gerando kit' : S.mode === 'favicon' ? 'Gerando favicon' : 'Convertendo';
-  let done = 0;
-  const step = () => { $('#convert').textContent = `${label} ${Math.min(done + 1, todo.length)} de ${todo.length}…`; $('#m-convert').textContent = $('#convert').textContent; };
-  step();
   const work = async it => {
+    if(!items.includes(it) || it.status !== 'queued') return;
+    const gen = it.gen;
     it.status = 'working'; renderItemById(it.id);
     try{
-      if(S.mode === 'kit') await processKit(it, bases[items.indexOf(it)]);
+      const base = outBases()[items.indexOf(it)];
+      if(S.mode === 'kit') await processKit(it, base);
       else if(S.mode === 'favicon') await processFavicon(it);
-      else await processConvert(it, bases[items.indexOf(it)]);
+      else await processConvert(it, base);
       it.status = 'done';
     }catch(e){ it.status = 'error'; it.err = e.message; }
-    done++; bar.style.width = (done / todo.length * 100) + '%'; step();
-    renderItemById(it.id);
+    // mexeram na imagem ou nos ajustes enquanto convertia: joga fora o resultado
+    if(it.gen !== gen){ if(it.out?.url) URL.revokeObjectURL(it.out.url); it.out = null; it.outs = null; it.snippet = null; if(it.status !== 'error') it.status = 'ready'; }
+    progress.done++;
+    if(items.includes(it)) renderItemById(it.id);
+    if(S.mode !== 'convert') renderExtra();
+    renderTotals();
     await new Promise(r => setTimeout(r));
   };
   // duas imagens por vez quando há processamento em segundo plano
   await (Pool.ready || Pool.init());
   const conc = Pool.ok && S.mode !== 'favicon' ? 2 : 1;
-  let i = 0;
-  await Promise.all(Array.from({length: conc}, async () => { while(i < todo.length) await work(todo[i++]); }));
+  await Promise.all(Array.from({length: conc}, async () => { while(queue.length) await work(queue.shift()); }));
   busy = false; setBusy(false);
-  setTimeout(() => { $('#progress').hidden = true; bar.style.width = '0'; }, 600);
   render();
-  const ok = todo.filter(x => x.status === 'done').length;
-  if(S.mode === 'favicon') toast(FAV ? 'Favicon pronto' : 'Não deu para gerar o favicon');
-  else toast(ok === 1 ? '1 imagem pronta' : ok ? `${ok} imagens prontas` : 'Nenhuma imagem convertida');
 }
 function setBusy(on){
-  ['#convert', '#download', '#clear', '#sort', '#m-convert', '#m-download'].forEach(s => { $(s).disabled = on; });
-  $('.side').toggleAttribute('aria-busy', on);
+  $('#progress').hidden = !on;
+  ['#clear', '#sort'].forEach(s => { $(s).disabled = on; });
+  document.querySelector('.cv').toggleAttribute('aria-busy', on);
+  renderTotals();
 }
 
 /* ---------- nomes ---------- */
@@ -523,7 +537,8 @@ async function downloadAll(){
     return zipAndSave([...files, {name: 'codigo-picture.html', blob: new Blob([code + '\n'], {type: 'text/html'})}], `kit-responsivo-${today()}.zip`);
   }
   if(done.length === 1) return save(done[0].out.blob, done[0].out.name);
-  return zipAndSave(done.map(i => ({name: i.out.name, blob: i.out.blob})), `imagens-${FORMATS[S.fmt].ext}-${today()}.zip`);
+  const exts = [...new Set(done.map(i => FORMATS[i.out.fmt].ext))];
+  return zipAndSave(done.map(i => ({name: i.out.name, blob: i.out.blob})), `imagens-${exts.length === 1 ? exts[0] + '-' : ''}${today()}.zip`);
 }
 
 /* ---------- tela ---------- */
@@ -541,54 +556,66 @@ const I = {
 };
 const btn = (act, icon, title, extra = '') => `<button class="icon-btn${extra}" type="button" data-act="${act}" title="${esc(title)}" aria-label="${esc(title)}">${icon}</button>`;
 
+const chev = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>';
+const advOn = () => document.querySelector('.cv').classList.contains('is-adv');
+
 function itemHTML(it, idx, base){
   const {w, h} = it.w ? dims(it) : {w: 0, h: 0};
   const unused = S.mode === 'favicon' && idx > 0;
-  let target = '', meta = `<span>${w ? `${w} × ${h} · ` : ''}${fmtBytes(it.size)}</span>`;
-  if(it.status === 'loading') meta = `<span class="loading">${it.heic ? 'convertendo HEIC…' : 'lendo…'}</span>`;
+  const fmt = fmtOf(it);
+  let meta = `<span>${fmtBytes(it.size)}${w ? ` · ${w} × ${h}` : ''}</span>`;
+  if(it.status === 'loading') meta = `<span class="loading">${it.heic ? 'abrindo foto do iPhone…' : 'lendo…'}</span>`;
   else if(it.status === 'error') meta = `<span class="err">Não deu: ${esc(it.err)}</span>`;
   else if(S.mode === 'favicon'){
-    target = idx === 0 ? 'favicon' : '';
-    meta += unused ? ' <span class="arrow">·</span> <span>não usada: o favicon usa a primeira da lista</span>'
-      : it.status === 'working' ? ' <span class="arrow">→</span> <span class="loading">gerando</span>'
-      : it.status === 'done' ? ` <span class="arrow">→</span> <span class="res">${FAV ? plural(FAV.files.length, 'arquivo', 'arquivos') : ''}</span>` : ' <span class="arrow">→</span> <span>ícones de 16 a 512 px</span>';
+    meta += unused ? ' <span>· não usada: o favicon usa a primeira da lista</span>'
+      : it.status === 'done' && FAV ? ` <span class="arrow">→</span> <span class="res">${plural(FAV.files.length, 'arquivo', 'arquivos')}</span>` : ' <span class="arrow">→</span> <span>ícones de 16 a 512 px</span>';
   } else if(S.mode === 'kit'){
-    target = `${base}-*`;
-    if(it.status === 'working') meta += ' <span class="arrow">→</span> <span class="loading">gerando</span>';
-    else if(it.status === 'done'){
+    if(it.status === 'done'){
       const sum = it.outs.reduce((a, o) => a + o.blob.size, 0);
       meta += ` <span class="arrow">→</span> <span class="res">${plural(it.outs.length, 'arquivo', 'arquivos')} · ${fmtBytes(sum)}</span>`;
     } else meta += ` <span class="arrow">→</span> <span>${widthsFor(it).join(', ')} px · ${kitFmts().map(f => FORMATS[f].label).join(' + ') || 'escolha um formato'}</span>`;
-  } else {
-    target = `${base}.${FORMATS[S.fmt].ext}`;
-    if(it.status === 'working') meta += ' <span class="arrow">→</span> <span class="loading">convertendo</span>';
-    else if(it.status === 'done'){
-      const o = it.out, diff = Math.round((1 - o.blob.size / it.size) * 100);
-      meta += ` <span class="arrow">→</span> <span class="res">${o.w} × ${o.h} · ${fmtBytes(o.blob.size)}</span>
-        <span class="pill ${diff > 0 ? 'ok' : 'warn'}">${diff > 0 ? '−' + diff + '%' : '+' + Math.abs(diff) + '%'}</span>
-        ${!o.fits ? '<span class="pill warn">não coube no peso máximo</span>' : ''}`;
-    } else { const p = plan(it); meta += ` <span class="arrow">→</span> <span>${p.W} × ${p.H}</span>`; }
+  } else if(it.status === 'done'){
+    const o = it.out, diff = Math.round((1 - o.blob.size / it.size) * 100);
+    meta = `<span>${fmtBytes(it.size)}</span> <span class="arrow">→</span> <span class="res">${fmtBytes(o.blob.size)}</span>
+      <span class="pill ${diff > 0 ? 'ok' : 'warn'}">${diff > 0 ? diff + '% mais leve' : Math.abs(diff) + '% mais pesada'}</span>
+      ${o.w !== w || o.h !== h ? `<span>${o.w} × ${o.h}</span>` : ''}
+      ${!o.fits ? '<span class="pill warn">não coube no peso máximo</span>' : ''}`;
   }
-  if(it.gps && it.status !== 'error') meta += it.status === 'done' ? ' <span class="pill ok">GPS removido</span>' : ' <span class="pill warn">tem localização GPS</span>';
+  if(it.gps && it.status !== 'error' && it.status !== 'loading') meta += it.status === 'done' ? ' <span class="pill ok">GPS removido</span>' : '';
 
   const okStatus = it.status !== 'error' && it.status !== 'loading';
   const acts = [];
-  if(okStatus){
-    acts.push(btn('rot', I.rot, 'Girar 90°', it.rot ? ' on' : ''), btn('flip', I.flip, 'Espelhar', it.flip ? ' on' : ''));
-    if(S.mode === 'convert' && isFixed() && S.fit === 'cover') acts.push(btn('focus', I.crop, 'Ajustar enquadramento'));
-  }
-  if(it.status === 'done' && S.mode !== 'favicon') acts.push(btn('cmp', I.cmp, 'Comparar antes e depois'));
-  if(it.status === 'done' && S.mode === 'convert') acts.push(btn('data', I.data, 'Copiar como data URI'), btn('dl', I.down, `Baixar ${it.out.name}`));
-  if(it.status === 'done' && S.mode === 'kit') acts.push(btn('code', I.code, 'Copiar código <picture>'));
-  acts.push(btn('rm', I.x, 'Remover'));
+  // formato e botão principal da linha (só no modo converter)
+  if(S.mode === 'convert' && it.status !== 'error'){
+    acts.push(`<div class="fmtwrap"><button class="fmt-btn" type="button" data-act="fmt" aria-haspopup="dialog" aria-expanded="false" aria-label="Formato: ${FORMATS[fmt].label}. Trocar"${busy && it.status === 'working' ? ' disabled' : ''}><span><span class="to-lbl">para </span>${FORMATS[fmt].label.toUpperCase()}</span>${chev}</button></div>`);
+    if(it.status === 'done') acts.push(`<button class="it-go dl" type="button" data-act="dl" aria-label="Baixar ${esc(it.out.name)}">${I.down}Baixar</button>`);
+    else if(it.status === 'working') acts.push('<span class="it-go wait" role="status"><span class="spin"></span>Convertendo</span>');
+    else if(it.status === 'queued') acts.push('<span class="it-go wait" role="status">Na fila</span>');
+    else if(it.status === 'loading') acts.push('<span class="it-go wait">Aguarde</span>');
+    else acts.push('<button class="it-go" type="button" data-act="go">Converter</button>');
+  } else if(okStatus && it.status === 'working') acts.push('<span class="it-go wait" role="status"><span class="spin"></span>Gerando</span>');
 
+  // ações extras (girar, comparar, recortar…) ficam no menu ⋯, só no modo avançado
+  const menu = [];
+  const mi = (act, icon, label) => `<button type="button" role="menuitem" data-act="${act}">${icon}${esc(label)}</button>`;
+  if(okStatus && advOn()){
+    if(it.status === 'done' && S.mode !== 'favicon') menu.push(mi('cmp', I.cmp, 'Comparar antes e depois'));
+    if(S.mode === 'convert' && isFixed() && S.fit === 'cover') menu.push(mi('focus', I.crop, 'Escolher o que aparece no recorte'));
+    menu.push(mi('rot', I.rot, it.rot ? `Girar 90° (girada ${it.rot}°)` : 'Girar 90°'), mi('flip', I.flip, it.flip ? 'Desfazer espelhamento' : 'Espelhar'));
+    if(it.status === 'done' && S.mode === 'kit') menu.push('<hr>', mi('code', I.code, 'Copiar código <picture>'));
+    if(it.status === 'done' && S.mode === 'convert') menu.push('<hr>', mi('data', I.data, 'Copiar como código (data URI)'));
+  }
+  if(menu.length) acts.push(`<div class="more"><button class="icon-btn" type="button" data-act="more" aria-haspopup="menu" aria-expanded="false" title="Mais opções" aria-label="Mais opções para ${esc(it.name)}"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button><div class="menu" role="menu" hidden>${menu.join('')}</div></div>`);
+  acts.push(`<button class="rm-x" type="button" data-act="rm" title="Remover" aria-label="Remover ${esc(it.name)}">${I.x}</button>`);
+
+  const shownName = it.status === 'done' && it.out ? it.out.name : it.name;
   const thumb = it.status === 'done' && it.out ? it.out.url : it.url;
   const tf = it.status === 'done' && it.out ? '' : `transform:rotate(${it.rot}deg) scaleX(${it.flip ? -1 : 1})`;
-  return `<li class="it${it.status === 'error' ? ' error' : ''}${unused ? ' unused' : ''}" draggable="true" data-id="${it.id}">
+  return `<li class="it${it.status === 'error' ? ' error' : ''}${unused ? ' unused' : ''}" draggable="${advOn()}" data-id="${it.id}">
     <span class="grip" title="Arraste para mudar a ordem">${I.grip}</span>
     <span class="thumbbox"><img class="thumb" src="${thumb}" alt="" decoding="async" style="${tf}"></span>
     <div class="it-main">
-      <div class="it-name"><span class="from" title="${esc(it.name)}">${esc(it.name)}</span>${target && it.status !== 'error' ? `<span class="arrow">→</span><span class="to">${esc(target)}</span>` : ''}</div>
+      <div class="it-name"><span class="from" title="${esc(it.name)}">${esc(shownName)}</span></div>
       <div class="it-meta">${meta}</div>
     </div>
     <div class="it-act">${acts.join('')}</div>
@@ -598,11 +625,9 @@ function render(){
   const bases = outBases();
   $('#list').innerHTML = items.map((it, i) => itemHTML(it, i, bases[i])).join('');
   const n = items.length;
-  $('#listbar').hidden = !n;
+  $('#start').hidden = !!n;
+  $('#box').hidden = !n;
   $('#count').textContent = plural(n, 'imagem', 'imagens');
-  $('#drop').classList.toggle('compact', !!n);
-  $('#drop-title').textContent = n ? 'Adicionar mais imagens' : S.mode === 'favicon' ? 'Solte o logo aqui' : 'Arraste as imagens aqui';
-  $('#mbar').hidden = !n;
   renderNamesPreview(bases);
   renderExtra();
   renderTotals();
@@ -611,46 +636,41 @@ function renderItemById(id){
   const li = document.querySelector(`.it[data-id="${id}"]`), idx = items.findIndex(i => i.id === id);
   if(li && idx >= 0) li.outerHTML = itemHTML(items[idx], idx, outBases()[idx]);
 }
+// rodapé: um botão só, que primeiro converte e depois baixa
 function renderTotals(){
-  const ready = usable(), done = items.filter(i => i.status === 'done');
-  const cb = $('#convert'), db = $('#download'), tot = $('#total');
-  let cLabel, dLabel = '', canDl = false, totalHTML = '';
-  if(S.mode === 'favicon'){
-    cLabel = ready.length ? (FAV ? 'Gerar de novo' : 'Gerar favicon') : 'Gerar favicon';
-    canDl = !!FAV; dLabel = 'Baixar favicon (.zip)';
-    if(FAV) totalHTML = `<span class="small muted">Feito a partir de ${esc(FAV.from)}</span><b>${plural(FAV.files.length, 'arquivo', 'arquivos')} + código do &lt;head&gt;</b><span class="small">Envie os arquivos para a raiz do site (onde fica o index).</span>`;
+  const ready = usable(), done = items.filter(i => i.status === 'done'), todo = pending();
+  const db = $('#download'), info = $('#dock-info');
+  $('#progress span').style.width = progress.total ? (progress.done / progress.total * 100) + '%' : '0';
+  db.dataset.act = '';
+  if(busy){
+    const verb = S.mode === 'kit' ? 'Gerando' : S.mode === 'favicon' ? 'Gerando' : 'Convertendo';
+    info.innerHTML = `<b>${verb} ${Math.min(progress.done + 1, progress.total)} de ${progress.total}…</b>`;
+    db.disabled = true; db.textContent = 'Aguarde…';
+    return;
+  }
+  const loading = items.some(i => i.status === 'loading');
+  let text = '', label = '', act = '';
+  if(!ready.length){ text = loading ? 'Abrindo as imagens…' : ''; label = 'Converter'; }
+  else if(todo.length){
+    act = 'go';
+    label = S.mode === 'kit' ? 'Gerar kit' : S.mode === 'favicon' ? 'Gerar favicon' : todo.length > 1 ? 'Converter tudo' : 'Converter';
+    text = S.mode === 'convert' ? `${plural(todo.length, 'imagem', 'imagens')} · ${fmtBytes(todo.reduce((s, i) => s + i.size, 0))}` : '';
+  } else if(S.mode === 'favicon'){
+    act = FAV ? 'dl' : ''; label = 'Baixar favicon (.zip)';
+    text = FAV ? `<b>${plural(FAV.files.length, 'arquivo', 'arquivos')}</b> + código do &lt;head&gt;` : '';
   } else if(S.mode === 'kit'){
-    const nf = kitFmts().length, files = ready.reduce((a, it) => a + widthsFor(it).length * nf, 0);
-    cLabel = !ready.length ? 'Gerar kit' : !nf ? 'Escolha ao menos um formato' : done.length === ready.length ? 'Gerar de novo' : `Gerar kit (${plural(files, 'arquivo', 'arquivos')})`;
     const outs = done.flatMap(i => i.outs || []);
-    canDl = !!outs.length; dLabel = `Baixar kit (.zip · ${plural(outs.length, 'arquivo', 'arquivos')})`;
-    if(outs.length){
-      const before = done.reduce((s, i) => s + i.size, 0), after = outs.reduce((s, o) => s + o.blob.size, 0);
-      totalHTML = `<span class="small muted">${plural(done.length, 'imagem', 'imagens')} · originais somam ${fmtBytes(before)}</span><b>${plural(outs.length, 'arquivo', 'arquivos')} · ${fmtBytes(after)}</b><span class="small">Cada visitante baixa só um arquivo por imagem: o menor que serve para a tela dele.</span>`;
-    }
-  } else {
-    cLabel = !ready.length ? 'Converter' : done.length === ready.length ? 'Converter de novo' : `Converter ${plural(ready.length, 'imagem', 'imagens')}`;
-    canDl = !!done.length; dLabel = done.length > 1 ? `Baixar tudo (.zip · ${done.length} imagens)` : 'Baixar imagem';
-    if(done.length){
-      const before = done.reduce((s, i) => s + i.size, 0), after = done.reduce((s, i) => s + i.out.blob.size, 0), pct = Math.round((1 - after / before) * 100);
-      const gps = done.filter(i => i.gps).length;
-      totalHTML = `<span class="small muted">${plural(done.length, 'convertida', 'convertidas')}</span><b>${fmtBytes(before)} → ${fmtBytes(after)}</b>
-        <span class="small">${pct > 0 ? `Economia de ${pct}% no peso` : 'Ficou maior que o original: tente outro formato ou menos qualidade'}</span>
-        ${gps ? `<span class="small">Localização GPS removida de ${plural(gps, 'foto', 'fotos')}.</span>` : ''}`;
-    }
+    act = outs.length ? 'dl' : ''; label = 'Baixar kit (.zip)';
+    text = outs.length ? `<b>${plural(outs.length, 'arquivo', 'arquivos')}</b> · ${fmtBytes(outs.reduce((s, o) => s + o.blob.size, 0))}` : '';
+  } else if(done.length){
+    act = 'dl'; label = done.length > 1 ? 'Baixar tudo (.zip)' : 'Baixar imagem';
+    const before = done.reduce((s, i) => s + i.size, 0), after = done.reduce((s, i) => s + i.out.blob.size, 0), pct = Math.round((1 - after / before) * 100);
+    text = `${fmtBytes(before)} → <b>${fmtBytes(after)}</b>${pct > 0 ? ` · ${pct}% mais leve` : ''}`;
   }
-  if(!busy){
-    cb.textContent = cLabel;
-    cb.disabled = !ready.length || (S.mode === 'kit' && !kitFmts().length);
-  }
-  db.hidden = !canDl; db.textContent = dLabel;
-  tot.hidden = !totalHTML; tot.innerHTML = totalHTML;
-  // barra fixa do celular
-  const mc = $('#m-convert'), md = $('#m-download');
-  if(!busy){ mc.textContent = canDl ? 'Refazer' : cLabel.replace(/\s*\(.*\)$/, ''); mc.disabled = cb.disabled; }
-  mc.classList.toggle('ghost', canDl); mc.classList.toggle('btn', !canDl);
-  md.hidden = !canDl; md.textContent = S.mode === 'convert' && items.filter(i => i.status === 'done').length === 1 ? 'Baixar' : 'Baixar .zip';
-  $('#mbar-info').innerHTML = totalHTML ? `<b>${tot.querySelector('b')?.textContent || ''}</b>${plural(items.length, 'imagem', 'imagens')}` : `<b>${plural(items.length, 'imagem', 'imagens')}</b>${S.mode === 'kit' ? 'kit responsivo' : S.mode === 'favicon' ? 'favicon' : FORMATS[S.fmt].label + ' · ' + S.q + '%'}`;
+  info.innerHTML = text;
+  db.dataset.act = act;
+  db.disabled = !act;
+  db.innerHTML = (act === 'dl' ? I.down.replace('<svg', '<svg class="gi"') : '') + esc(label);
 }
 function renderNamesPreview(bases){
   let ex = bases;
@@ -684,7 +704,7 @@ function renderSettings(){
   const pressed = (sel, v) => $$(sel + ' button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
   pressed('#mode', S.mode); pressed('#fmt', S.fmt); pressed('#fit', S.fit); pressed('#names', S.names);
   pressed('#fav-bg', S.favBg); pressed('#wm-type', S.wmType); pressed('#wm-pos', S.wmPos); pressed('#wm-color', S.wmColor);
-  $('#mode-desc').textContent = MODE_DESC[S.mode];
+  renderPresets(); renderRecap();
   $('#fmt-hint').textContent = FORMATS[S.fmt].hint;
   $('#q').value = S.q; $('#q-out').textContent = S.q + '%';
   $('#maxkb').value = S.maxKB;
@@ -723,6 +743,46 @@ function renderSettings(){
   $('#cleanbox').hidden = S.names !== 'original'; $('#clean').checked = S.clean;
   renderProfiles();
 }
+/* ---------- atalhos prontos e resumo em frase ---------- */
+// cada atalho é só um conjunto de ajustes; o ativo é o que bate com os ajustes atuais
+const PRESETS = [
+  {id:'site',  label:'Para site', rec:true, desc:'WebP · até 1920 px de largura', set:{fmt:'webp', q:82, size:'w1920', maxKB:''}},
+  {id:'leve',  label:'O mais leve', desc:'AVIF · até 1920 px (leva uns segundos)', set:{fmt:'avif', q:62, size:'w1920', maxKB:''}},
+  {id:'fmt',   label:'Só trocar o formato', desc:'WebP · mesmo tamanho, quase sem perda', set:{fmt:'webp', q:92, size:'original', maxKB:''}},
+  {id:'insta', label:'Instagram', desc:'JPG · 1080 × 1350, recortado', set:{fmt:'jpeg', q:88, size:'ig', fit:'cover', maxKB:''}},
+  {id:'zap',   label:'WhatsApp e e-mail', desc:'JPG · até 1200 px, até 300 KB', set:{fmt:'jpeg', q:82, size:'w1200', maxKB:'300'}},
+];
+const presetMatches = p => Object.entries(p.set).every(([k, v]) => String(S[k] ?? '') === String(v));
+function renderPresets(){
+  const box = $('#presets');
+  const active = PRESETS.find(presetMatches);
+  box.innerHTML = PRESETS.map(p => `<button type="button" class="preset" data-p="${p.id}" aria-pressed="${active === p}"><b>${esc(p.label)}${p.rec ? '<span class="rec">recomendado</span>' : ''}</b><span>${esc(p.desc)}</span></button>`).join('')
+    + `<button type="button" class="preset" data-p="custom" aria-pressed="${!active}"><b>Personalizado</b><span>${active ? 'escolher cada detalhe' : 'seus ajustes abaixo'}</span></button>`;
+}
+function sizeText(){
+  const s = sizeOf();
+  if(s.maxW) return `até ${s.maxW} px de largura`;
+  if(s.id === 'original') return 'tamanho original';
+  if(s.id === 'custom'){ const w = parseInt(S.cw), h = parseInt(S.ch); return w && h ? `${w} × ${h}` : w ? `${w} px de largura` : h ? `${h} px de altura` : 'tamanho original'; }
+  return `${s.w} × ${s.h}${S.fit === 'cover' ? ', recortado' : ', inteiro'}`;
+}
+function recapShort(){
+  if(S.mode === 'favicon') return 'favicon';
+  if(S.mode === 'kit') return kitFmts().map(f => FORMATS[f].label).join(' + ');
+  return `${FORMATS[S.fmt].label} · ${sizeText()}`;
+}
+function renderRecap(){
+  let parts;
+  if(S.mode === 'favicon') parts = ['Ícones de <b>16 a 512 px</b>', `fundo <b>${S.favBg === 'transparent' ? 'transparente' : 'colorido'}</b>`, 'a partir da <b>primeira imagem</b>'];
+  else if(S.mode === 'kit') parts = [`<b>${esc(kitFmts().map(f => FORMATS[f].label).join(' + ') || 'nenhum formato')}</b>`, `larguras <b>${[...S.kitWidths].sort((a, b) => a - b).join(', ')} px</b>`, `qualidade <b>${S.q}%</b>`];
+  else parts = [`<b>${FORMATS[S.fmt].label}</b>`, S.fmt === 'png' ? '<b>sem perda</b>' : `qualidade <b>${S.q}%</b>`, `<b>${esc(sizeText())}</b>`, S.maxKB ? `no máximo <b>${esc(S.maxKB)} KB</b>` : null];
+  if(S.mode !== 'favicon'){
+    parts.push(S.names === 'prefix' ? `nomes <b>${esc(outBases([{base:''}, {base:''}])[0])}, ${esc(outBases([{base:''}, {base:''}])[1])}…</b>` : '<b>nomes originais</b>');
+    if(S.wmOn) parts.push('<b>com marca d’água</b>');
+  }
+  $('#recap').innerHTML = `<span class="lbl">Vai sair assim:</span> ${parts.filter(Boolean).join(' · ')}`;
+}
+
 function setS(patch){
   Object.assign(S, patch); saveS();
   invalidate(); renderSettings(); render();
@@ -801,8 +861,8 @@ async function openCompare(it){
   if(S.mode === 'kit'){
     const pref = it.outs.filter(o => o.fmt === (kitFmts().includes('webp') ? 'webp' : kitFmts()[0]));
     const o = pref[pref.length - 1]; after = o.blob; p = {W: o.w, H: o.h, mode: 'plain'}; label = `${FORMATS[o.fmt].label} ${o.w}px`;
-  } else { after = it.out.blob; p = plan(it); label = FORMATS[S.fmt].label; }
-  const bg = S.mode === 'convert' && (!FORMATS[S.fmt].alpha || p.mode === 'contain') ? S.bg : null;
+  } else { after = it.out.blob; p = plan(it); label = FORMATS[it.out.fmt].label; }
+  const bg = S.mode === 'convert' && (!FORMATS[fmtOf(it)].alpha || p.mode === 'contain') ? S.bg : null;
   const before = await toBlob(renderCanvas(it, p, bg), 'image/png');
   cmpUrls.push(URL.createObjectURL(before), URL.createObjectURL(after));
   $('#cmp-before').src = cmpUrls[cmpUrls.length - 2];
@@ -825,8 +885,28 @@ $('#cmpdlg').addEventListener('close', () => { cmpUrls.splice(0).forEach(u => UR
 
 /* ---------- eventos ---------- */
 const drop = $('#drop'), fileIn = $('#file');
-drop.addEventListener('click', () => fileIn.click());
-drop.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); fileIn.click(); } });
+$('#add').addEventListener('click', () => fileIn.click());
+$('#add2').addEventListener('click', () => fileIn.click());
+$('#add-more').addEventListener('click', e => {
+  e.stopPropagation();
+  const m = $('#add-menu'), open = m.hidden; closeMenus(); closeFmt();
+  m.hidden = !open; e.currentTarget.setAttribute('aria-expanded', String(open));
+  if(open) m.querySelector('button').focus();
+});
+$('#add-menu').addEventListener('click', async e => {
+  const b = e.target.closest('[data-add]'); if(!b) return;
+  closeMenus();
+  if(b.dataset.add === 'file') return fileIn.click();
+  // colar pelo menu precisa de permissão do navegador; se não der, ensina o atalho
+  try{
+    const files = [];
+    for(const ci of await navigator.clipboard.read()){
+      const type = ci.types.find(t => t.startsWith('image/'));
+      if(type) files.push(new File([await ci.getType(type)], `colada-${seq + 1}.${type.split('/')[1]}`, {type}));
+    }
+    files.length ? addFiles(files) : toast('Não há imagem copiada. Copie uma imagem e tente de novo');
+  }catch{ toast('Use Ctrl + V para colar a imagem aqui'); }
+});
 fileIn.addEventListener('change', () => { addFiles(fileIn.files); fileIn.value = ''; });
 const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
 let dragDepth = 0;
@@ -866,11 +946,66 @@ list.addEventListener('drop', e => {
   if(S.names === 'prefix' || S.mode === 'favicon') invalidate();
   render();
 });
+// menu ⋯: abre um de cada vez; fecha ao clicar fora ou apertar Esc
+function closeMenus(except){
+  $$('.menu').forEach(m => { if(m !== except){ m.hidden = true; m.previousElementSibling?.setAttribute('aria-expanded', 'false'); } });
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.more')) closeMenus();
+  if(!e.target.closest('.fmtpop, [data-act="fmt"]')) closeFmt();
+});
+document.addEventListener('keydown', e => { if(e.key === 'Escape'){ closeMenus(); closeFmt(); } });
+window.addEventListener('resize', () => closeFmt());
+
+// escolha de formato: um painel só, aberto junto do botão da linha
+let fmtFor = null;
+const FMT_DESC = {webp: 'leve, ideal para sites', avif: 'o mais leve de todos', jpeg: 'abre em qualquer lugar', png: 'sem perda, com transparência'};
+function openFmt(btn, it){
+  const pop = $('#fmtpop');
+  if(!pop.hidden && fmtFor === it){ closeFmt(); return; }
+  closeMenus(); closeFmt(); fmtFor = it;
+  const cur = fmtOf(it);
+  $('#fp-grid').innerHTML = Object.entries(FORMATS).map(([k, f]) => `<button type="button" data-f="${k}" aria-pressed="${k === cur}"><b>${f.label.toUpperCase()}</b><span>${FMT_DESC[k]}</span></button>`).join('');
+  $('#fp-all').closest('.switch').hidden = items.length < 2;
+  pop.hidden = false;
+  const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight, vw = document.documentElement.clientWidth;
+  const left = clamp(r.right - pw, 16, vw - pw - 16);
+  const up = r.bottom + 6 + ph > innerHeight && r.top - ph - 6 > 0;
+  pop.style.left = (left + scrollX) + 'px';
+  pop.style.top = ((up ? r.top - ph - 6 : r.bottom + 6) + scrollY) + 'px';
+  btn.setAttribute('aria-expanded', 'true');
+  pop.querySelector('[aria-pressed="true"]')?.focus();
+}
+function closeFmt(){
+  $('#fmtpop').hidden = true; fmtFor = null;
+  $$('.fmt-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+$('#fp-grid').addEventListener('click', e => {
+  const b = e.target.closest('[data-f]'); if(!b || !fmtFor) return;
+  const f = b.dataset.f, it = fmtFor;
+  closeFmt();
+  if($('#fp-all').checked || items.length < 2){
+    // vale para todas: refaz só as que mudam de formato
+    items.forEach(i => { if(fmtOf(i) !== f) clearOut(i); i.fmt = null; });
+    S.fmt = f; saveS(); renderSettings();
+  } else if(fmtOf(it) !== f){ it.fmt = f; clearOut(it); }
+  render();
+  if(f === 'avif' || f === 'png') (Pool.ready || Pool.init());
+});
 list.addEventListener('click', async e => {
-  const b = e.target.closest('[data-act]'); if(!b || busy) return;
+  const b = e.target.closest('[data-act]'); if(!b) return;
   const it = items.find(i => i.id === +b.closest('.it').dataset.id); if(!it) return;
   const act = b.dataset.act;
-  if(act === 'rm'){
+  if(act === 'more'){
+    const m = b.nextElementSibling; closeMenus(m);
+    m.hidden = !m.hidden; b.setAttribute('aria-expanded', String(!m.hidden));
+    if(!m.hidden) m.querySelector('button')?.focus();
+    return;
+  }
+  closeMenus();
+  if(act === 'go') enqueue([it]);
+  else if(act === 'fmt') openFmt(b, it);
+  else if(act === 'rm'){
     URL.revokeObjectURL(it.url); clearOut(it); items.splice(items.indexOf(it), 1);
     if(S.names === 'prefix' || S.mode === 'favicon') invalidate();
     render();
@@ -889,7 +1024,7 @@ list.addEventListener('click', async e => {
   }
 });
 list.addEventListener('dblclick', e => {
-  const li = e.target.closest('.it'); if(!li || S.mode !== 'convert' || !isFixed() || S.fit !== 'cover') return;
+  const li = e.target.closest('.it'); if(!li || !advOn() || S.mode !== 'convert' || !isFixed() || S.fit !== 'cover') return;
   const it = items.find(i => i.id === +li.dataset.id); if(it && it.img) openFocus(it);
 });
 $('#extra').addEventListener('click', async e => {
@@ -899,10 +1034,28 @@ $('#extra').addEventListener('click', async e => {
 });
 $('#sort').addEventListener('click', () => sortByName());
 $('#clear').addEventListener('click', () => { for(const it of items){ URL.revokeObjectURL(it.url); clearOut(it); } items = []; manualOrder = false; invalidate(); render(); });
-$('#convert').addEventListener('click', runAll);
-$('#download').addEventListener('click', downloadAll);
-$('#m-convert').addEventListener('click', runAll);
-$('#m-download').addEventListener('click', downloadAll);
+// botão principal: converte o que falta; depois de pronto, baixa
+$('#download').addEventListener('click', e => {
+  const a = e.currentTarget.dataset.act;
+  if(a === 'go') enqueue(pending());
+  else if(a === 'dl') downloadAll();
+});
+// modo avançado: mostra os outros modos, ajustes finos e as ações extras de cada imagem
+const adv = $('#adv');
+function syncAdv(){
+  document.querySelector('.cv').classList.toggle('is-adv', adv.open);
+  try{ localStorage.setItem('cv-adv', adv.open ? '1' : ''); }catch{}
+}
+adv.addEventListener('toggle', () => {
+  syncAdv();
+  if(!adv.open && S.mode !== 'convert') setS({mode: 'convert'}); else render();
+});
+// atalhos prontos
+$('#presets').addEventListener('click', e => {
+  const b = e.target.closest('[data-p]'); if(!b) return;
+  if(b.dataset.p === 'custom'){ $('#adv-fields').scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
+  const p = PRESETS.find(x => x.id === b.dataset.p); if(p) setS({...p.set});
+});
 
 // configurações
 const segs = {'#mode':'mode', '#fmt':'fmt', '#fit':'fit', '#names':'names', '#fav-bg':'favBg', '#wm-type':'wmType', '#wm-pos':'wmPos', '#wm-color':'wmColor'};
@@ -935,7 +1088,7 @@ const renameOnly = patch => {
   Object.assign(S, patch); saveS();
   const bases = outBases();
   items.forEach((it, i) => {
-    if(it.out) it.out.name = `${bases[i]}.${FORMATS[S.fmt].ext}`;
+    if(it.out) it.out.name = `${bases[i]}.${FORMATS[it.out.fmt].ext}`;
     if(it.outs){ it.outs.forEach(o => { o.name = `${bases[i]}-${o.w}.${FORMATS[o.fmt].ext}`; }); it.snippet = pictureSnippet(it.outs); }
   });
   render();
@@ -959,7 +1112,9 @@ window.addEventListener('beforeunload', e => {
 $('#size').innerHTML = SIZES.map(s => `<option value="${s.id}">${esc(s.label)}</option>`).join('');
 if(!FORMATS[S.fmt]) S.fmt = 'webp';
 if(!SIZES.some(s => s.id === S.size)) S.size = 'original';
-if(!['convert', 'kit', 'favicon'].includes(S.mode)) S.mode = 'convert';
+try{ adv.open = localStorage.getItem('cv-adv') === '1'; }catch{}
+syncAdv();
+if(!['convert', 'kit', 'favicon'].includes(S.mode) || !adv.open) S.mode = 'convert';
 if(!Array.isArray(S.kitFmts)) S.kitFmts = DEFAULTS.kitFmts.slice();
 if(!Array.isArray(S.kitWidths)) S.kitWidths = DEFAULTS.kitWidths.slice();
 loadWmLogo().then(() => { renderSettings(); render(); });
