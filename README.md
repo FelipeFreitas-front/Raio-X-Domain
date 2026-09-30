@@ -58,6 +58,9 @@ Editor simples no estilo do [OpenCut](https://github.com/OpenCut-app/OpenCut): a
   - **Transições**: Dissolver, Preto, Flash, Deslizar, Subir, Zoom, Cortina e Círculo, com duração ajustável
 - Tela cheia, sem o topo do site: só uma seta ao lado do nome do projeto para voltar à home
 - Trilhas: começa com a de vídeo principal (magnética, os clipes ficam colados) e uma de áudio. "+ Trilha" cria quantas quiser: a trilha nasce genérica e vira de vídeo (por cima da principal) ou de áudio conforme o primeiro arquivo solto nela
+- Timeline estilo CapCut: qualquer clipe sobe ou desce de trilha (da principal para cima e de volta, entre trilhas de áudio); soltar na faixa fina do topo ou do fim cria uma trilha nova
+- Cada trilha tem cadeado (trava os clipes), olho (esconde do vídeo), alto-falante (muta a trilha toda) e menu ⋯ (renomear, volume e efeitos, subir, descer, excluir); dois cliques no nome renomeiam
+- Mixer estilo FL Studio: um canal por trilha + Master, com medidor, fader, pan, mudo (M) e solo (S); rack com até 8 efeitos por canal (EQ 3 bandas com curva, Filtro, Compressor, Reverb, Delay, Distorção e Limitador), ligar/desligar, ordem e parâmetros. Tudo entra na exportação
 - Seleção múltipla: arrastar num espaço vazio da timeline desenha um retângulo; Shift/Ctrl + clique soma; Ctrl+A seleciona tudo. Com vários selecionados, arrastar move todos juntos, Delete exclui e S divide
 - No preview: clique no vídeo (principal ou das trilhas de cima) e arraste para mover; os 4 cantos aumentam ou diminuem. Guias de centro, rotação, opacidade, 9 posições prontas e "Resetar"
 - Transição de áudio: entrada e saída suave do som em cada clipe (bolinhas no topo do clipe ou controles no painel), e um botão para suavizar todas as músicas
