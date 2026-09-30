@@ -763,10 +763,16 @@ const ndOpts = choice => ({...S, names: choice, clean: choice === 'prefix', pref
 function renderNamesDlg(){
   const list = items.length ? items : [{base: 'Foto Fachada 01'}, {base: 'Foto Fachada 02'}];
   const ext = it => S.mode === 'kit' ? `-800.${FORMATS[kitFmts()[0] || 'webp'].ext}` : `.${FORMATS[it.status ? fmtOf(it) : S.fmt].ext}`;
-  const ex = o => { const b = outBases(list, o); return list.slice(0, 2).map((it, i) => b[i] + ext(it)).join('\n') + (list.length > 2 ? '\n…' : ''); };
+  // cada arquivo vira um chip com ícone; a extensão fica mais apagada
+  const icon = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2.5" width="12" height="11" rx="2"/><circle cx="6" cy="6.5" r="1.2"/><path d="M2.5 12l3.5-3 2.5 2 2-1.5 3 2.5"/></svg>';
+  const ex = o => {
+    const b = outBases(list, o);
+    return list.slice(0, 2).map((it, i) => `<span class="nd-file">${icon}<span>${esc(b[i])}<em>${esc(ext(it))}</em></span></span>`).join('')
+      + (list.length > 2 ? `<span class="nd-more">+ ${list.length - 2} ${list.length - 2 === 1 ? 'imagem' : 'imagens'}</span>` : '');
+  };
   $('#nd-prebox').hidden = ndChoice() !== 'prefix';
-  $('#nd-ex-orig').textContent = ex(ndOpts('original'));
-  $('#nd-ex-pre').textContent = ex(ndOpts('prefix'));
+  $('#nd-ex-orig').innerHTML = ex(ndOpts('original'));
+  $('#nd-ex-pre').innerHTML = ex(ndOpts('prefix'));
 }
 function openNames(then){
   afterNames = then || null;
