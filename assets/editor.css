@@ -574,4 +574,9 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
   .th-btns button{width:20px}
   .mx-body{grid-template-columns:minmax(0,1fr)}
   .mx-rack{border-left:0;border-top:1px solid #1d2023}
+  /* barra da timeline cabe no celular: mixer só com ícone, zoom só com os botões */
+  .tl-bar{gap:4px;padding:4px 6px}
+  .tl-tools .sep{margin:0 3px}
+  .tl-mixer{margin-left:2px;padding:0 8px}
+  .tl-mixer span,.tl-zoom input{display:none}
 }

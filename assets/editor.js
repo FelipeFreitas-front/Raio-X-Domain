@@ -336,11 +336,11 @@ async function probeAudio(m){
   m.duration = a.duration;
   if(!isFinite(m.duration) || !m.duration) throw new Error('duração');
   m.status = 'ready'; renderMedia();
+  // a forma de onda sai depois, sem segurar o arquivo (ele já pode ir para a timeline)
   if(m.file.size < 150 * 1048576){
-    try{
-      const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
-      m.wave = await waveOf(await ctx.decodeAudioData(await m.file.arrayBuffer()));
-    }catch{}
+    const ctx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100, 44100);
+    m.file.arrayBuffer().then(b => ctx.decodeAudioData(b)).then(waveOf)
+      .then(url => { if(!media.has(m.id)) return URL.revokeObjectURL(url); m.wave = url; renderMedia(); renderTimeline(); }).catch(() => {});
   }
 }
 function renderMedia(){
