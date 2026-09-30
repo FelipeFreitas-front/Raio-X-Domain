@@ -68,8 +68,10 @@ kbd{display:inline-block;min-width:22px;padding:0 6px;border:1px solid var(--mis
 .preview{grid-area:preview;display:grid;grid-template-rows:minmax(0,1fr) auto;background:var(--rail)}
 .stage-wrap{position:relative;display:grid;place-items:center;min-height:0;padding:12px;overflow:hidden}
 #screen{display:block;background:#000;border-radius:6px;box-shadow:0 8px 30px rgba(0,0,0,.18);max-width:100%;max-height:100%}
-.stage-empty{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:8px;text-align:center;color:#bdbab2;font-size:13px;pointer-events:none;padding:16px}
-.stage-empty svg{width:34px;height:34px;fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round}
+/* aviso de preview vazio: fica exatamente em cima do quadro preto (tamanho vem do script) e o texto quebra linha */
+.stage-empty{position:absolute;left:50%;top:50%;width:var(--sw,100%);height:var(--sh,100%);transform:translate(-50%,-50%);display:grid;place-content:center;justify-items:center;gap:10px;padding:16px 20px;text-align:center;color:#bdbab2;font-size:clamp(11px,1.6vw,14px);line-height:1.45;pointer-events:none;overflow:hidden}
+.stage-empty span{max-width:30ch;text-wrap:balance}
+.stage-empty svg{width:clamp(24px,4vw,36px);height:clamp(24px,4vw,36px);fill:none;stroke:currentColor;stroke-width:1.4;stroke-linejoin:round}
 .transport{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--hair);background:var(--paper)}
 .tc{font:12px var(--mono);color:var(--graphite);white-space:nowrap}
 .tc b{color:var(--ink);font-weight:500}

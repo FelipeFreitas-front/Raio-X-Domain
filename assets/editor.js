@@ -935,6 +935,7 @@ function sizeScreen(){
   const W = Math.max(40, wrap.clientWidth - 24), H = Math.max(40, wrap.clientHeight - 24);
   let w = W, h = w / r; if(h > H){ h = H; w = h * r; }
   screen.style.width = Math.floor(w) + 'px'; screen.style.height = Math.floor(h) + 'px';
+  wrap.style.setProperty('--sw', Math.floor(w) + 'px'); wrap.style.setProperty('--sh', Math.floor(h) + 'px');
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   screen.width = Math.round(w * dpr); screen.height = Math.round(h * dpr);
   dirty = true;
