@@ -104,9 +104,9 @@ const SIZES = [
 ];
 const KIT_WIDTHS = [360, 480, 640, 800, 1024, 1200, 1600, 1920, 2560];
 const MODE_DESC = {
-  convert: 'Converta, reduza o peso e padronize tamanhos e nomes. As imagens não saem do seu computador.',
-  kit: 'Gera cada imagem em várias larguras e formatos, com o código <picture> pronto para colar no site. O navegador de cada visitante baixa só o arquivo do tamanho certo.',
-  favicon: 'Transforma um logo em todos os ícones que um site precisa (aba do navegador, iPhone, Android) com o código para o <head>.',
+  convert: 'Estes ajustes valem para todas as imagens.',
+  kit: 'Cada imagem sai em várias larguras, com o código <picture> pronto para o site.',
+  favicon: 'Usa a primeira imagem da lista (de preferência um logo quadrado) para gerar os ícones do site.',
 };
 const DEFAULTS = {
   mode:'convert', fmt:'webp', q:82, maxKB:'', optPng:true, size:'original', cw:'', ch:'', fit:'cover', bg:'#ffffff',
@@ -119,7 +119,7 @@ let S = {...DEFAULTS};
 try{ Object.assign(S, JSON.parse(localStorage.getItem('cv-settings') || '{}')); }catch{}
 const saveS = () => { try{ localStorage.setItem('cv-settings', JSON.stringify(S)); }catch{ /* logo grande demais para guardar: segue sem salvar */ } };
 
-let items = [], queue = [], seq = 0, busy = false, manualOrder = false, FAV = null, wmImg = null, currentProfile = '';
+let items = [], queue = [], seq = 0, busy = false, manualOrder = false, FAV = null, wmImg = null;
 
 /* ---------- entrada de arquivos ---------- */
 const isHeic = f => /\.(heic|heif)$/i.test(f.name || '') || /heic|heif/i.test(f.type || '');
@@ -490,13 +490,12 @@ function setBusy(on){
 
 /* ---------- nomes ---------- */
 const slug = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-function outBases(list = items){
-  const used = new Set(), start = parseInt(S.start), st = isNaN(start) ? 1 : start;
+function outBases(list = items, o = S){
+  const used = new Set(), start = parseInt(o.start), st = isNaN(start) ? 1 : start;
   const pad = String(st + list.length - 1).length;
-  let pre = S.prefix || '';
-  pre = slug(pre) + (pre && /[-_ ]$/.test(pre) ? '-' : '');
+  const pre = slug(o.prefix || '');
   return list.map((it, i) => {
-    let b = S.names === 'prefix' ? pre + String(st + i).padStart(pad, '0') : (S.clean ? slug(it.base) : it.base.trim());
+    let b = o.names === 'prefix' ? (pre ? pre + '-' : '') + String(st + i).padStart(pad, '0') : (o.clean ? slug(it.base) : it.base.trim());
     if(!b) b = 'imagem';
     let name = b, k = 2;
     while(used.has(name.toLowerCase())) name = `${b}-${k++}`;
@@ -605,7 +604,7 @@ function itemHTML(it, idx, base){
     if(it.status === 'done' && S.mode === 'kit') menu.push('<hr>', mi('code', I.code, 'Copiar código <picture>'));
     if(it.status === 'done' && S.mode === 'convert') menu.push('<hr>', mi('data', I.data, 'Copiar como código (data URI)'));
   }
-  if(menu.length) acts.push(`<div class="more"><button class="icon-btn" type="button" data-act="more" aria-haspopup="menu" aria-expanded="false" title="Mais opções" aria-label="Mais opções para ${esc(it.name)}"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button><div class="menu" role="menu" hidden>${menu.join('')}</div></div>`);
+  if(menu.length) acts.push(`<div class="more"><button class="icon-btn" type="button" data-act="more" aria-haspopup="menu" aria-expanded="false" title="Mais opções" aria-label="Mais opções para ${esc(it.name)}"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3.5" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="12.5" cy="8" r="1.2"/></svg></button><div class="menu gel" role="menu" hidden>${menu.join('')}</div></div>`);
   acts.push(`<button class="rm-x" type="button" data-act="rm" title="Remover" aria-label="Remover ${esc(it.name)}">${I.x}</button>`);
 
   const shownName = it.status === 'done' && it.out ? it.out.name : it.name;
@@ -628,7 +627,8 @@ function render(){
   $('#start').hidden = !!n;
   $('#box').hidden = !n;
   $('#count').textContent = plural(n, 'imagem', 'imagens');
-  renderNamesPreview(bases);
+  if(!n) namesAsked = false;
+  const nl = $('#names-link'); nl.hidden = S.mode === 'favicon'; nl.textContent = `Nomes: ${S.names === 'prefix' ? 'padronizados' : 'originais'}`;
   renderExtra();
   renderTotals();
 }
@@ -672,12 +672,6 @@ function renderTotals(){
   db.disabled = !act;
   db.innerHTML = (act === 'dl' ? I.down.replace('<svg', '<svg class="gi"') : '') + esc(label);
 }
-function renderNamesPreview(bases){
-  let ex = bases;
-  if(!items.length){ const keep = items; items = [{base:'Foto Fachada 01'}, {base:'Foto Fachada 02'}]; ex = outBases(); items = keep; }
-  const ext = S.mode === 'kit' ? `-${S.kitWidths[0] || 800}.${FORMATS[kitFmts()[0] || 'webp'].ext}` : `.${FORMATS[S.fmt].ext}`;
-  $('#names-preview').textContent = ex.slice(0, 3).map(b => b + ext).join(', ') + (bases.length > 3 ? `, … (${bases.length})` : '');
-}
 function renderExtra(){
   const el = $('#extra');
   if(S.mode === 'kit'){
@@ -702,23 +696,17 @@ function renderExtra(){
 function renderSettings(){
   for(const el of $$('.m-convert, .m-kit, .m-favicon')) el.hidden = !el.classList.contains('m-' + S.mode);
   const pressed = (sel, v) => $$(sel + ' button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v));
-  pressed('#mode', S.mode); pressed('#fmt', S.fmt); pressed('#fit', S.fit); pressed('#names', S.names);
+  pressed('#mode', S.mode); pressed('#fit', S.fit);
   pressed('#fav-bg', S.favBg); pressed('#wm-type', S.wmType); pressed('#wm-pos', S.wmPos); pressed('#wm-color', S.wmColor);
-  renderPresets(); renderRecap();
-  $('#fmt-hint').textContent = FORMATS[S.fmt].hint;
+  $('#mode-hint').textContent = MODE_DESC[S.mode];
   $('#q').value = S.q; $('#q-out').textContent = S.q + '%';
   $('#maxkb').value = S.maxKB;
-  if(S.mode === 'convert'){
-    $('#f-quality').hidden = S.fmt === 'png';
-    $('#f-png').hidden = S.fmt !== 'png';
-  }
-  $('#optpng').checked = S.optPng;
   $('#size').value = S.size;
   $('#custom').hidden = S.size !== 'custom'; $('#cw').value = S.cw; $('#ch').value = S.ch;
   const fixed = isFixed(), s = sizeOf();
   $('#fitbox').hidden = !fixed;
-  $('#size-hint').textContent = s.maxW ? 'Imagens menores que isso ficam como estão (não aumenta).'
-    : fixed ? (S.fit === 'cover' ? 'Corta as sobras para preencher a medida. Use o botão de enquadrar em cada foto para escolher o que aparece.' : 'A imagem inteira cabe na medida; as sobras recebem a cor de fundo.')
+  $('#size-hint').textContent = s.maxW ? 'Imagens menores que isso ficam como estão.'
+    : fixed ? (S.fit === 'cover' ? 'Corta as sobras. No menu ⋯ de cada foto você escolhe o que aparece.' : 'A imagem inteira cabe na medida; as sobras recebem a cor de fundo.')
     : s.id === 'custom' ? 'Preencha só a largura (ou só a altura) para manter a proporção.' : '';
   const needBg = S.mode === 'convert' && (!FORMATS[S.fmt].alpha || (fixed && S.fit === 'contain'));
   $('#f-bg').hidden = !needBg; $('#bg').value = S.bg;
@@ -726,103 +714,85 @@ function renderSettings(){
   // kit
   $$('#kit-fmts input').forEach(i => { i.checked = S.kitFmts.includes(i.value); });
   $('#kit-widths').innerHTML = KIT_WIDTHS.map(w => `<label><input type="checkbox" value="${w}"${S.kitWidths.includes(w) ? ' checked' : ''}><span>${w}</span></label>`).join('');
-  $('#kit-path').value = S.kitPath; $('#kit-sizes').value = S.kitSizes;
   // favicon
-  $('#fav-color').value = S.favColor; $('#fav-pad').value = S.favPad; $('#fav-pad-out').textContent = S.favPad + '%';
-  $('#fav-name').value = S.favName; $('#fav-theme').value = S.favTheme; $('#fav-theme-out').textContent = S.favTheme;
+  $('#fav-color').value = S.favColor; $('#fav-color').hidden = S.favBg !== 'color';
+  $('#fav-pad').value = S.favPad; $('#fav-pad-out').textContent = S.favPad + '%';
+  $('#fav-name').value = S.favName;
   // marca d'água
-  $('#wm-on').checked = S.wmOn; $('#wm-text').value = S.wmText;
+  $('#wm-on').checked = S.wmOn; $('#wm-box').hidden = !S.wmOn;
+  $('#wm-text').value = S.wmText;
   $('#wm-text').hidden = S.wmType !== 'text'; $('#wm-color').hidden = S.wmType !== 'text';
   $('#wm-logo-box').hidden = S.wmType !== 'logo';
   $('#wm-logo-name').textContent = S.wmLogoName || 'nenhum logo escolhido';
   $('#wm-size').value = S.wmSize; $('#wm-size-out').textContent = S.wmSize + '% da largura';
   $('#wm-op').value = S.wmOp; $('#wm-op-out').textContent = S.wmOp + '%';
-  if(S.wmOn) $('#wm-box').open = true;
-  // nomes
-  $('#prefixbox').hidden = S.names !== 'prefix'; $('#prefix').value = S.prefix; $('#start').value = S.start;
-  $('#cleanbox').hidden = S.names !== 'original'; $('#clean').checked = S.clean;
-  renderProfiles();
-}
-/* ---------- atalhos prontos e resumo em frase ---------- */
-// cada atalho é só um conjunto de ajustes; o ativo é o que bate com os ajustes atuais
-const PRESETS = [
-  {id:'site',  label:'Para site', rec:true, desc:'WebP · até 1920 px de largura', set:{fmt:'webp', q:82, size:'w1920', maxKB:''}},
-  {id:'leve',  label:'O mais leve', desc:'AVIF · até 1920 px (leva uns segundos)', set:{fmt:'avif', q:62, size:'w1920', maxKB:''}},
-  {id:'fmt',   label:'Só trocar o formato', desc:'WebP · mesmo tamanho, quase sem perda', set:{fmt:'webp', q:92, size:'original', maxKB:''}},
-  {id:'insta', label:'Instagram', desc:'JPG · 1080 × 1350, recortado', set:{fmt:'jpeg', q:88, size:'ig', fit:'cover', maxKB:''}},
-  {id:'zap',   label:'WhatsApp e e-mail', desc:'JPG · até 1200 px, até 300 KB', set:{fmt:'jpeg', q:82, size:'w1200', maxKB:'300'}},
-];
-const presetMatches = p => Object.entries(p.set).every(([k, v]) => String(S[k] ?? '') === String(v));
-function renderPresets(){
-  const box = $('#presets');
-  const active = PRESETS.find(presetMatches);
-  box.innerHTML = PRESETS.map(p => `<button type="button" class="preset" data-p="${p.id}" aria-pressed="${active === p}"><b>${esc(p.label)}${p.rec ? '<span class="rec">recomendado</span>' : ''}</b><span>${esc(p.desc)}</span></button>`).join('')
-    + `<button type="button" class="preset" data-p="custom" aria-pressed="${!active}"><b>Personalizado</b><span>${active ? 'escolher cada detalhe' : 'seus ajustes abaixo'}</span></button>`;
-}
-function sizeText(){
-  const s = sizeOf();
-  if(s.maxW) return `até ${s.maxW} px de largura`;
-  if(s.id === 'original') return 'tamanho original';
-  if(s.id === 'custom'){ const w = parseInt(S.cw), h = parseInt(S.ch); return w && h ? `${w} × ${h}` : w ? `${w} px de largura` : h ? `${h} px de altura` : 'tamanho original'; }
-  return `${s.w} × ${s.h}${S.fit === 'cover' ? ', recortado' : ', inteiro'}`;
-}
-function recapShort(){
-  if(S.mode === 'favicon') return 'favicon';
-  if(S.mode === 'kit') return kitFmts().map(f => FORMATS[f].label).join(' + ');
-  return `${FORMATS[S.fmt].label} · ${sizeText()}`;
-}
-function renderRecap(){
-  let parts;
-  if(S.mode === 'favicon') parts = ['Ícones de <b>16 a 512 px</b>', `fundo <b>${S.favBg === 'transparent' ? 'transparente' : 'colorido'}</b>`, 'a partir da <b>primeira imagem</b>'];
-  else if(S.mode === 'kit') parts = [`<b>${esc(kitFmts().map(f => FORMATS[f].label).join(' + ') || 'nenhum formato')}</b>`, `larguras <b>${[...S.kitWidths].sort((a, b) => a - b).join(', ')} px</b>`, `qualidade <b>${S.q}%</b>`];
-  else parts = [`<b>${FORMATS[S.fmt].label}</b>`, S.fmt === 'png' ? '<b>sem perda</b>' : `qualidade <b>${S.q}%</b>`, `<b>${esc(sizeText())}</b>`, S.maxKB ? `no máximo <b>${esc(S.maxKB)} KB</b>` : null];
-  if(S.mode !== 'favicon'){
-    parts.push(S.names === 'prefix' ? `nomes <b>${esc(outBases([{base:''}, {base:''}])[0])}, ${esc(outBases([{base:''}, {base:''}])[1])}…</b>` : '<b>nomes originais</b>');
-    if(S.wmOn) parts.push('<b>com marca d’água</b>');
-  }
-  $('#recap').innerHTML = `<span class="lbl">Vai sair assim:</span> ${parts.filter(Boolean).join(' · ')}`;
 }
 
 function setS(patch){
   Object.assign(S, patch); saveS();
   invalidate(); renderSettings(); render();
   // já vai baixando o que vai precisar
-  if((S.mode === 'convert' && S.fmt === 'avif') || (S.mode === 'kit' && S.kitFmts.includes('avif')) || S.mode === 'favicon' || (S.fmt === 'png' && S.optPng)) (Pool.ready || Pool.init());
+  if((S.mode === 'convert' && S.fmt === 'avif') || (S.mode === 'kit' && S.kitFmts.includes('avif')) || S.mode === 'favicon' || S.fmt === 'png') (Pool.ready || Pool.init());
 }
 
-/* ---------- perfis ---------- */
-const loadProfiles = () => { try{ return JSON.parse(localStorage.getItem('cv-profiles') || '{}'); }catch{ return {}; } };
-const saveProfiles = p => { try{ localStorage.setItem('cv-profiles', JSON.stringify(p)); return true; }catch{ return false; } };
-function renderProfiles(){
-  const p = loadProfiles(), names = Object.keys(p).sort((a, b) => a.localeCompare(b, 'pt-BR'));
-  $('#profile').innerHTML = `<option value="">${names.length ? 'Perfis salvos…' : 'Nenhum perfil salvo'}</option>` + names.map(n => `<option value="${esc(n)}"${n === currentProfile ? ' selected' : ''}>${esc(n)}</option>`).join('');
-  $('#prof-del').disabled = !currentProfile;
+/* ---------- efeito gelatinoso: popups entram e saem com animação (motion.css) ---------- */
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+// toca a saída e só depois esconde; se abrirem de novo no meio, a saída é cancelada
+function gelHide(el, done){
+  const t = el._gel = {};
+  el.classList.add('gel-out');
+  const end = e => {
+    if(e && e.target !== el) return;
+    if(el._gel !== t) return;
+    el._gel = null; el.removeEventListener('animationend', end);
+    el.classList.remove('gel-out'); done();
+  };
+  if(calm()) return end();
+  el.addEventListener('animationend', end);
+  setTimeout(end, 400);
 }
-$('#profile').addEventListener('change', async e => {
-  const name = e.target.value; if(!name) return;
-  const p = loadProfiles()[name]; if(!p) return;
-  currentProfile = name;
-  S = {...DEFAULTS, ...p}; saveS();
-  await loadWmLogo(); invalidate(); renderSettings(); render();
-  toast(`Perfil "${name}" aplicado`);
+function gelShow(el){ el._gel = null; el.classList.remove('gel-out'); el.hidden = false; }
+function gelOpen(dlg){ dlg._gel = null; dlg.classList.remove('gel-out'); if(!dlg.open) dlg.showModal(); }
+function gelClose(dlg){ if(dlg.open && !dlg._gel) gelHide(dlg, () => dlg.close()); }
+const isOpen = el => !el.hidden && !el._gel;
+
+/* ---------- nomes dos arquivos: perguntado num popup na primeira conversão ---------- */
+let namesAsked = false, afterNames = null;
+const ndChoice = () => $('#namedlg input[name="nd"]:checked')?.value || 'original';
+const ndOpts = choice => ({...S, names: choice, clean: choice === 'prefix', prefix: $('#prefix').value.trim() || 'imagem', start: $('#nd-start').value});
+function renderNamesDlg(){
+  const list = items.length ? items : [{base: 'Foto Fachada 01'}, {base: 'Foto Fachada 02'}];
+  const ext = it => S.mode === 'kit' ? `-800.${FORMATS[kitFmts()[0] || 'webp'].ext}` : `.${FORMATS[it.status ? fmtOf(it) : S.fmt].ext}`;
+  const ex = o => { const b = outBases(list, o); return list.slice(0, 2).map((it, i) => b[i] + ext(it)).join('\n') + (list.length > 2 ? '\n…' : ''); };
+  $('#nd-prebox').hidden = ndChoice() !== 'prefix';
+  $('#nd-ex-orig').textContent = ex(ndOpts('original'));
+  $('#nd-ex-pre').textContent = ex(ndOpts('prefix'));
+}
+function openNames(then){
+  afterNames = then || null;
+  $$('#namedlg input[name="nd"]').forEach(r => { r.checked = r.value === S.names; });
+  $('#prefix').value = (S.prefix || '').replace(/[-_ ]+$/, ''); $('#nd-start').value = S.start;
+  $('#nd-ok').textContent = !then ? 'Salvar' : S.mode === 'kit' ? 'Gerar kit' : 'Converter';
+  renderNamesDlg();
+  gelOpen($('#namedlg'));
+}
+// na primeira conversão da lista pergunta os nomes; depois converte direto
+function askNames(then){ if(namesAsked || S.mode === 'favicon') then(); else openNames(then); }
+$('#namedlg').addEventListener('change', renderNamesDlg);
+$('#namedlg').addEventListener('input', renderNamesDlg);
+$('#nd-ok').addEventListener('click', () => {
+  const o = ndOpts(ndChoice());
+  renameOnly({names: o.names, clean: o.clean, prefix: o.prefix, start: o.start});
+  namesAsked = true;
+  const then = afterNames; afterNames = null;
+  gelClose($('#namedlg'));
+  if(then) then();
 });
-$('#prof-save').addEventListener('click', () => { $('#saveprof').hidden = false; $('#prof-name').value = currentProfile; $('#prof-name').focus(); });
-const doSaveProfile = () => {
-  const name = $('#prof-name').value.trim(); if(!name){ toast('Dê um nome ao perfil'); return; }
-  const p = loadProfiles(); p[name] = {...S};
-  if(!saveProfiles(p)){ toast('Não consegui salvar: o logo da marca d\'água é grande demais'); return; }
-  currentProfile = name; $('#saveprof').hidden = true; renderProfiles(); toast(`Perfil "${name}" salvo`);
-};
-$('#prof-ok').addEventListener('click', doSaveProfile);
-$('#prof-name').addEventListener('keydown', e => { if(e.key === 'Enter') doSaveProfile(); if(e.key === 'Escape') $('#saveprof').hidden = true; });
-$('#prof-del').addEventListener('click', e => {
-  if(!currentProfile) return;
-  const b = e.currentTarget;
-  if(!b.dataset.armed){ b.dataset.armed = '1'; toast(`Clique de novo para excluir "${currentProfile}"`); setTimeout(() => delete b.dataset.armed, 3000); return; }
-  delete b.dataset.armed;
-  const p = loadProfiles(); delete p[currentProfile]; saveProfiles(p);
-  toast(`Perfil "${currentProfile}" excluído`); currentProfile = ''; renderProfiles();
-});
+$('#nd-cancel').addEventListener('click', () => { afterNames = null; gelClose($('#namedlg')); });
+$('#prefix').addEventListener('keydown', e => { if(e.key === 'Enter') $('#nd-ok').click(); });
+$('#names-link').addEventListener('click', () => openNames(null));
+// Esc também fecha com animação
+$$('dialog.gel').forEach(d => d.addEventListener('cancel', e => { e.preventDefault(); if(d.id === 'namedlg') afterNames = null; gelClose(d); }));
 
 /* ---------- enquadramento ---------- */
 let focusIt = null;
@@ -832,7 +802,7 @@ function openFocus(it){
   img.onload = drawFocus;
   img.src = (it.rot || it.flip) ? getSrc(it).toDataURL('image/jpeg', .85) : it.url;
   $('#dlg-title').textContent = `Enquadramento · ${it.name}`;
-  $('#dlg').showModal();
+  gelOpen($('#dlg'));
   if(img.complete) drawFocus();
 }
 function drawFocus(){
@@ -850,8 +820,8 @@ function setFocusFromEvent(e){
 $('#stage').addEventListener('pointerdown', e => { $('#stage').setPointerCapture(e.pointerId); setFocusFromEvent(e); });
 $('#stage').addEventListener('pointermove', e => { if(e.buttons) setFocusFromEvent(e); });
 $('#dlg-center').addEventListener('click', () => { focusIt.focus = {x:.5, y:.5}; drawFocus(); });
-$('#dlg-all').addEventListener('click', () => { for(const it of items){ it.focus = {...focusIt.focus}; clearOut(it); } toast('Mesmo enquadramento aplicado em todas'); $('#dlg').close(); });
-$('#dlg-ok').addEventListener('click', () => $('#dlg').close());
+$('#dlg-all').addEventListener('click', () => { for(const it of items){ it.focus = {...focusIt.focus}; clearOut(it); } toast('Mesmo enquadramento aplicado em todas'); gelClose($('#dlg')); });
+$('#dlg-ok').addEventListener('click', () => gelClose($('#dlg')));
 $('#dlg').addEventListener('close', () => { if(focusIt){ clearOut(focusIt); focusIt = null; render(); } });
 
 /* ---------- comparar antes e depois ---------- */
@@ -872,7 +842,7 @@ async function openCompare(it){
   $('#cmp-info').textContent = `${p.W} × ${p.H} · original ${fmtBytes(it.size)} → ${fmtBytes(after.size)}. Arraste a linha para comparar.`;
   $('#cmp').style.setProperty('--cut', '50%');
   setCmpZoom(true);
-  $('#cmpdlg').showModal();
+  gelOpen($('#cmpdlg'));
 }
 function setCmpZoom(fit){ $('#cmp').classList.toggle('fit', fit); $('#cmp-fit').setAttribute('aria-pressed', fit); $('#cmp-100').setAttribute('aria-pressed', !fit); }
 const cmpMove = e => { const r = $('#cmp-in').getBoundingClientRect(); $('#cmp').style.setProperty('--cut', clamp((e.clientX - r.left) / r.width * 100, 0, 100) + '%'); };
@@ -880,7 +850,7 @@ $('#cmp-in').addEventListener('pointerdown', e => { $('#cmp-in').setPointerCaptu
 $('#cmp-in').addEventListener('pointermove', e => { if(e.buttons) cmpMove(e); });
 $('#cmp-fit').addEventListener('click', () => setCmpZoom(true));
 $('#cmp-100').addEventListener('click', () => setCmpZoom(false));
-$('#cmp-close').addEventListener('click', () => $('#cmpdlg').close());
+$('#cmp-close').addEventListener('click', () => gelClose($('#cmpdlg')));
 $('#cmpdlg').addEventListener('close', () => { cmpUrls.splice(0).forEach(u => URL.revokeObjectURL(u)); });
 
 /* ---------- eventos ---------- */
@@ -889,9 +859,9 @@ $('#add').addEventListener('click', () => fileIn.click());
 $('#add2').addEventListener('click', () => fileIn.click());
 $('#add-more').addEventListener('click', e => {
   e.stopPropagation();
-  const m = $('#add-menu'), open = m.hidden; closeMenus(); closeFmt();
-  m.hidden = !open; e.currentTarget.setAttribute('aria-expanded', String(open));
-  if(open) m.querySelector('button').focus();
+  const m = $('#add-menu'), open = !isOpen(m); closeMenus(m); closeFmt();
+  e.currentTarget.setAttribute('aria-expanded', String(open));
+  if(open){ gelShow(m); m.querySelector('button').focus(); } else gelHide(m, () => { m.hidden = true; });
 });
 $('#add-menu').addEventListener('click', async e => {
   const b = e.target.closest('[data-add]'); if(!b) return;
@@ -948,7 +918,11 @@ list.addEventListener('drop', e => {
 });
 // menu ⋯: abre um de cada vez; fecha ao clicar fora ou apertar Esc
 function closeMenus(except){
-  $$('.menu').forEach(m => { if(m !== except){ m.hidden = true; m.previousElementSibling?.setAttribute('aria-expanded', 'false'); } });
+  $$('.menu').forEach(m => {
+    if(m === except || !isOpen(m)) return;
+    m.previousElementSibling?.setAttribute('aria-expanded', 'false');
+    gelHide(m, () => { m.hidden = true; });
+  });
 }
 document.addEventListener('click', e => {
   if(!e.target.closest('.more')) closeMenus();
@@ -962,23 +936,30 @@ let fmtFor = null;
 const FMT_DESC = {webp: 'leve, ideal para sites', avif: 'o mais leve de todos', jpeg: 'abre em qualquer lugar', png: 'sem perda, com transparência'};
 function openFmt(btn, it){
   const pop = $('#fmtpop');
-  if(!pop.hidden && fmtFor === it){ closeFmt(); return; }
-  closeMenus(); closeFmt(); fmtFor = it;
+  if(isOpen(pop) && fmtFor === it){ closeFmt(); return; }
+  closeMenus();
+  $$('.fmt-btn[aria-expanded="true"]').forEach(x => x.setAttribute('aria-expanded', 'false'));
+  // se já estava aberto em outra linha, recomeça a animação
+  if(!pop.hidden){ pop.hidden = true; void pop.offsetWidth; }
+  fmtFor = it;
   const cur = fmtOf(it);
   $('#fp-grid').innerHTML = Object.entries(FORMATS).map(([k, f]) => `<button type="button" data-f="${k}" aria-pressed="${k === cur}"><b>${f.label.toUpperCase()}</b><span>${FMT_DESC[k]}</span></button>`).join('');
   $('#fp-all').closest('.switch').hidden = items.length < 2;
-  pop.hidden = false;
+  gelShow(pop);
   const r = btn.getBoundingClientRect(), pw = pop.offsetWidth, ph = pop.offsetHeight, vw = document.documentElement.clientWidth;
   const left = clamp(r.right - pw, 16, vw - pw - 16);
   const up = r.bottom + 6 + ph > innerHeight && r.top - ph - 6 > 0;
   pop.style.left = (left + scrollX) + 'px';
   pop.style.top = ((up ? r.top - ph - 6 : r.bottom + 6) + scrollY) + 'px';
+  pop.style.setProperty('--gel-origin', `${Math.round(r.left + r.width / 2 - left)}px ${up ? '100%' : '0'}`);
   btn.setAttribute('aria-expanded', 'true');
   pop.querySelector('[aria-pressed="true"]')?.focus();
 }
 function closeFmt(){
-  $('#fmtpop').hidden = true; fmtFor = null;
+  const pop = $('#fmtpop');
+  fmtFor = null;
   $$('.fmt-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  if(isOpen(pop)) gelHide(pop, () => { pop.hidden = true; });
 }
 $('#fp-grid').addEventListener('click', e => {
   const b = e.target.closest('[data-f]'); if(!b || !fmtFor) return;
@@ -997,13 +978,13 @@ list.addEventListener('click', async e => {
   const it = items.find(i => i.id === +b.closest('.it').dataset.id); if(!it) return;
   const act = b.dataset.act;
   if(act === 'more'){
-    const m = b.nextElementSibling; closeMenus(m);
-    m.hidden = !m.hidden; b.setAttribute('aria-expanded', String(!m.hidden));
-    if(!m.hidden) m.querySelector('button')?.focus();
+    const m = b.nextElementSibling, open = !isOpen(m); closeMenus(m); closeFmt();
+    b.setAttribute('aria-expanded', String(open));
+    if(open){ gelShow(m); m.querySelector('button')?.focus(); } else gelHide(m, () => { m.hidden = true; });
     return;
   }
   closeMenus();
-  if(act === 'go') enqueue([it]);
+  if(act === 'go') askNames(() => enqueue([it]));
   else if(act === 'fmt') openFmt(b, it);
   else if(act === 'rm'){
     URL.revokeObjectURL(it.url); clearOut(it); items.splice(items.indexOf(it), 1);
@@ -1037,7 +1018,7 @@ $('#clear').addEventListener('click', () => { for(const it of items){ URL.revoke
 // botão principal: converte o que falta; depois de pronto, baixa
 $('#download').addEventListener('click', e => {
   const a = e.currentTarget.dataset.act;
-  if(a === 'go') enqueue(pending());
+  if(a === 'go') askNames(() => enqueue(pending()));
   else if(a === 'dl') downloadAll();
 });
 // modo avançado: mostra os outros modos, ajustes finos e as ações extras de cada imagem
@@ -1050,23 +1031,16 @@ adv.addEventListener('toggle', () => {
   syncAdv();
   if(!adv.open && S.mode !== 'convert') setS({mode: 'convert'}); else render();
 });
-// atalhos prontos
-$('#presets').addEventListener('click', e => {
-  const b = e.target.closest('[data-p]'); if(!b) return;
-  if(b.dataset.p === 'custom'){ $('#adv-fields').scrollIntoView({behavior: 'smooth', block: 'start'}); return; }
-  const p = PRESETS.find(x => x.id === b.dataset.p); if(p) setS({...p.set});
-});
 
 // configurações
-const segs = {'#mode':'mode', '#fmt':'fmt', '#fit':'fit', '#names':'names', '#fav-bg':'favBg', '#wm-type':'wmType', '#wm-pos':'wmPos', '#wm-color':'wmColor'};
+const segs = {'#mode':'mode', '#fit':'fit', '#fav-bg':'favBg', '#wm-type':'wmType', '#wm-pos':'wmPos', '#wm-color':'wmColor'};
 for(const [sel, key] of Object.entries(segs)) $(sel).addEventListener('click', e => { const b = e.target.closest('[data-v]'); if(b) setS({[key]: b.dataset.v}); });
 const onChange = (sel, key, fn = v => v) => $(sel).addEventListener('change', e => setS({[key]: fn(e.target.type === 'checkbox' ? e.target.checked : e.target.value)}));
 $('#q').addEventListener('input', e => { $('#q-out').textContent = e.target.value + '%'; });
 onChange('#q', 'q', Number);
-onChange('#maxkb', 'maxKB'); onChange('#optpng', 'optPng'); onChange('#size', 'size');
+onChange('#maxkb', 'maxKB'); onChange('#size', 'size');
 onChange('#cw', 'cw'); onChange('#ch', 'ch'); onChange('#bg', 'bg');
-onChange('#kit-path', 'kitPath'); onChange('#kit-sizes', 'kitSizes');
-onChange('#fav-color', 'favColor'); onChange('#fav-name', 'favName'); onChange('#fav-theme', 'favTheme');
+onChange('#fav-color', 'favColor'); onChange('#fav-name', 'favName');
 $('#fav-pad').addEventListener('input', e => { $('#fav-pad-out').textContent = e.target.value + '%'; });
 onChange('#fav-pad', 'favPad', Number);
 onChange('#wm-on', 'wmOn'); onChange('#wm-text', 'wmText');
@@ -1093,9 +1067,6 @@ const renameOnly = patch => {
   });
   render();
 };
-$('#prefix').addEventListener('input', e => renameOnly({prefix: e.target.value}));
-$('#start').addEventListener('input', e => renameOnly({start: e.target.value}));
-$('#clean').addEventListener('change', e => renameOnly({clean: e.target.checked}));
 
 // tema
 const themeBtn = $('#theme');

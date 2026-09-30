@@ -17,7 +17,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='15' height='13' rx='2.5' stroke='%2327251e'/%3E%3Crect x='12' y='12' width='13' height='11' rx='2.5' fill='%23fff' stroke='%23016a71'/%3E%3Cpath d='M15.5 17.5h6M19 15l2.5 2.5L19 20' stroke='%23016a71'/%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/base.css">
-<link rel="stylesheet" href="assets/motion.css">
+<link rel="stylesheet" href="assets/motion.css?v=2">
 <style>
 /* Layout: área de trabalho à esquerda (soltar imagens, lista, resultados extras), painel de configurações fixo à direita;
    no celular empilha e ganha uma barra de ação fixa no rodapé */
@@ -298,7 +298,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
 .menu hr{border:0;border-top:1px solid var(--hair);margin:4px 2px}
 .menu .kbd{margin-left:2px}
 
-/* modo avançado */
+/* modo avançado: uma coluna curta, só o que muda o resultado */
 .adv{border:1px solid var(--hair);border-radius:var(--r-card);background:var(--paper)}
 .adv > summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px 12px;flex-wrap:wrap;padding:16px 20px}
 .adv > summary::-webkit-details-marker{display:none}
@@ -306,33 +306,43 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
 .adv[open] > summary::before{transform:rotate(45deg)}
 .adv-t{font-size:15px;font-weight:600}
 .adv-s{font-size:13px;color:var(--graphite)}
-.adv-in{display:grid;gap:18px;padding:4px 20px 22px;border-top:1px solid var(--hair);padding-top:18px}
-.adv-lbl{font-size:13px;font-weight:600;color:var(--graphite);margin-bottom:8px}
-.goals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-@media (max-width:720px){.goals{grid-template-columns:minmax(0,1fr)}}
-.goal{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:2px;align-items:center;text-align:left;padding:12px 14px;border:1.5px solid var(--hair);border-radius:12px;background:var(--parchment);color:var(--ink);cursor:pointer;font:inherit}
-.goal svg{grid-row:1/3;width:26px;height:26px;fill:none;stroke:var(--graphite);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
-.goal b{font-size:14px;font-weight:700}
-.goal span{font-size:12px;color:var(--graphite);line-height:1.4}
-.goal:hover{border-color:var(--mist)}
-.goal[aria-pressed="true"]{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal);background:color-mix(in srgb, var(--teal) 7%, var(--paper))}
-.goal[aria-pressed="true"] svg{stroke:var(--teal)}
-.presets{display:flex;flex-wrap:wrap;gap:8px}
-.preset{display:grid;gap:1px;padding:8px 12px;border:1px solid var(--mist);border-radius:10px;background:transparent;color:var(--ink);text-align:left;cursor:pointer;font:inherit}
-.preset b{font-size:13px;font-weight:600}
-.preset span{font-size:12px;color:var(--graphite)}
-.preset:hover{border-color:var(--graphite)}
-.preset[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--parchment)}
-.preset[aria-pressed="true"] span{color:var(--parchment);opacity:.75}
-.preset .rec{display:none}
-.recap{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:12px 14px;border-radius:12px;background:var(--parchment);border:1px solid var(--hair);font-size:14px}
-.recap .lbl{color:var(--graphite)}
-.recap b{font-weight:600}
-.adv-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px}
-@media (max-width:720px){.adv-body{grid-template-columns:minmax(0,1fr)}}
-.adv-body > .fld,.adv-body > details{min-width:0}
-.adv-body > .wm{grid-column:1/-1}
+.adv-in{display:grid;gap:0;max-width:560px;padding:18px 20px 20px;border-top:1px solid var(--hair)}
+.seg.mode3 button{min-height:38px;font-weight:500}
+.mode-hint{margin:10px 0 4px}
+.arow{display:grid;gap:8px;padding:16px 0;border-top:1px solid var(--hair)}
+.mode-hint + .arow{border-top:0}
+.arow-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.arow-h label,.arow-h .t{font-size:14px;font-weight:500}
+.arow-h output{font:500 14px var(--mono)}
 .scale{display:flex;justify-content:space-between;font-size:12px;color:var(--ash);margin-top:-4px}
+.unit{position:relative;max-width:220px}
+.unit .inp{padding-right:44px}
+.unit span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--graphite);pointer-events:none}
+.arow .bgrow .seg{flex:1}
+.wm-body{margin-top:4px}
+
+/* popup dos nomes */
+.namedlg{width:min(520px,calc(100vw - 32px))}
+.nd{gap:16px;padding:22px}
+.nd-h{display:grid;gap:4px}
+.nd-h b{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.nd-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.nd-opts{grid-template-columns:1fr}}
+.nd-opt{position:relative;cursor:pointer}
+.nd-opt input{position:absolute;opacity:0;pointer-events:none}
+.nd-card{display:grid;gap:4px;height:100%;padding:14px;border:1.5px solid var(--hair);border-radius:14px;background:var(--parchment);transition:border-color .15s,background-color .15s,transform .15s}
+.nd-card b{font-size:15px}
+.nd-card > span{font-size:13px;color:var(--graphite);line-height:1.45}
+.nd-card code{margin-top:6px;font:12px/1.5 var(--mono);color:var(--ink);overflow-wrap:anywhere;white-space:pre-line}
+.menu.gel{--gel-origin:calc(100% - 14px) 0}
+.addmenu.gel{--gel-origin:50% 0}
+.nd-opt:hover .nd-card{border-color:var(--mist)}
+.nd-opt input:checked + .nd-card{border-color:var(--teal);box-shadow:0 0 0 1px var(--teal);background:color-mix(in srgb, var(--teal) 7%, var(--paper))}
+.nd-opt input:focus-visible + .nd-card{outline:2px solid var(--teal);outline-offset:2px}
+.nd-opt input:checked + .nd-card{animation:gel-tap .5s both}
+.nd-pre{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:10px}
+.nd-pre label{display:grid;gap:4px;font-size:12px;color:var(--graphite)}
+.nd .dlg-f .btn{min-width:130px}
 </style>
 </head>
 <body>
@@ -363,7 +373,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
       <div class="addbig">
         <button class="addbig-main" id="add" type="button">Escolher imagens</button>
         <button class="addbig-more" id="add-more" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Outras formas de adicionar"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></button>
-        <div class="menu addmenu" id="add-menu" role="menu" hidden>
+        <div class="menu addmenu gel" id="add-menu" role="menu" hidden>
           <button type="button" role="menuitem" data-add="file"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 1.5h4.5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z"/></svg>Do computador</button>
           <button type="button" role="menuitem" data-add="paste"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3.5" y="2.5" width="9" height="11.5" rx="1.5"/><path d="M6 2.5h4v2H6z"/></svg>Colar imagem copiada <span class="kbd">Ctrl</span>+<span class="kbd">V</span></button>
         </div>
@@ -377,6 +387,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
     <section class="box" id="box" hidden aria-label="Imagens">
       <div class="listbar" id="listbar">
         <span class="count" id="count"></span>
+        <button class="linkbtn" id="names-link" type="button"></button>
         <button class="linkbtn adv-only" id="sort" type="button">Ordenar por nome</button>
         <button class="linkbtn" id="clear" type="button">Limpar tudo</button>
       </div>
@@ -395,175 +406,107 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
 
   <!-- modo avançado -->
   <details class="adv" id="adv">
-    <summary><span class="adv-t">Modo avançado</span><span class="adv-s">kit responsivo, favicon, qualidade, tamanho, nomes e marca d'água</span></summary>
+    <summary><span class="adv-t">Modo avançado</span><span class="adv-s">kit responsivo, favicon, qualidade e tamanho</span></summary>
     <div class="adv-in">
-      <div class="adv-block">
-        <div class="adv-lbl">O que fazer</div>
-        <div class="goals" id="mode" role="group" aria-label="O que fazer">
-          <button type="button" class="goal" data-v="convert">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="8.5" cy="9.5" r="1.8"/><path d="M4 17l5-4.5 4 3.5 3-2.5 4 3.5"/></svg>
-            <b>Converter</b><span>Troca o formato e diminui o peso</span>
-          </button>
-          <button type="button" class="goal" data-v="kit">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="5" width="12" height="9" rx="2"/><rect x="12" y="9" width="6.5" height="10" rx="1.5"/><rect x="17" y="12" width="4.5" height="7.5" rx="1.2"/></svg>
-            <b>Kit responsivo</b><span>Vários tamanhos + código &lt;picture&gt;</span>
-          </button>
-          <button type="button" class="goal" data-v="favicon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><rect x="8" y="8" width="8" height="8" rx="2"/></svg>
-            <b>Favicon</b><span>Ícones do site a partir do logo</span>
-          </button>
+      <div class="seg mode3" id="mode" role="group" aria-label="O que fazer">
+        <button type="button" data-v="convert">Converter</button>
+        <button type="button" data-v="kit">Kit responsivo</button>
+        <button type="button" data-v="favicon">Favicon</button>
+      </div>
+      <p class="hint mode-hint" id="mode-hint"></p>
+
+      <!-- converter e kit -->
+      <div class="arow m-convert m-kit" id="f-quality">
+        <div class="arow-h"><label for="q">Qualidade</label><output id="q-out" for="q"></output></div>
+        <input type="range" id="q" min="40" max="100" step="1">
+        <div class="scale"><span>arquivo menor</span><span>mais nítida</span></div>
+      </div>
+
+      <div class="arow m-convert">
+        <div class="arow-h"><label for="size">Tamanho</label></div>
+        <select class="sel" id="size"></select>
+        <div class="row2" id="custom" hidden>
+          <label>Largura (px)<input class="inp" id="cw" type="number" min="1" placeholder="auto" inputmode="numeric"></label>
+          <label>Altura (px)<input class="inp" id="ch" type="number" min="1" placeholder="auto" inputmode="numeric"></label>
+        </div>
+        <div id="fitbox" hidden>
+          <div class="seg two" id="fit" role="group" aria-label="Como ajustar">
+            <button type="button" data-v="cover">Cortar as sobras</button>
+            <button type="button" data-v="contain">Imagem inteira</button>
+          </div>
+        </div>
+        <div class="hint" id="size-hint"></div>
+        <div class="bgrow" id="f-bg" hidden><input type="color" id="bg" aria-label="Cor de fundo"><span class="hint" id="bg-hint"></span></div>
+      </div>
+
+      <div class="arow m-convert">
+        <div class="arow-h"><label for="maxkb">Peso máximo por imagem</label></div>
+        <div class="unit"><input class="inp" id="maxkb" type="number" min="5" step="5" placeholder="sem limite" inputmode="numeric"><span>KB</span></div>
+      </div>
+
+      <!-- kit -->
+      <div class="arow m-kit">
+        <div class="arow-h"><span class="t">Formatos</span></div>
+        <div class="chips" id="kit-fmts">
+          <label><input type="checkbox" value="avif"><span>AVIF</span></label>
+          <label><input type="checkbox" value="webp"><span>WebP</span></label>
+          <label><input type="checkbox" value="jpeg"><span>JPG</span></label>
         </div>
       </div>
-      <div class="adv-block m-convert">
-        <div class="adv-lbl">Atalhos prontos</div>
-        <div class="presets" id="presets" role="group" aria-label="Atalhos prontos"></div>
+      <div class="arow m-kit">
+        <div class="arow-h"><span class="t">Larguras (px)</span></div>
+        <div class="chips" id="kit-widths"></div>
       </div>
-      <div class="recap" id="recap" aria-live="polite"></div>
-      <div class="adv-body" id="adv-fields">
 
-        <!-- converter -->
-        <div class="fld m-convert">
-          <div class="fld-h"><span class="t">Formato final</span></div>
-          <div class="seg" id="fmt" role="group" aria-label="Formato final">
-            <button type="button" data-v="webp">WebP</button>
-            <button type="button" data-v="avif">AVIF</button>
-            <button type="button" data-v="jpeg">JPG</button>
-            <button type="button" data-v="png">PNG</button>
-          </div>
-          <div class="hint" id="fmt-hint"></div>
-        </div>
-
-        <!-- kit -->
-        <div class="fld m-kit">
-          <div class="fld-h"><span class="t">Formatos</span></div>
-          <div class="chips" id="kit-fmts">
-            <label><input type="checkbox" value="avif"><span>AVIF</span></label>
-            <label><input type="checkbox" value="webp"><span>WebP</span></label>
-            <label><input type="checkbox" value="jpeg"><span>JPG (reserva)</span></label>
-          </div>
-          <div class="hint">O navegador de cada visitante usa o primeiro que ele entende: AVIF, depois WebP, depois JPG.</div>
-          <div class="fld-h"><span class="t">Larguras (px)</span></div>
-          <div class="chips" id="kit-widths"></div>
-          <div class="hint">Larguras maiores que a foto original são puladas.</div>
-          <div class="row2">
-            <label>Pasta das imagens no site<input class="inp" id="kit-path" placeholder="img/" spellcheck="false" autocapitalize="off"></label>
-            <label>Atributo sizes<input class="inp" id="kit-sizes" placeholder="100vw" spellcheck="false" autocapitalize="off"></label>
-          </div>
-          <div class="hint">Em sizes, "100vw" serve para imagem que ocupa a largura toda. Para uma coluna de 800 px: <span class="mono">(max-width: 800px) 100vw, 800px</span>.</div>
-        </div>
-
-        <div class="fld m-convert m-kit" id="f-quality">
-          <div class="fld-h"><label for="q">Qualidade</label><output id="q-out" for="q"></output></div>
-          <input type="range" id="q" min="40" max="100" step="1">
-          <div class="scale"><span>arquivo menor</span><span>imagem mais nítida</span></div>
-          <div class="row2 m-convert">
-            <label>Peso máximo por imagem (KB)<input class="inp" id="maxkb" type="number" min="5" step="5" placeholder="sem limite" inputmode="numeric"></label>
-            <span class="hint" style="align-self:end">Se passar desse peso, a qualidade baixa sozinha até caber.</span>
-          </div>
-        </div>
-
-        <div class="fld m-convert" id="f-png" hidden>
-          <label class="chk"><input type="checkbox" id="optpng"> <span>Otimizar PNG <span class="hint">(bem mais leve, sem perder qualidade)</span></span></label>
-        </div>
-
-        <div class="fld m-convert">
-          <div class="fld-h"><label for="size">Tamanho</label></div>
-          <select class="sel" id="size"></select>
-          <div class="row2" id="custom" hidden>
-            <label>Largura (px)<input class="inp" id="cw" type="number" min="1" placeholder="auto" inputmode="numeric"></label>
-            <label>Altura (px)<input class="inp" id="ch" type="number" min="1" placeholder="auto" inputmode="numeric"></label>
-          </div>
-          <div id="fitbox" hidden>
-            <div class="seg two" id="fit" role="group" aria-label="Como ajustar">
-              <button type="button" data-v="cover">Cortar as sobras</button>
-              <button type="button" data-v="contain">Mostrar a imagem inteira</button>
-            </div>
-          </div>
-          <div class="hint" id="size-hint"></div>
-        </div>
-
-        <div class="fld m-convert" id="f-bg" hidden>
-          <div class="bgrow"><input type="color" id="bg" aria-label="Cor de fundo"><span class="hint" id="bg-hint"></span></div>
-        </div>
-
-        <!-- favicon -->
-        <div class="fld m-favicon">
-          <div class="hint">Usa a <b>primeira imagem da lista</b>. O ideal é um logo quadrado, em PNG com fundo transparente ou SVG.</div>
-          <div class="fld-h"><span class="t">Fundo</span></div>
+      <!-- favicon -->
+      <div class="arow m-favicon">
+        <div class="arow-h"><span class="t">Fundo do ícone</span></div>
+        <div class="bgrow">
           <div class="seg two" id="fav-bg" role="group" aria-label="Fundo do favicon">
             <button type="button" data-v="transparent">Transparente</button>
-            <button type="button" data-v="color">Cor sólida</button>
+            <button type="button" data-v="color">Cor</button>
           </div>
-          <div class="bgrow"><input type="color" id="fav-color" aria-label="Cor de fundo do ícone"><span class="hint">Cor de fundo (o ícone do iPhone sempre usa ela)</span></div>
-          <div class="fld-h"><label for="fav-pad">Margem em volta do logo</label><output id="fav-pad-out"></output></div>
-          <input type="range" id="fav-pad" min="0" max="30" step="1">
-          <div class="row2">
-            <label>Nome do site<input class="inp" id="fav-name" placeholder="ex.: Goldline Painting"></label>
-            <label>Cor do tema<span class="bgrow"><input type="color" id="fav-theme" aria-label="Cor do tema"><span class="hint mono" id="fav-theme-out"></span></span></label>
-          </div>
+          <input type="color" id="fav-color" aria-label="Cor de fundo do ícone">
         </div>
+      </div>
+      <div class="arow m-favicon">
+        <div class="arow-h"><label for="fav-pad">Margem em volta do logo</label><output id="fav-pad-out"></output></div>
+        <input type="range" id="fav-pad" min="0" max="30" step="1">
+      </div>
+      <div class="arow m-favicon">
+        <div class="arow-h"><label for="fav-name">Nome do site</label></div>
+        <input class="inp" id="fav-name" placeholder="ex.: Goldline Painting">
+      </div>
 
-        <!-- nomes -->
-        <div class="fld m-convert m-kit">
-          <div class="fld-h"><span class="t">Nome dos arquivos</span></div>
-          <div class="seg two" id="names" role="group" aria-label="Nome dos arquivos">
-            <button type="button" data-v="prefix">Numerar em ordem</button>
-            <button type="button" data-v="original">Manter o nome original</button>
+      <!-- marca d'água -->
+      <div class="arow m-convert m-kit">
+        <label class="chk"><input type="checkbox" id="wm-on"> <span>Colocar marca d'água</span></label>
+        <div class="wm-body" id="wm-box" hidden>
+          <div class="seg two" id="wm-type" role="group" aria-label="Tipo de marca d'água">
+            <button type="button" data-v="text">Texto</button>
+            <button type="button" data-v="logo">Logo</button>
           </div>
-          <div class="row2" id="prefixbox">
-            <label>Começo do nome<input class="inp" id="prefix" placeholder="ex.: fachada-" spellcheck="false" autocapitalize="off"></label>
-            <label>Começar no número<input class="inp" id="start" type="number" min="0" inputmode="numeric"></label>
+          <input class="inp" id="wm-text" placeholder="© Nome da empresa" aria-label="Texto da marca d'água">
+          <div id="wm-logo-box" class="bgrow">
+            <button class="ghost" id="wm-logo-btn" type="button">Escolher logo</button>
+            <span class="hint" id="wm-logo-name">nenhum logo escolhido</span>
+            <input type="file" id="wm-logo" accept="image/*,.svg" hidden>
           </div>
-          <label class="chk" id="cleanbox"><input type="checkbox" id="clean"> <span>Deixar os nomes prontos para web <span class="hint">(sem acentos, espaços e maiúsculas)</span></span></label>
-          <div class="names-preview" id="names-preview"></div>
-        </div>
-
-        <!-- marca d'água -->
-        <details class="wm m-convert m-kit" id="wm-box">
-          <summary>Marca d'água</summary>
-          <div class="wm-body">
-            <label class="chk"><input type="checkbox" id="wm-on"> <span>Colocar marca d'água nas imagens</span></label>
-            <div class="seg two" id="wm-type" role="group" aria-label="Tipo de marca d'água">
-              <button type="button" data-v="text">Texto</button>
-              <button type="button" data-v="logo">Logo</button>
-            </div>
-            <input class="inp" id="wm-text" placeholder="© Nome da empresa" aria-label="Texto da marca d'água">
-            <div id="wm-logo-box" class="bgrow">
-              <button class="ghost" id="wm-logo-btn" type="button">Escolher logo</button>
-              <span class="hint" id="wm-logo-name">nenhum logo escolhido</span>
-              <input type="file" id="wm-logo" accept="image/*,.svg" hidden>
-            </div>
-            <div class="wm-row">
-              <div class="lbl">Posição<div class="posgrid" id="wm-pos" role="group" aria-label="Posição">
-                <button type="button" data-v="tl" aria-label="Topo esquerda"></button><button type="button" data-v="tc" aria-label="Topo centro"></button><button type="button" data-v="tr" aria-label="Topo direita"></button>
-                <button type="button" data-v="ml" aria-label="Meio esquerda"></button><button type="button" data-v="mc" aria-label="Centro"></button><button type="button" data-v="mr" aria-label="Meio direita"></button>
-                <button type="button" data-v="bl" aria-label="Base esquerda"></button><button type="button" data-v="bc" aria-label="Base centro"></button><button type="button" data-v="br" aria-label="Base direita"></button>
-              </div></div>
-              <div style="display:grid;gap:8px">
-                <label class="lbl">Tamanho <output id="wm-size-out"></output><input type="range" id="wm-size" min="5" max="60"></label>
-                <label class="lbl">Transparência <output id="wm-op-out"></output><input type="range" id="wm-op" min="10" max="100"></label>
-                <div class="seg two" id="wm-color" role="group" aria-label="Cor do texto">
-                  <button type="button" data-v="light">Texto claro</button>
-                  <button type="button" data-v="dark">Texto escuro</button>
-                </div>
+          <div class="wm-row">
+            <div class="lbl">Posição<div class="posgrid" id="wm-pos" role="group" aria-label="Posição">
+              <button type="button" data-v="tl" aria-label="Topo esquerda"></button><button type="button" data-v="tc" aria-label="Topo centro"></button><button type="button" data-v="tr" aria-label="Topo direita"></button>
+              <button type="button" data-v="ml" aria-label="Meio esquerda"></button><button type="button" data-v="mc" aria-label="Centro"></button><button type="button" data-v="mr" aria-label="Meio direita"></button>
+              <button type="button" data-v="bl" aria-label="Base esquerda"></button><button type="button" data-v="bc" aria-label="Base centro"></button><button type="button" data-v="br" aria-label="Base direita"></button>
+            </div></div>
+            <div style="display:grid;gap:8px">
+              <label class="lbl">Tamanho <output id="wm-size-out"></output><input type="range" id="wm-size" min="5" max="60"></label>
+              <label class="lbl">Transparência <output id="wm-op-out"></output><input type="range" id="wm-op" min="10" max="100"></label>
+              <div class="seg two" id="wm-color" role="group" aria-label="Cor do texto">
+                <button type="button" data-v="light">Texto claro</button>
+                <button type="button" data-v="dark">Texto escuro</button>
               </div>
             </div>
           </div>
-        </details>
-
-        <!-- perfis -->
-        <div class="fld">
-          <div class="fld-h"><span class="t">Guardar estes ajustes</span></div>
-          <div class="profiles">
-            <select class="sel" id="profile" aria-label="Ajustes salvos"></select>
-            <button class="icon-btn" id="prof-save" type="button" title="Salvar estes ajustes com um nome" aria-label="Salvar ajustes"><svg viewBox="0 0 16 16"><path d="M3 2h8l2 2v10H3z"/><path d="M5 2v4h5V2M5 14v-4h6v4"/></svg></button>
-            <button class="icon-btn" id="prof-del" type="button" title="Excluir ajustes salvos" aria-label="Excluir ajustes salvos"><svg viewBox="0 0 16 16"><path d="M3 4h10M6 4V2.5h4V4M4.5 4l.7 9.5h5.6l.7-9.5"/></svg></button>
-          </div>
-          <div class="saveprof" id="saveprof" hidden>
-            <input class="inp sm" id="prof-name" placeholder="Nome, ex.: Blog do cliente X" maxlength="40">
-            <button class="ghost" id="prof-ok" type="button">Salvar</button>
-          </div>
-          <div class="hint">Útil quando você sempre usa as mesmas configurações para um cliente.</div>
         </div>
       </div>
     </div>
@@ -571,7 +514,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
 </main>
 
 <!-- escolha de formato (uma só, posicionada junto do botão clicado) -->
-<div class="fmtpop" id="fmtpop" role="dialog" aria-label="Formato de saída" hidden>
+<div class="fmtpop gel" id="fmtpop" role="dialog" aria-label="Formato de saída" hidden>
   <div class="fp-head">
     <span>Converter para</span>
     <label class="switch"><input type="checkbox" id="fp-all" checked><i aria-hidden="true"></i>Aplicar a todas</label>
@@ -579,7 +522,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
   <div class="fp-grid" id="fp-grid"></div>
 </div>
 
-<dialog id="dlg" aria-labelledby="dlg-title">
+<dialog id="dlg" class="gel" aria-labelledby="dlg-title">
   <div class="dlg">
     <div class="dlg-h"><b id="dlg-title">Enquadramento</b><span class="small muted">Clique (ou arraste) no que não pode ficar de fora do recorte.</span></div>
     <div class="stage" id="stage"><img id="dlg-img" alt=""><div class="cropbox" id="cropbox"></div><div class="fdot" id="fdot"></div></div>
@@ -591,7 +534,7 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
   </div>
 </dialog>
 
-<dialog id="cmpdlg" aria-labelledby="cmp-title">
+<dialog id="cmpdlg" class="gel" aria-labelledby="cmp-title">
   <div class="dlg">
     <div class="dlg-h"><b id="cmp-title">Comparar</b><span class="small muted" id="cmp-info"></span></div>
     <div class="cmp fit" id="cmp">
@@ -608,9 +551,35 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
     </div>
   </div>
 </dialog>
+<!-- nomes dos arquivos: perguntado na primeira conversão -->
+<dialog id="namedlg" class="gel namedlg" aria-labelledby="nd-title">
+  <div class="dlg nd">
+    <div class="nd-h">
+      <b id="nd-title">Como quer os nomes dos arquivos?</b>
+      <span class="hint">Dá para trocar depois em "Nomes", no topo da lista.</span>
+    </div>
+    <div class="nd-opts" role="radiogroup" aria-label="Nomes dos arquivos">
+      <label class="nd-opt"><input type="radio" name="nd" value="original">
+        <span class="nd-card"><b>Manter como está</b><span>Cada imagem fica com o nome que já tem.</span><code id="nd-ex-orig"></code></span>
+      </label>
+      <label class="nd-opt"><input type="radio" name="nd" value="prefix">
+        <span class="nd-card"><b>Padronizar</b><span>Mesmo nome e um número, sem acentos nem espaços.</span><code id="nd-ex-pre"></code></span>
+      </label>
+    </div>
+    <div class="nd-pre" id="nd-prebox" hidden>
+      <label>Nome<input class="inp" id="prefix" placeholder="ex.: fachada" spellcheck="false" autocapitalize="off" maxlength="60"></label>
+      <label>Começar no<input class="inp" id="nd-start" type="number" min="0" inputmode="numeric"></label>
+    </div>
+    <div class="dlg-f">
+      <button class="ghost" id="nd-cancel" type="button">Cancelar</button>
+      <button class="btn teal" id="nd-ok" type="button">Converter</button>
+    </div>
+  </div>
+</dialog>
+
 <div class="toast" id="toast" role="status"></div>
 
-<script src="assets/conversor.js?v=4"></script>
+<script src="assets/conversor.js?v=7"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>

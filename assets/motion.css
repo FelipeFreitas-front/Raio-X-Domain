@@ -21,7 +21,60 @@ html.pl-on::after{animation:pl-cycle .8s steps(1) infinite,pl-failsafe 0s 2.5s f
 .rv{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .75s cubic-bezier(.2,.7,.2,1)}
 .rv.rv-in{opacity:1;transform:none}
 
+/* efeito gelatinoso: popups, menus e avisos entram esticando e balançando até assentar, como gelatina.
+   .gel entra ao aparecer (hidden sai ou dialog abre); .gel-out é a saída (posta pelo script antes de esconder). */
+@keyframes gel-in{
+  0%{opacity:0;transform:scale(.55)}
+  38%{opacity:1;transform:scale(1.08,.92)}
+  56%{transform:scale(.95,1.05)}
+  72%{transform:scale(1.025,.975)}
+  86%{transform:scale(.993,1.007)}
+  100%{opacity:1;transform:none}
+}
+@keyframes gel-out{
+  0%{opacity:1;transform:none}
+  35%{opacity:1;transform:scale(1.05,.95)}
+  100%{opacity:0;transform:scale(.6)}
+}
+@keyframes gel-tap{
+  0%{transform:none}
+  30%{transform:scale(1.04,.96)}
+  55%{transform:scale(.98,1.02)}
+  78%{transform:scale(1.01,.99)}
+  100%{transform:none}
+}
+@keyframes gel-fade{from{opacity:0}to{opacity:1}}
+.gel{transform-origin:var(--gel-origin,50% 50%)}
+.gel:not([hidden]),dialog.gel[open]{animation:gel-in .62s cubic-bezier(.3,.7,.3,1) both}
+dialog.gel[open]::backdrop{animation:gel-fade .25s ease-out both}
+.gel.gel-out,dialog.gel.gel-out{animation:gel-out .24s cubic-bezier(.5,0,.8,.4) both}
+dialog.gel.gel-out::backdrop{animation:gel-fade .24s ease-in reverse both}
+/* aparência de vidro líquido nos popups */
+.gel:not(dialog){background:color-mix(in srgb, var(--paper) 86%, transparent)!important;-webkit-backdrop-filter:blur(18px) saturate(1.6);backdrop-filter:blur(18px) saturate(1.6)}
+
+/* aviso (toast): pílula de vidro que sobe gelatinosa e desce ao sumir */
+@keyframes toast-in{
+  0%{opacity:0;transform:translate(-50%,28px) scale(.55)}
+  38%{opacity:1;transform:translate(-50%,-6px) scale(1.12,.88)}
+  56%{transform:translate(-50%,2px) scale(.94,1.06)}
+  72%{transform:translate(-50%,0) scale(1.03,.97)}
+  86%{transform:translate(-50%,0) scale(.99,1.01)}
+  100%{opacity:1;transform:translate(-50%,0)}
+}
+@keyframes toast-out{
+  0%{opacity:1;transform:translate(-50%,0)}
+  35%{opacity:1;transform:translate(-50%,-3px) scale(1.06,.94)}
+  100%{opacity:0;transform:translate(-50%,20px) scale(.7)}
+}
+body .toast{padding:11px 20px;border-radius:22px;width:max-content;text-align:center;line-height:1.4;background:color-mix(in srgb, var(--ink) 84%, transparent);color:var(--parchment);
+  -webkit-backdrop-filter:blur(16px) saturate(1.8);backdrop-filter:blur(16px) saturate(1.8);
+  border:1px solid color-mix(in srgb, var(--parchment) 14%, transparent);box-shadow:0 12px 32px rgba(20,18,15,.28),inset 0 1px 0 color-mix(in srgb, var(--parchment) 18%, transparent);
+  font-weight:500;max-width:min(520px,calc(100vw - 32px));
+  transition:none;animation:toast-out .3s cubic-bezier(.5,0,.8,.4) both;z-index:60}
+body .toast.show{animation:toast-in .7s cubic-bezier(.3,.7,.3,1) both}
+
 @media (prefers-reduced-motion:reduce){
   html.pl-on::after{animation:pl-failsafe 0s 2.5s forwards}
   .rv{opacity:1;transform:none;transition:none}
+  .gel:not([hidden]),dialog.gel[open],.gel.gel-out,body .toast,body .toast.show,.nd-opt input:checked + .nd-card{animation-duration:.01s}
 }
