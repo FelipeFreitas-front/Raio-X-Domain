@@ -26,7 +26,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect x='1' y='1' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='1' width='21' height='21' rx='6' fill='%23016a71'/%3E%3Crect x='1' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Crect x='26' y='26' width='21' height='21' rx='6' fill='%2327251e'/%3E%3Cpath d='M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z' fill='%23fff'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" href="assets/base.css?v=2">
 <link rel="stylesheet" href="assets/motion.css?v=2">
 <style>
 /* Layout: landing comercial em coluna de 1120px. Hero em duas colunas (promessa + busca à esquerda, prévia do produto à direita),
@@ -320,16 +320,34 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
   .tool-wide{padding-bottom:28px}
 }
 @media (prefers-reduced-motion:reduce){.tool-wide:hover .tp-row{transform:none}}
+/* quarto cartão (editor de vídeo): mini timeline no lugar da ilustração */
+.tool-video{margin-top:0}
+.tv-mini{gap:6px;padding:14px;border-radius:14px;background:var(--parchment);border:1px solid var(--hair);box-shadow:var(--shadow);position:absolute}
+.tv-ruler{display:flex;justify-content:space-between;font:10px var(--mono);color:var(--graphite);padding:0 2px 4px;border-bottom:1px solid var(--hair)}
+.tv-ruler i{font-style:normal}
+.tv-track{display:flex;gap:3px;height:44px}
+.tv-track.a{height:26px}
+.tv-clip{border-radius:7px;border:1.5px solid color-mix(in srgb, var(--teal) 70%, transparent);background:color-mix(in srgb, var(--teal) 22%, var(--paper));transition:flex-grow .5s cubic-bezier(.2,.7,.2,1)}
+.tv-clip.c1{flex:3;background:linear-gradient(90deg,#c9a27a,#8c6a4f)}
+.tv-clip.c2{flex:2;background:linear-gradient(90deg,#6f8f9c,#3f5d6a)}
+.tv-clip.c3{flex:4;background:linear-gradient(90deg,#a7b48a,#6d7a52)}
+.tv-clip.au{flex:1;border-color:color-mix(in srgb, var(--ink) 30%, transparent);background:repeating-linear-gradient(90deg,color-mix(in srgb, var(--teal) 55%, transparent) 0 2px,transparent 2px 5px),color-mix(in srgb, var(--ink) 8%, var(--paper));background-size:100% 60%,100% 100%;background-repeat:no-repeat;background-position:center}
+.tv-head{position:absolute;top:10px;bottom:10px;left:38%;width:2px;background:var(--ink);border-radius:2px;transition:left 1.2s cubic-bezier(.2,.7,.2,1)}
+.tv-head::before{content:"";position:absolute;top:-2px;left:-5px;width:12px;height:10px;border-radius:3px 3px 6px 6px;background:var(--ink)}
+.tool-video:hover .tv-head{left:72%}
+.tool-video:hover .tv-clip.c2{flex-grow:1.2}
+@media (prefers-reduced-motion:reduce){.tv-head,.tv-clip{transition:none}}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="topbar-in">
-    <a class="hub-brand wk" href="./" aria-current="page" aria-label="webkit, pÃ¡gina inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
+    <a class="hub-brand wk" href="./" aria-current="page" aria-label="webkit, página inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
     <nav class="topnav" aria-label="Ferramentas">
       <a href="raio-x.html"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.2"/><path d="M1.8 7h10.4M7 1.8c-1.5 1.4-2.2 3.1-2.2 5.2s.7 3.8 2.2 5.2M7 1.8c1.5 1.4 2.2 3.1 2.2 5.2s-.7 3.8-2.2 5.2M10.8 10.8l3.4 3.4"/></svg>Raio-X<span class="nav-long"> de domínio</span></a>
       <a href="disponibilidade.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.3V2.5h5.8L14 8.7 8.7 14z"/><path d="M5.2 8l1.8 1.8 3.2-3.2"/></svg>Domínio<span class="nav-long"> livre?</span></a>
       <a href="conversor.html"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="2"/><circle cx="5.5" cy="6.3" r="1.1"/><path d="M2.5 12l3.4-3 2.6 2.1 1.8-1.4 3.2 2.6"/></svg>Conversor<span class="nav-long"> de imagens</span></a>
+      <a href="editor.html"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="8.4" rx="1.8"/><path d="M6.8 5.4v3.6l3-1.8z"/><path d="M1.8 13.8h12.4"/></svg>Editor<span class="nav-long"> de vídeo</span></a>
     </nav>
     <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
       <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
@@ -427,7 +445,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
     <div class="wrap">
       <div class="sec-head">
         <span class="kicker">Ferramentas</span>
-        <h2 class="h-sec">Três ferramentas <span class="hl">completas</span>, sem aba de propaganda e sem “crie sua conta”.</h2>
+        <h2 class="h-sec">Quatro ferramentas <span class="hl">completas</span>, sem aba de propaganda e sem “crie sua conta”.</h2>
       </div>
       <div class="tools">
         <a class="tool" href="raio-x.html">
@@ -481,6 +499,26 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
             <span class="tp-row"><b>goldline.site</b><i class="pill ok">Livre</i><em>renova por R$ 150</em></span>
           </span>
         </a>
+        <a class="tool tool-wide tool-video" href="editor.html">
+          <div class="tool-top">
+            <span class="tool-ico" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="22" height="14" rx="3" style="stroke:var(--ink)"/><path d="M12 8.2v5.6l4.6-2.8z" style="fill:var(--teal);stroke:var(--teal)"/><path d="M3 23h22" style="stroke:var(--ink)"/><path d="M10 21v4" style="stroke:var(--teal)"/></svg></span>
+            <div><h3>Editor de vídeo</h3><span class="tag">Timeline · cortar · juntar · MP4</span></div>
+          </div>
+          <p>Junte vídeos, fotos e música numa timeline, corte o que sobra e exporte em MP4. Tudo no navegador, sem instalar nada.</p>
+          <ul class="feat">
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Timeline com trilha de vídeo e de áudio</li>
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Corte pelas bordas ou divida com a tecla S</li>
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Formatos 16:9, 9:16 (Reels), 1:1 e 4:5</li>
+            <li><svg viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7"/></svg>Exporta em HD ou Full HD</li>
+          </ul>
+          <span class="btn go">Abrir o editor</span>
+          <span class="tool-art tool-preview tv-mini" aria-hidden="true">
+            <span class="tv-ruler"><i>0:00</i><i>0:05</i><i>0:10</i><i>0:15</i></span>
+            <span class="tv-track"><span class="tv-clip c1"></span><span class="tv-clip c2"></span><span class="tv-clip c3"></span></span>
+            <span class="tv-track a"><span class="tv-clip au"></span></span>
+            <span class="tv-head"></span>
+          </span>
+        </a>
       </div>
     </div>
   </section>
@@ -527,6 +565,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
         <details><summary>De onde vêm os dados do domínio?</summary><p>Do RDAP, o sucessor oficial do WHOIS, consultado direto nos registros de cada extensão (como o Registro.br), e de servidores DNS públicos como Google e Cloudflare.</p></details>
         <details><summary>WebP ou AVIF: qual escolher?</summary><p>WebP é leve e abre em todo navegador atual, uma escolha segura para qualquer site. AVIF costuma ficar ainda menor, mas leva mais tempo para gerar. No kit responsivo você usa os dois: quem suporta AVIF recebe AVIF, os outros recebem WebP.</p></details>
         <details><summary>Funciona com foto de iPhone (HEIC)?</summary><p>Sim. O conversor lê HEIC e transforma no formato que você escolher, já sem a localização GPS da foto.</p></details>
+        <details><summary>O editor de vídeo envia meus vídeos para algum lugar?</summary><p>Não. Os vídeos ficam no seu computador: o editor monta e grava o resultado no próprio navegador. A exportação acontece em tempo real, então um vídeo de 1 minuto leva cerca de 1 minuto para ficar pronto. Sai em MP4 no Chrome e no Edge; em navegadores sem MP4, sai em WebM.</p></details>
         <details><summary>Funciona no celular?</summary><p>Funciona. As páginas foram feitas para telas pequenas, com os botões principais sempre ao alcance do dedo.</p></details>
       </div>
     </div>
@@ -554,6 +593,7 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
       <a href="raio-x.html">Raio-X de domínio</a>
       <a href="disponibilidade.html">Disponibilidade de domínio</a>
       <a href="conversor.html">Conversor de imagens</a>
+      <a href="editor.html">Editor de vídeo</a>
       <a href="#perguntas">Perguntas frequentes</a>
     </nav>
   </div>

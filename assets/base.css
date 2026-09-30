@@ -90,6 +90,12 @@ button,input,select{font-family:inherit}
   .topnav{justify-content:center}
   .topnav a{flex:1;justify-content:center}
 }
+/* com 4 ferramentas no celular: as outras abas viram só ícone e a atual mostra o nome */
+@media (max-width:480px){
+  .topnav a{white-space:nowrap}
+  .topnav a:not([aria-current="page"]){flex:0 0 auto;font-size:0;gap:0;padding:0 13px}
+  .topnav a[aria-current="page"]{flex:1}
+}
 @media (prefers-reduced-motion:reduce){.hub-brand:hover .wk-icon rect:nth-of-type(2),.hub-brand:hover .wk-icon path{transform:none}}
 
 /* botões */

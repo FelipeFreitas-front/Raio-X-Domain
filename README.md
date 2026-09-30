@@ -8,6 +8,7 @@ Hub de ferramentas gratuitas para quem faz sites. Tudo roda no navegador: sem ca
 | `raio-x.html` | Raio-X de domínio |
 | `disponibilidade.html` | Disponibilidade de domínio (livre? quanto custa?) |
 | `conversor.html` | Conversor de imagens |
+| `editor.html` | Editor de vídeo |
 
 ## Disponibilidade de domínio
 
@@ -33,28 +34,35 @@ Abrir direto um domínio: `raio-x.html#exemplo.com.br` (links antigos `index.htm
 
 ## Conversor de imagens
 
-Três modos:
+Modo simples: um botão para escolher as imagens, e cada linha da lista tem o formato de saída (WebP, AVIF, JPG ou PNG, por imagem ou para todas), o botão Converter e depois Baixar. Na primeira conversão um popup pergunta se os nomes ficam como estão ou são padronizados (`fachada-casa-1.webp`…).
 
-- **Converter:** WebP, AVIF (codificador de verdade, via WebAssembly), JPG e PNG otimizado. Qualidade ajustável, peso máximo por imagem, tamanhos prontos (site, Instagram, Stories, link compartilhado ou personalizado), recortar com ponto de enquadramento ou encaixar com cor de fundo.
-- **Kit responsivo:** cada imagem em várias larguras e formatos (AVIF, WebP, JPG) com o código `<picture>` pronto (srcset, sizes, width/height, lazy).
-- **Favicon:** de um logo, gera `favicon.ico` (16/32/48), PNGs, ícone do iPhone, ícones Android, `site.webmanifest` e o código do `<head>`.
+Modo avançado (recolhido):
 
-Também:
+- **Converter:** qualidade, tamanho (site, Instagram, Stories, link compartilhado ou personalizado, com recorte ou encaixe), peso máximo por imagem e marca d'água (texto ou logo)
+- **Kit responsivo:** cada imagem em várias larguras e formatos (AVIF, WebP, JPG) com o código `<picture>` pronto
+- **Favicon:** de um logo, gera `favicon.ico` (16/32/48), PNGs, ícone do iPhone, ícones Android, `site.webmanifest` e o código do `<head>`
+- Menu ⋯ em cada imagem: comparar antes e depois, escolher o recorte, girar, espelhar, copiar como data URI
 
-- Aceita HEIC do iPhone (decodificado no navegador), além de JPG, PNG, WebP, AVIF, GIF, BMP e SVG
-- AVIF e PNG otimizado rodam em segundo plano (Web Worker), sem travar a página
-- Marca d'água em lote (texto ou logo, 9 posições, tamanho e opacidade)
-- Comparar antes e depois com barra deslizante
-- Girar e espelhar cada foto; copiar como data URI
-- Perfis de configuração salvos no navegador
-- Avisa quando a foto tinha localização GPS (removida na conversão)
-- Renomeia em ordem ou limpa os nomes para web; baixa uma a uma ou tudo em .zip
-- Arrastar, escolher ou colar (Ctrl+V); reordena arrastando; barra de ação fixa no celular
+Também aceita HEIC do iPhone, remove a localização GPS das fotos e baixa tudo em .zip. AVIF e PNG otimizado rodam em segundo plano (Web Worker).
+
+## Editor de vídeo
+
+Editor simples no estilo do [OpenCut](https://github.com/OpenCut-app/OpenCut): arquivos à esquerda, preview no centro, propriedades à direita e timeline embaixo.
+
+- Importa vídeos, fotos e músicas (arrastar ou escolher), com miniatura, duração e forma de onda
+- Timeline com trilha de vídeo magnética (os clipes ficam colados, na ordem) e trilha de áudio livre
+- Cortar pelas bordas do clipe, dividir no cursor (`S`), duplicar, excluir, reordenar arrastando, ímã nas bordas e no cursor
+- Volume até 200%, sem som, velocidade (0,5× a 2×), "mostrar inteiro" ou "preencher a tela", duração de cada foto
+- Formatos 16:9, 9:16 (Reels/TikTok), 1:1 e 4:5, com cor de fundo
+- Desfazer e refazer, zoom da timeline (Ctrl + rodinha), altura da timeline ajustável, atalhos de teclado
+- Exporta em HD ou Full HD: MP4 no Chrome/Edge, WebM onde não houver MP4. A gravação é em tempo real (MediaRecorder), então a aba precisa ficar aberta e visível até terminar
 
 ## Estrutura
 
 - `assets/base.css`: cores, tema claro/escuro e componentes compartilhados
+- `assets/motion.css`: tela de carregamento, entrada suave e efeito gelatinoso de popups e avisos
 - `assets/conversor.js`: lógica do conversor
 - `assets/encoder-worker.js`: AVIF e PNG otimizado em segundo plano
+- `assets/editor.js` e `assets/editor.css`: editor de vídeo
 - Bibliotecas carregadas sob demanda de CDN: `@jsquash/avif`, `@jsquash/oxipng`, `heic2any` (jsDelivr) e JSZip (cdnjs)
 - O processamento em segundo plano precisa da página servida por http(s) (GitHub Pages, Vercel etc.). Aberto como arquivo local, o conversor funciona igual, só que na própria página.

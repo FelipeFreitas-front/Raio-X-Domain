@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Editor de Vídeo</title>
+<meta name="description" content="Editor de vídeo simples no navegador: junte e corte vídeos na timeline, adicione música e exporte em MP4. Sem enviar arquivos, sem conta.">
+<script>
+  (function(){ var t; try{ t = localStorage.getItem('rx-theme'); }catch(e){}
+    if(t !== 'dark' && t !== 'light') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', t);
+    document.documentElement.classList.add('pl-on'); })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700&text=raio-xwebk%C4%B1t&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='22' height='15' rx='3' stroke='%2327251e'/%3E%3Cpath d='M12 9.5v6l5-3z' fill='%23016a71' stroke='%23016a71'/%3E%3Cpath d='M3 24h22M10 22v4' stroke='%23016a71'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/base.css?v=2">
+<link rel="stylesheet" href="assets/motion.css?v=2">
+<link rel="stylesheet" href="assets/editor.css?v=1">
+</head>
+<body class="ed-page">
+<header class="topbar">
+  <div class="topbar-in">
+    <a class="hub-brand wk" href="./" aria-label="webkit, página inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
+    <nav class="topnav" aria-label="Ferramentas">
+      <a href="raio-x.html"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.2"/><path d="M1.8 7h10.4M7 1.8c-1.5 1.4-2.2 3.1-2.2 5.2s.7 3.8 2.2 5.2M7 1.8c1.5 1.4 2.2 3.1 2.2 5.2s-.7 3.8-2.2 5.2M10.8 10.8l3.4 3.4"/></svg>Raio-X<span class="nav-long"> de domínio</span></a>
+      <a href="disponibilidade.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.3V2.5h5.8L14 8.7 8.7 14z"/><path d="M5.2 8l1.8 1.8 3.2-3.2"/></svg>Domínio<span class="nav-long"> livre?</span></a>
+      <a href="conversor.html"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="2"/><circle cx="5.5" cy="6.3" r="1.1"/><path d="M2.5 12l3.4-3 2.6 2.1 1.8-1.4 3.2 2.6"/></svg>Conversor<span class="nav-long"> de imagens</span></a>
+      <a href="editor.html" aria-current="page"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="8.4" rx="1.8"/><path d="M6.8 5.4v3.6l3-1.8z"/><path d="M1.8 13.8h12.4"/></svg>Editor<span class="nav-long"> de vídeo</span></a>
+    </nav>
+    <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
+      <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
+      <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="ed" id="ed">
+  <!-- barra do projeto -->
+  <div class="ed-bar">
+    <input class="proj-name" id="proj-name" value="Meu vídeo" aria-label="Nome do projeto" spellcheck="false" maxlength="60">
+    <div class="ed-bar-r">
+      <button class="ib" id="undo" type="button" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3 2 6.5 5.5 10"/><path d="M2.5 6.5H10a4 4 0 0 1 0 8H7"/></svg></button>
+      <button class="ib" id="redo" type="button" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3 14 6.5 10.5 10"/><path d="M13.5 6.5H6a4 4 0 0 0 0 8h3"/></svg></button>
+      <button class="ib" id="keys-btn" type="button" title="Atalhos do teclado" aria-label="Atalhos do teclado" aria-haspopup="dialog"><svg viewBox="0 0 16 16"><rect x="1.5" y="4" width="13" height="8.5" rx="1.5"/><path d="M4 7h.01M6.5 7h.01M9 7h.01M11.5 7h.01M5 9.8h6"/></svg></button>
+      <button class="btn teal" id="export-btn" type="button" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"/></svg>Exportar</button>
+    </div>
+  </div>
+
+  <!-- arquivos -->
+  <section class="pane media" id="media-pane" aria-label="Arquivos">
+    <div class="pane-h">
+      <b>Arquivos</b>
+      <button class="ghost sm" id="import" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Importar</button>
+    </div>
+    <div class="media-body" id="media-drop">
+      <div class="media-empty" id="media-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
+        <b>Arraste seus arquivos</b>
+        <span>Vídeos, fotos e músicas. Nada é enviado: tudo fica no seu computador.</span>
+        <button class="btn teal" id="import2" type="button">Escolher arquivos</button>
+      </div>
+      <ul class="media-grid" id="media-grid" aria-label="Arquivos importados"></ul>
+    </div>
+    <input type="file" id="file" accept="video/*,image/*,audio/*" multiple hidden>
+  </section>
+
+  <!-- preview -->
+  <section class="pane preview" aria-label="Pré-visualização">
+    <div class="stage-wrap" id="stage-wrap">
+      <canvas id="screen" aria-label="Pré-visualização do vídeo"></canvas>
+      <div class="stage-empty" id="stage-empty">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2.5"/><path d="M10.5 8.8v4.4l3.6-2.2z"/></svg>
+        <span>Coloque vídeos ou fotos na timeline para ver aqui</span>
+      </div>
+    </div>
+    <div class="transport">
+      <span class="tc" id="tc"><b id="tc-now">0:00.00</b> <span>/ <span id="tc-total">0:00.00</span></span></span>
+      <div class="tp-mid">
+        <button class="ib" id="to-start" type="button" title="Ir para o início (Home)" aria-label="Ir para o início"><svg viewBox="0 0 16 16"><path d="M3.5 3v10M13 3.5 6 8l7 4.5z"/></svg></button>
+        <button class="ib" id="frame-back" type="button" title="Quadro anterior (←)" aria-label="Quadro anterior"><svg viewBox="0 0 16 16"><path d="M10 3.5 5.5 8l4.5 4.5"/></svg></button>
+        <button class="play" id="play" type="button" title="Tocar (Espaço)" aria-label="Tocar"><svg class="i-play" viewBox="0 0 16 16"><path d="M5 3.2v9.6L12.8 8z"/></svg><svg class="i-pause" viewBox="0 0 16 16"><path d="M5 3v10M11 3v10"/></svg></button>
+        <button class="ib" id="frame-fwd" type="button" title="Próximo quadro (→)" aria-label="Próximo quadro"><svg viewBox="0 0 16 16"><path d="M6 3.5 10.5 8 6 12.5"/></svg></button>
+        <button class="ib" id="to-end" type="button" title="Ir para o fim (End)" aria-label="Ir para o fim"><svg viewBox="0 0 16 16"><path d="M12.5 3v10M3 3.5 10 8l-7 4.5z"/></svg></button>
+      </div>
+      <div class="tp-r">
+        <span class="ratio-badge" id="ratio-badge">16:9</span>
+        <button class="ib" id="fullscreen" type="button" title="Tela cheia" aria-label="Tela cheia"><svg viewBox="0 0 16 16"><path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- propriedades -->
+  <section class="pane props" id="props" aria-label="Propriedades"></section>
+
+  <!-- divisória para mudar a altura da timeline -->
+  <div class="resizer" id="resizer" role="separator" aria-orientation="horizontal" aria-label="Arraste para mudar a altura da timeline" tabindex="0"></div>
+
+  <!-- timeline -->
+  <section class="pane tl" aria-label="Timeline">
+    <div class="tl-bar">
+      <div class="tl-tools">
+        <button class="ib" id="t-split" type="button" title="Dividir no cursor (S)" aria-label="Dividir no cursor"><svg viewBox="0 0 16 16"><circle cx="4" cy="4.5" r="2"/><circle cx="4" cy="11.5" r="2"/><path d="M5.6 5.6 14 12M5.6 10.4 14 4"/></svg></button>
+        <button class="ib" id="t-dup" type="button" title="Duplicar (Ctrl+D)" aria-label="Duplicar"><svg viewBox="0 0 16 16"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5"/></svg></button>
+        <button class="ib" id="t-del" type="button" title="Excluir (Delete)" aria-label="Excluir"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 9h5.8l.6-9"/></svg></button>
+        <span class="sep"></span>
+        <button class="ib tog" id="t-snap" type="button" title="Ímã: grudar nas bordas e no cursor (N)" aria-label="Ímã" aria-pressed="true"><svg viewBox="0 0 16 16"><path d="M3 2.5v5.5a5 5 0 0 0 10 0V2.5h-3.2V8a1.8 1.8 0 0 1-3.6 0V2.5z"/><path d="M3 5h3.2M9.8 5H13"/></svg></button>
+      </div>
+      <div class="tl-hint" id="tl-hint"></div>
+      <div class="tl-zoom">
+        <button class="ib" id="z-out" type="button" title="Diminuir zoom (-)" aria-label="Diminuir zoom"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M5 7h4M10.5 10.5 14 14"/></svg></button>
+        <input type="range" id="zoom" min="0" max="100" value="40" aria-label="Zoom da timeline">
+        <button class="ib" id="z-in" type="button" title="Aumentar zoom (+)" aria-label="Aumentar zoom"><svg viewBox="0 0 16 16"><circle cx="7" cy="7" r="4.5"/><path d="M5 7h4M7 5v4M10.5 10.5 14 14"/></svg></button>
+        <button class="ib" id="z-fit" type="button" title="Mostrar tudo" aria-label="Mostrar a timeline toda"><svg viewBox="0 0 16 16"><path d="M2 8h12M2 8l2.5-2.5M2 8l2.5 2.5M14 8l-2.5-2.5M14 8l-2.5 2.5"/></svg></button>
+      </div>
+    </div>
+    <div class="tl-body">
+      <div class="tl-heads">
+        <div class="th-ruler"></div>
+        <div class="th" title="Trilha de vídeo: os clipes ficam colados um no outro"><svg viewBox="0 0 16 16"><rect x="1.8" y="3" width="12.4" height="10" rx="1.8"/><path d="M6.8 6v4l3.2-2z"/></svg><span>Vídeo</span></div>
+        <div class="th a" title="Trilha de áudio: músicas e narração"><svg viewBox="0 0 16 16"><path d="M6 12V3.5l7-1.5v8.5"/><circle cx="4.3" cy="12" r="1.8"/><circle cx="11.3" cy="10.5" r="1.8"/></svg><span>Áudio</span></div>
+      </div>
+      <div class="tl-scroll" id="tl-scroll">
+        <div class="tl-content" id="tl-content">
+          <div class="ruler" id="ruler"></div>
+          <div class="track v" id="track-v" data-track="v"><span class="track-empty">Arraste vídeos e fotos para cá</span></div>
+          <div class="track a" id="track-a" data-track="a"><span class="track-empty">Arraste músicas para cá</span></div>
+          <div class="drop-mark" id="drop-mark" hidden></div>
+          <div class="snap-mark" id="snap-mark" hidden></div>
+          <div class="playhead" id="playhead"><span class="ph-grip" id="ph-grip"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- exportar -->
+<dialog id="exp-dlg" class="gel exp-dlg" aria-labelledby="exp-title">
+  <div class="dlg-box">
+    <div class="dlg-h"><b id="exp-title">Exportar vídeo</b><button class="ib" id="exp-x" type="button" aria-label="Fechar"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <div id="exp-setup">
+      <div class="exp-lbl">Qualidade</div>
+      <div class="opt-row" id="exp-res" role="group" aria-label="Qualidade">
+        <button type="button" data-v="720"><b>HD</b><span>720p · arquivo menor</span></button>
+        <button type="button" data-v="1080"><b>Full HD</b><span>1080p · mais nítido</span></button>
+      </div>
+      <div class="exp-info" id="exp-info"></div>
+      <p class="hint">O vídeo é gerado em tempo real, tocando do começo ao fim. Deixe esta aba aberta e visível até terminar.</p>
+      <div class="dlg-f"><button class="ghost" id="exp-cancel" type="button">Cancelar</button><button class="btn teal" id="exp-go" type="button">Gerar vídeo</button></div>
+    </div>
+    <div id="exp-run" hidden>
+      <div class="exp-prog"><span id="exp-bar"></span></div>
+      <div class="exp-status"><b id="exp-pct">0%</b><span id="exp-time"></span></div>
+      <p class="hint" id="exp-msg">Gerando… não troque de aba.</p>
+      <div class="dlg-f"><button class="ghost" id="exp-stop" type="button">Cancelar exportação</button></div>
+    </div>
+    <div id="exp-done" hidden>
+      <div class="exp-ok"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg><div><b>Vídeo pronto</b><span id="exp-file"></span></div></div>
+      <div class="dlg-f"><button class="ghost" id="exp-close" type="button">Fechar</button><button class="btn teal" id="exp-dl" type="button">Baixar de novo</button></div>
+    </div>
+  </div>
+</dialog>
+
+<!-- atalhos -->
+<dialog id="keys-dlg" class="gel keys-dlg" aria-labelledby="keys-title">
+  <div class="dlg-box">
+    <div class="dlg-h"><b id="keys-title">Atalhos do teclado</b><button class="ib" id="keys-x" type="button" aria-label="Fechar"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <dl class="keys">
+      <dt><kbd>Espaço</kbd></dt><dd>Tocar / pausar</dd>
+      <dt><kbd>S</kbd></dt><dd>Dividir no cursor</dd>
+      <dt><kbd>Delete</kbd></dt><dd>Excluir o clipe selecionado</dd>
+      <dt><kbd>Ctrl</kbd> <kbd>D</kbd></dt><dd>Duplicar</dd>
+      <dt><kbd>Ctrl</kbd> <kbd>Z</kbd></dt><dd>Desfazer</dd>
+      <dt><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>Z</kbd></dt><dd>Refazer</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Um quadro (com Shift: 1 segundo)</dd>
+      <dt><kbd>Home</kbd> <kbd>End</kbd></dt><dd>Início / fim</dd>
+      <dt><kbd>N</kbd></dt><dd>Liga e desliga o ímã</dd>
+      <dt><kbd>+</kbd> <kbd>-</kbd></dt><dd>Zoom da timeline (ou Ctrl + rodinha)</dd>
+    </dl>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status"></div>
+<script src="assets/editor.js?v=3"></script>
+<script src="assets/site.js"></script>
+</body>
+</html>
