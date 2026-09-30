@@ -1,8 +1,7 @@
 /* Editor de vídeo: arquivos à esquerda, preview no centro, propriedades à direita e timeline embaixo
    (mesma organização do OpenCut). Ocupa a altura da tela no computador; no celular empilha. */
 .ed-page{overflow:hidden}
-.ed-page .topbar{padding-bottom:0}
-.ed{--tl-h:300px;height:calc(100dvh - 72px);display:grid;grid-template-columns:280px minmax(0,1fr) 272px;grid-template-rows:auto minmax(0,1fr) 8px var(--tl-h);
+.ed{--tl-h:300px;height:100dvh;display:grid;grid-template-columns:280px minmax(0,1fr) 272px;grid-template-rows:auto minmax(0,1fr) 8px var(--tl-h);
   grid-template-areas:"bar bar bar" "media preview props" "rz rz rz" "tl tl tl";column-gap:8px;padding:10px 16px 12px;max-width:1800px;margin:0 auto}
 .pane{background:var(--paper);border:1px solid var(--hair);border-radius:14px;min-width:0;min-height:0;overflow:hidden}
 .ib{display:inline-grid;place-items:center;width:32px;height:32px;border:0;border-radius:8px;background:transparent;color:var(--graphite);cursor:pointer;flex:none}
@@ -18,6 +17,12 @@ kbd{display:inline-block;min-width:22px;padding:0 6px;border:1px solid var(--mis
 
 /* barra do projeto */
 .ed-bar{grid-area:bar;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 2px 10px}
+.ed-bar-l{display:flex;align-items:center;gap:4px;min-width:0}
+.back{display:grid;place-items:center;width:36px;height:36px;flex:none;border-radius:10px;color:var(--ink);text-decoration:none;transition:background-color .15s,transform .15s}
+.back:hover{background:var(--paper);transform:translateX(-2px)}
+.back svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ed-bar-r .theme-btn{width:32px;height:32px;border:0;margin-left:2px}
+.ed-bar-r .theme-btn:hover{background:var(--parchment)}
 .proj-name{min-width:0;width:min(360px,50vw);height:36px;padding:0 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font:700 17px var(--font);letter-spacing:-.01em}
 .proj-name:hover{border-color:var(--hair)}
 .proj-name:focus{outline:none;border-color:var(--teal);background:var(--paper)}
@@ -328,6 +333,30 @@ dialog::backdrop{background:rgba(20,18,15,.55)}
 .tl-end span{position:absolute;top:4px;left:6px;font:500 10px var(--font);color:var(--graphite);background:var(--paper);padding:1px 6px;border-radius:5px;white-space:nowrap}
 #screen.can-move{cursor:move}
 #screen.can-scale{cursor:nwse-resize}
+
+/* ===== trilhas livres, seleção múltipla e fade de áudio ===== */
+.add-track{display:inline-flex;align-items:center;gap:3px;height:20px;padding:0 7px 0 5px;border:1px solid var(--hair);border-radius:6px;background:var(--parchment);color:var(--graphite);font:500 11px var(--font);cursor:pointer}
+.add-track:hover{color:var(--teal);border-color:var(--teal)}
+.add-track svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.th-ruler{justify-content:flex-start;padding:0 6px}
+.th.any,.track.any{height:50px}
+.th.any{color:var(--ash);font-style:italic}
+.track.any{background:repeating-linear-gradient(90deg,transparent 0 8px,color-mix(in srgb, var(--teal) 7%, transparent) 8px 9px);box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--teal) 25%, transparent)}
+.th.v small{display:block;font:400 10px var(--font);color:var(--ash)}
+.th .th-name{display:grid;line-height:1.2}
+.marquee{position:absolute;z-index:6;pointer-events:none;border:1px solid var(--teal);background:color-mix(in srgb, var(--teal) 12%, transparent);border-radius:4px}
+.clip.sel.multi{box-shadow:0 0 0 1.5px var(--teal);border-color:var(--teal)}
+.fade{position:absolute;top:0;bottom:0;z-index:1;pointer-events:none}
+.fade.in{left:0;background:linear-gradient(to bottom right,rgba(10,10,10,.42) 50%,transparent 50.5%)}
+.fade.out{right:0;background:linear-gradient(to bottom left,rgba(10,10,10,.42) 50%,transparent 50.5%)}
+.fh{position:absolute;top:1px;z-index:3;width:11px;height:11px;margin-left:-5.5px;border-radius:50%;background:#fff;border:2px solid var(--teal);cursor:ew-resize;opacity:0;transition:opacity .15s,transform .15s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.fh.out{margin-left:0;margin-right:-5.5px}
+.clip:hover .fh,.clip.sel .fh,.fh.on{opacity:1}
+.fh:hover{transform:scale(1.25)}
+.tr-audio{display:grid;gap:8px;padding-top:12px;border-top:1px solid var(--hair)}
+.tr-audio b{font-size:13px;font-weight:600}
+.multi-list{display:grid;gap:4px;max-height:180px;overflow:auto}
+.multi-list span{font-size:12px;color:var(--graphite);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 /* telas menores: tudo em coluna, rolando a página */
 @media (max-width:1100px){.ed{grid-template-columns:240px minmax(0,1fr) 240px}}

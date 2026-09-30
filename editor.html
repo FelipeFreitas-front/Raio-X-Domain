@@ -18,33 +18,24 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='22' height='15' rx='3' stroke='%2327251e'/%3E%3Cpath d='M12 9.5v6l5-3z' fill='%23016a71' stroke='%23016a71'/%3E%3Cpath d='M3 24h22M10 22v4' stroke='%23016a71'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/base.css?v=2">
 <link rel="stylesheet" href="assets/motion.css?v=2">
-<link rel="stylesheet" href="assets/editor.css?v=3">
+<link rel="stylesheet" href="assets/editor.css?v=4">
 </head>
 <body class="ed-page">
-<header class="topbar">
-  <div class="topbar-in">
-    <a class="hub-brand wk" href="./" aria-label="webkit, página inicial"><svg class="wk-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="1" y="1" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="1" width="21" height="21" rx="6" style="fill:var(--teal)"/><rect x="1" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><rect x="26" y="26" width="21" height="21" rx="6" style="fill:var(--logo-ink)"/><path d="M35.2 8.6l7.6 3.3-3.3 1.1 2.6 3.2-1.5 1.2-2.6-3.2-1.6 2.9z" fill="#fff"/><path d="M31.3 7.4l1.5 1.5M34.4 4.6v2.1M30 11.3h2.1M37.8 5.9l-1.2 1.2" stroke="#fff" stroke-width="1.4" stroke-linecap="round" fill="none"/></svg><span class="wk-word" aria-hidden="true">webk<span class="wk-i">&#305;</span>t</span></a>
-    <nav class="topnav" aria-label="Ferramentas">
-      <a href="raio-x.html"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5.2"/><path d="M1.8 7h10.4M7 1.8c-1.5 1.4-2.2 3.1-2.2 5.2s.7 3.8 2.2 5.2M7 1.8c1.5 1.4 2.2 3.1 2.2 5.2s-.7 3.8-2.2 5.2M10.8 10.8l3.4 3.4"/></svg>Raio-X<span class="nav-long"> de domínio</span></a>
-      <a href="disponibilidade.html"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8.3V2.5h5.8L14 8.7 8.7 14z"/><path d="M5.2 8l1.8 1.8 3.2-3.2"/></svg>Domínio<span class="nav-long"> livre?</span></a>
-      <a href="conversor.html"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="2.8" width="12.4" height="10.4" rx="2"/><circle cx="5.5" cy="6.3" r="1.1"/><path d="M2.5 12l3.4-3 2.6 2.1 1.8-1.4 3.2 2.6"/></svg>Conversor<span class="nav-long"> de imagens</span></a>
-      <a href="editor.html" aria-current="page"><svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.8" y="3" width="12.4" height="8.4" rx="1.8"/><path d="M6.8 5.4v3.6l3-1.8z"/><path d="M1.8 13.8h12.4"/></svg>Editor<span class="nav-long"> de vídeo</span></a>
-    </nav>
-    <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
-      <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
-      <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
-    </button>
-  </div>
-</header>
-
 <main class="ed" id="ed">
   <!-- barra do projeto -->
   <div class="ed-bar">
-    <input class="proj-name" id="proj-name" value="Meu vídeo" aria-label="Nome do projeto" spellcheck="false" maxlength="60">
+    <div class="ed-bar-l">
+      <a class="back" href="./" title="Voltar para o webkit" aria-label="Voltar para a página inicial do webkit"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></a>
+      <input class="proj-name" id="proj-name" value="Meu vídeo" aria-label="Nome do projeto" spellcheck="false" maxlength="60">
+    </div>
     <div class="ed-bar-r">
       <button class="ib" id="undo" type="button" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3 2 6.5 5.5 10"/><path d="M2.5 6.5H10a4 4 0 0 1 0 8H7"/></svg></button>
       <button class="ib" id="redo" type="button" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3 14 6.5 10.5 10"/><path d="M13.5 6.5H6a4 4 0 0 0 0 8h3"/></svg></button>
       <button class="ib" id="keys-btn" type="button" title="Atalhos do teclado" aria-label="Atalhos do teclado" aria-haspopup="dialog"><svg viewBox="0 0 16 16"><rect x="1.5" y="4" width="13" height="8.5" rx="1.5"/><path d="M4 7h.01M6.5 7h.01M9 7h.01M11.5 7h.01M5 9.8h6"/></svg></button>
+      <button class="theme-btn" id="theme" type="button" aria-label="Ativar modo escuro" title="Ativar modo escuro">
+      <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.75 5.75 0 0 1 6.4 2.5a5.75 5.75 0 1 0 7.1 7.1z"/></svg>
+      <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3.05 3.05l1.06 1.06M11.89 11.89l1.06 1.06M3.05 12.95l1.06-1.06M11.89 4.11l1.06-1.06"/></svg>
+    </button>
       <button class="btn teal" id="export-btn" type="button" disabled><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M2.5 13.5h11"/></svg>Exportar</button>
     </div>
   </div>
@@ -96,6 +87,11 @@
       <div class="tr-grid" id="tr-grid"></div>
       <div class="pr"><div class="pr-h"><label for="tr-dur">Duração</label><output id="tr-dur-out">0,6 s</output></div><input type="range" id="tr-dur" min="0.2" max="2" step="0.1" value="0.6"></div>
       <div class="tr-acts"><button class="ghost" id="tr-all" type="button">Usar em todos os cortes</button><button class="ghost" id="tr-none" type="button">Tirar todas</button></div>
+      <div class="tr-audio">
+        <b>Transição de áudio</b>
+        <p class="lib-note top">O som entra e sai suave. Em cada clipe, arraste as bolinhas do topo, ou ajuste no painel da direita.</p>
+        <div class="tr-acts"><button class="ghost" id="fade-all" type="button">Suavizar todas as músicas</button><button class="ghost" id="fade-none" type="button">Tirar suavização</button></div>
+      </div>
     </div>
   </section>
 
@@ -150,13 +146,14 @@
     </div>
     <div class="tl-body">
       <div class="tl-heads">
-        <div class="th-ruler"><button class="ib sm" id="add-layer" type="button" title="Nova camada de sobreposição" aria-label="Nova camada"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg></button></div>
+        <div class="th-ruler"><button class="add-track" id="add-layer" type="button" title="Nova trilha: vira de vídeo ou de áudio conforme o que você soltar nela"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg>Trilha</button></div>
         <div id="heads"></div>
       </div>
       <div class="tl-scroll" id="tl-scroll">
         <div class="tl-content" id="tl-content">
           <div class="ruler" id="ruler"></div>
           <div id="tracks"></div>
+          <div class="marquee" id="marquee" hidden></div>
           <div class="drop-mark" id="drop-mark" hidden></div>
           <div class="snap-mark" id="snap-mark" hidden></div>
           <div class="playhead" id="playhead"><span class="ph-grip" id="ph-grip"></span></div>
@@ -225,7 +222,7 @@
 </dialog>
 
 <div class="toast" id="toast" role="status"></div>
-<script src="assets/editor.js?v=5"></script>
+<script src="assets/editor.js?v=7"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>

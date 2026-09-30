@@ -54,8 +54,11 @@ Editor simples no estilo do [OpenCut](https://github.com/OpenCut-app/OpenCut): a
   - **Músicas e efeitos sonoros** do [Openverse](https://openverse.org) (músicas do Jamendo, efeitos do Freesound), só com licenças que permitem uso comercial e edição; prévia antes de usar e créditos prontos para copiar na exportação
   - **Elementos**: emojis, figurinhas, ícones e logos de redes sociais do [Iconify](https://iconify.design) (coleções MIT, Apache ou CC0), coloridos ou em uma cor
   - **Transições**: Dissolver, Preto, Flash, Deslizar, Subir, Zoom, Cortina e Círculo, com duração ajustável
-- Timeline com camadas de sobreposição (imagens e elementos por cima do vídeo, quantas camadas precisar), trilha de vídeo magnética (os clipes ficam colados, na ordem) e trilha de áudio livre
-- Sobreposições: arrastar direto no preview para mover, canto para redimensionar, guias de centro, rotação, opacidade e 9 posições prontas
+- Tela cheia, sem o topo do site: só uma seta ao lado do nome do projeto para voltar à home
+- Trilhas: começa com a de vídeo principal (magnética, os clipes ficam colados) e uma de áudio. "+ Trilha" cria quantas quiser: a trilha nasce genérica e vira de vídeo (por cima da principal) ou de áudio conforme o primeiro arquivo solto nela
+- Seleção múltipla: arrastar num espaço vazio da timeline desenha um retângulo; Shift/Ctrl + clique soma; Ctrl+A seleciona tudo. Com vários selecionados, arrastar move todos juntos, Delete exclui e S divide
+- No preview: clique no vídeo (principal ou das trilhas de cima) e arraste para mover; os 4 cantos aumentam ou diminuem. Guias de centro, rotação, opacidade, 9 posições prontas e "Resetar"
+- Transição de áudio: entrada e saída suave do som em cada clipe (bolinhas no topo do clipe ou controles no painel), e um botão para suavizar todas as músicas
 - Transição no losango entre dois clipes (ou arrastando da aba); o som cruza junto
 - Cortar pelas bordas do clipe, dividir no cursor (`S`), duplicar, excluir, reordenar arrastando, ímã nas bordas e no cursor
 - O vídeo termina onde acaba a imagem: música mais longa é cortada no fim
