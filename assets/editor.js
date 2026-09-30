@@ -315,10 +315,11 @@ function clipHTML(e){
   }
   // entrada e saída suave do som: triângulo desenhado + bolinhas para arrastar
   if(hasSound(c)){
-    const fi = (c.fi || 0) * pps, fo = (c.fo || 0) * pps;
-    inner += `${fi ? `<span class="fade in" style="width:${fi}px"></span>` : ''}${fo ? `<span class="fade out" style="width:${fo}px"></span>` : ''}
+    // a saída suave termina onde o vídeo acaba, se o clipe passar do fim
+    const fi = (c.fi || 0) * pps, fo = (c.fo || 0) * pps, cut = (e.end - cutEnd(e)) * pps;
+    inner += `${fi ? `<span class="fade in" style="width:${fi}px"></span>` : ''}${fo ? `<span class="fade out" style="width:${fo}px;right:${cut}px"></span>` : ''}
       <span class="fh in${fi ? ' on' : ''}" style="left:${Math.max(6, fi)}px" title="Arraste: o som começa baixinho e vai subindo"></span>
-      <span class="fh out${fo ? ' on' : ''}" style="right:${Math.max(6, fo)}px" title="Arraste: o som vai sumindo no fim"></span>`;
+      <span class="fh out${fo ? ' on' : ''}" style="right:${Math.max(6, fo + cut)}px" title="Arraste: o som vai sumindo no fim"></span>`;
   }
   const tags = [c.speed !== 1 ? `${c.speed}×` : '', c.muted ? 'mudo' : ''].filter(Boolean).join(' · ');
   const kind = c.track === 'v' ? 'v' : aud ? 'a' : 'o';
@@ -478,9 +479,9 @@ function dragClip(e, el){
     }
     if(!moved && playing) pause();
     moved = true;
-    const dt = dx / pps, dur = o.end - o.start;
-    if(mode === 'fi') c.fi = clamp(o.fi + dt, 0, dur - (c.fo || 0));
-    else if(mode === 'fo') c.fo = clamp(o.fo - dt, 0, dur - (c.fi || 0));
+    const dt = dx / pps, dur = o.end - o.start, vdur = cutEnd(e0) - o.start;
+    if(mode === 'fi') c.fi = clamp(o.fi + dt, 0, vdur - (c.fo || 0));
+    else if(mode === 'fo') c.fo = clamp(o.fo - dt, 0, vdur - (c.fi || 0));
     else if(mode === 'trimR'){
       const end = snapTo(o.end + dt, pts);
       c.out = clamp(o.in + (end - o.start) * c.speed, o.in + MIN * c.speed, maxOut);
@@ -640,9 +641,11 @@ function applyVol(o, c, f = 1){
   if(o.gain){ o.gain.gain.value = v; o.el.volume = 1; o.el.muted = false; }
   else { o.el.volume = clamp(v, 0, 1); o.el.muted = c.muted; }
 }
-// fade de áudio: 0 no começo da entrada suave, 1 no meio, 0 no fim da saída suave
+// fade de áudio: 0 no começo da entrada suave, 1 no meio, 0 no fim da saída suave.
+// Se o clipe passa do fim do vídeo, a saída suave termina no fim do vídeo (senão ficaria na parte cortada)
+const cutEnd = e => { const tot = L().total; return tot > 0 ? Math.min(e.end, tot) : e.end; };
 function fadeGain(e){
-  const c = e.c, lt = t - e.start, d = e.end - e.start;
+  const c = e.c, lt = t - e.start, d = cutEnd(e) - e.start;
   let f = 1;
   if(c.fi > 0) f = Math.min(f, lt / c.fi);
   if(c.fo > 0) f = Math.min(f, (d - lt) / c.fo);
@@ -1053,7 +1056,7 @@ function renderProps(){
   }
   const m = media.get(c.mid), e = entryOf(c), still = m?.kind === 'image', aud = m?.kind === 'audio', sound = hasSound(c);
   const vi = c.track === 'v' ? L().v.findIndex(x => x.c === c) : -1, tf = c.tf || MAIN_TF, main = c.track === 'v';
-  const d = e.end - e.start, fmax = Math.min(10, +(d / 2).toFixed(1));
+  const d = e.end - e.start, fmax = Math.min(10, +((cutEnd(e) - e.start) / 2).toFixed(1));
   const title = aud ? 'Áudio' : main ? (still ? 'Foto' : 'Vídeo') : 'Por cima do vídeo';
   p.innerHTML = `<div class="pane-h"><b>${title}</b><button class="ib" id="p-close" type="button" title="Voltar ao projeto (Esc)" aria-label="Fechar"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
     <div class="props-body">
@@ -1110,7 +1113,7 @@ $('#props').addEventListener('input', e => {
   else if(id === 'p-op' && c){ tfSet(tf => { tf.op = v / 100; }); out(v + '%'); }
   else if(id === 'p-fi' && c){ live(() => { c.fi = v; }); out(fmtSec(v)); renderTimeline(); }
   else if(id === 'p-fo' && c){ live(() => { c.fo = v; }); out(fmtSec(v)); renderTimeline(); }
-  else if(id === 'p-mfi' || id === 'p-mfo'){ const k = id === 'p-mfi' ? 'fi' : 'fo'; live(() => { sels().filter(hasSound).forEach(x => { x[k] = Math.min(v, (entryOf(x).end - entryOf(x).start) / 2); }); }); out(fmtSec(v)); renderTimeline(); }
+  else if(id === 'p-mfi' || id === 'p-mfo'){ const k = id === 'p-mfi' ? 'fi' : 'fo'; live(() => { sels().filter(hasSound).forEach(x => { x[k] = Math.min(v, (cutEnd(entryOf(x)) - entryOf(x).start) / 2); }); }); out(fmtSec(v)); renderTimeline(); }
 });
 $('#props').addEventListener('change', e => {
   const c = sel && clipById(sel), id = e.target.id;
@@ -1318,7 +1321,7 @@ $('#tr-none').addEventListener('click', () => { edit(() => { S.clips.forEach(c =
 // áudio: suaviza entrada e saída de todas as músicas (até 1,5 s, sem passar da metade do clipe)
 $('#fade-all').addEventListener('click', () => {
   const list = L().a; if(!list.length){ toast('Ainda não há músicas na timeline'); return; }
-  edit(() => { list.forEach(e => { const d = Math.min(1.5, (e.end - e.start) / 3); e.c.fi = d; e.c.fo = d; }); });
+  edit(() => { list.forEach(e => { const d = Math.min(1.5, (cutEnd(e) - e.start) / 3); e.c.fi = d; e.c.fo = d; }); });
   toast('O som das músicas agora entra e sai suave');
 });
 $('#fade-none').addEventListener('click', () => { edit(() => { S.clips.forEach(c => { c.fi = 0; c.fo = 0; }); }); toast('Suavização removida'); });
