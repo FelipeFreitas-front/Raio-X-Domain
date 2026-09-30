@@ -1845,21 +1845,38 @@ function channelName(id){
 }
 const volDb = v => v <= 0.0001 ? '-∞' : (20 * Math.log10(v)).toFixed(1).replace('.', ',') + ' dB';
 const panTxt = p => Math.abs(p) < .02 ? 'C' : (p < 0 ? 'E ' : 'D ') + Math.round(Math.abs(p) * 100);
+// fader: posição = raiz do volume (0 dB fica a ~80% da altura, sobra um pouco para aumentar até +3,5 dB)
+const fpos = v => Math.sqrt(clamp(v, 0, 1.5) / 1.5);
+const fval = p => Math.round(1.5 * clamp(p, 0, 1) ** 2 * 100) / 100;
+const FDR_MARKS = [[1.5, '+3'], [1, '0'], [.5, '-6'], [.25, '-12'], [.063, '-24'], [0, '-∞']];
+const panRing = p => p >= 0 ? `conic-gradient(from 0deg, var(--c) 0 ${p * 135}deg, transparent 0)` : `conic-gradient(from ${p * 135}deg, var(--c) 0 ${-p * 135}deg, transparent 0)`;
 function openMixer(id){ ensureAudio(); if(id) mixSel = id; fxSel = 0; renderMixer(); gelOpen($('#mixer')); }
 function renderMixer(){
   const ids = ['master', 'v', ...upperTracks().filter(x => x.kind !== 'any').map(x => x.id), ...audioTracks().map(x => x.id)];
   if(!ids.includes(mixSel)) mixSel = 'master';
-  $('#mx-strips').innerHTML = ids.map(id => {
-    const cfg = chCfg(id), kind = id === 'master' ? 'master' : id === 'v' ? 'v' : trackById(id)?.kind;
-    return `<div class="mx-ch${id === mixSel ? ' on' : ''}${id === 'master' ? ' master' : ''}" data-ch="${id}" style="--c:${MIX_COLORS[kind] || '#6b7280'}">
-      <button class="st-name" type="button" data-act="sel" title="${esc(channelName(id))}">${esc(channelName(id))}</button>
-      <div class="st-mid"><canvas class="st-meter" width="12" height="160" data-meter="${id}"></canvas><input class="st-fader" type="range" min="0" max="150" step="1" value="${Math.round((cfg.vol ?? 1) * 100)}" data-act="vol" aria-label="Volume de ${esc(channelName(id))}"></div>
-      <output class="st-db">${volDb(cfg.vol ?? 1)}</output>
-      ${id !== 'master' ? `<div class="knob" data-act="pan" style="--a:${(cfg.pan || 0) * 135}deg" title="Pan (arraste para cima/baixo; dois cliques centraliza)"></div><span class="st-pan">${panTxt(cfg.pan || 0)}</span>
-      <div class="st-btns"><button type="button" data-act="mute" aria-pressed="${!!cfg.mute}" title="Mudo">M</button><button type="button" data-act="solo" aria-pressed="${!!cfg.solo}" title="Solo: só este canal toca">S</button></div>` : '<div class="st-master-sp"></div>'}
-      <ul class="st-fx">${(cfg.fx || []).map(f => `<li class="${f.on ? '' : 'off'}">${esc(FX[f.type]?.label || f.type)}</li>`).join('') || '<li class="none">sem efeitos</li>'}</ul>
+  $('#mx-strips').innerHTML = ids.map((id, n) => {
+    const cfg = chCfg(id), kind = id === 'master' ? 'master' : id === 'v' ? 'v' : trackById(id)?.kind, v = cfg.vol ?? 1, pan = cfg.pan || 0, master = id === 'master';
+    const fx = cfg.fx || [];
+    return `<div class="mx-ch${id === mixSel ? ' on' : ''}${master ? ' master' : ''}${cfg.mute ? ' muted' : ''}" data-ch="${id}" style="--c:${MIX_COLORS[kind] || '#6b7280'}">
+      <button class="ch-head" type="button" data-act="sel" title="${esc(channelName(id))}"><span class="ch-num">${master ? 'M' : n}</span><span class="ch-title">${esc(channelName(id))}</span></button>
+      <div class="ch-body">
+        <div class="ch-vu">
+          <canvas class="st-meter" data-meter="${id}"></canvas>
+          <div class="fdr" data-act="vol" role="slider" tabindex="0" aria-label="Volume de ${esc(channelName(id))}" aria-valuemin="0" aria-valuemax="150" aria-valuenow="${Math.round(v * 100)}" title="Arraste para mudar o volume · dois cliques voltam a 0 dB" style="--p:${fpos(v)}">
+            <div class="fdr-scale">${FDR_MARKS.map(([g, l]) => `<i style="bottom:${(fpos(g) * 100).toFixed(1)}%"><b>${l}</b></i>`).join('')}</div>
+            <div class="fdr-track"><div class="fdr-fill"></div></div>
+            <div class="fdr-cap"></div>
+          </div>
+        </div>
+        <output class="st-db">${volDb(v)}</output>
+        ${master ? '<div class="ch-out">SAÍDA<small>vai para o vídeo</small></div>' : `<div class="ch-pan"><div class="knob-wrap"><div class="knob-ring" style="background:${panRing(pan)}"></div><div class="knob" data-act="pan" style="--a:${pan * 135}deg" title="Pan: arraste para cima/baixo · dois cliques centralizam"></div></div><span class="st-pan">${panTxt(pan)}</span></div>
+        <div class="st-btns"><button class="lbtn m" type="button" data-act="mute" aria-pressed="${!!cfg.mute}" title="Mudo">M</button><button class="lbtn s" type="button" data-act="solo" aria-pressed="${!!cfg.solo}" title="Solo: só este canal toca">S</button></div>`}
+        <ul class="st-fx">${Array.from({length: 4}, (_, i) => { const f = fx[i]; return f ? `<li class="${f.on ? 'on' : 'off'}"><i></i>${esc(FX[f.type]?.label || f.type)}</li>` : '<li class="free"><i></i>—</li>'; }).join('')}${fx.length > 4 ? `<li class="more">+${fx.length - 4} efeitos</li>` : ''}</ul>
+      </div>
     </div>`;
   }).join('');
+  // o medidor ocupa a altura que o fader tiver
+  $$('#mx-strips .st-meter').forEach(cv => { cv.width = 14; cv.height = Math.max(60, cv.clientHeight); });
   renderRack();
 }
 function paramRow(f, k, d){
@@ -1916,12 +1933,16 @@ function drawCurve(){
 function drawMeters(){
   for(const cv of $$('#mx-strips .st-meter')){
     const b = actx && buses.get(cv.dataset.meter), x = cv.getContext('2d'), H = cv.height, W = cv.width;
-    let lv = 0; if(b){ b.peak = Math.max(busLevel(b), b.peak * .92); lv = b.peak; }
-    const h = clamp(lv / 1.2, 0, 1) * H;
-    x.fillStyle = '#111'; x.fillRect(0, 0, W, H);
-    const g = x.createLinearGradient(0, H, 0, 0); g.addColorStop(0, '#3ddc84'); g.addColorStop(.7, '#e8d33a'); g.addColorStop(.9, '#ff5c5c');
-    x.fillStyle = g; x.fillRect(1, H - h, W - 2, h);
-    x.fillStyle = 'rgba(255,255,255,.35)'; x.fillRect(0, H - H / 1.2, W, 1);   // 0 dB
+    let lv = 0;
+    if(b){ b.peak = Math.max(busLevel(b), b.peak * .9); lv = fpos(b.peak); if(lv >= (b.hold || 0)){ b.hold = lv; b.holdT = performance.now(); } else if(performance.now() - (b.holdT || 0) > 900) b.hold = Math.max(0, (b.hold || 0) - .012); }
+    x.fillStyle = '#0d0f10'; x.fillRect(0, 0, W, H);
+    const seg = 4, lit = lv * H;
+    for(let y = H - seg; y >= 0; y -= seg){
+      const pos = 1 - y / H, on = H - y <= lit;
+      x.fillStyle = pos > fpos(1) ? (on ? '#ff5c5c' : '#3a1d1f') : pos > fpos(.5) ? (on ? '#e8d33a' : '#35331a') : (on ? '#3ddc84' : '#15301f');
+      x.fillRect(2, y, W - 4, seg - 1);
+    }
+    if(b && b.hold > .02){ x.fillStyle = '#fff'; x.fillRect(2, H - b.hold * H, W - 4, 2); }
   }
 }
 $('#mx-x').addEventListener('click', () => gelClose($('#mixer')));
@@ -1933,15 +1954,30 @@ $('#mx-strips').addEventListener('click', e => {
   if(b.dataset.act === 'mute') edit(() => { cfg.mute = !cfg.mute; });
   if(b.dataset.act === 'solo') edit(() => { cfg.solo = !cfg.solo; });
 });
-$('#mx-strips').addEventListener('input', e => {
-  if(e.target.dataset.act !== 'vol') return;
-  const id = e.target.closest('.mx-ch').dataset.ch, cfg = chCfg(id), v = +e.target.value / 100;
+function setFader(fd, v){
+  const st = fd.closest('.mx-ch'), cfg = chCfg(st.dataset.ch);
   live(() => { cfg.vol = v; }); syncMixer();
-  e.target.closest('.mx-ch').querySelector('.st-db').textContent = volDb(v);
+  fd.style.setProperty('--p', fpos(v)); fd.setAttribute('aria-valuenow', Math.round(v * 100));
+  st.querySelector('.st-db').textContent = volDb(v);
+}
+$('#mx-strips').addEventListener('pointerdown', e => {
+  const fd = e.target.closest('.fdr'); if(!fd) return;
+  e.preventDefault(); capture(fd, e); fd.focus();
+  const tr = fd.querySelector('.fdr-track').getBoundingClientRect();
+  const go = ev => setFader(fd, fval(1 - (ev.clientY - tr.top) / tr.height));
+  go(e);
+  const up = () => { fd.removeEventListener('pointermove', go); fd.removeEventListener('pointerup', up); fd.classList.remove('drag'); liveEnd(); };
+  fd.classList.add('drag');
+  fd.addEventListener('pointermove', go); fd.addEventListener('pointerup', up);
 });
-$('#mx-strips').addEventListener('change', e => { if(e.target.dataset.act === 'vol') liveEnd(); });
+$('#mx-strips').addEventListener('keydown', e => {
+  const fd = e.target.closest('.fdr'); if(!fd || !['ArrowUp', 'ArrowDown'].includes(e.key)) return;
+  e.preventDefault(); e.stopPropagation();
+  const cfg = chCfg(fd.closest('.mx-ch').dataset.ch);
+  setFader(fd, fval(fpos(cfg.vol ?? 1) + (e.key === 'ArrowUp' ? .02 : -.02))); liveEnd();
+});
 $('#mx-strips').addEventListener('dblclick', e => {
-  const k = e.target.closest('.knob'), f = e.target.closest('.st-fader'), st = e.target.closest('.mx-ch'); if(!st) return;
+  const k = e.target.closest('.knob'), f = e.target.closest('.fdr'), st = e.target.closest('.mx-ch'); if(!st) return;
   const cfg = chCfg(st.dataset.ch);
   if(k) edit(() => { cfg.pan = 0; });
   else if(f) edit(() => { cfg.vol = 1; });
@@ -1951,7 +1987,7 @@ $('#mx-strips').addEventListener('pointerdown', e => {
   const k = e.target.closest('.knob'); if(!k) return;
   e.preventDefault(); capture(k, e);
   const st = k.closest('.mx-ch'), cfg = chCfg(st.dataset.ch), y0 = e.clientY, p0 = cfg.pan || 0;
-  const mv = ev => { const p = clamp(p0 - (ev.clientY - y0) / 100, -1, 1); live(() => { cfg.pan = Math.round(p * 100) / 100; }); syncMixer(); k.style.setProperty('--a', cfg.pan * 135 + 'deg'); st.querySelector('.st-pan').textContent = panTxt(cfg.pan); };
+  const mv = ev => { const p = clamp(p0 - (ev.clientY - y0) / 100, -1, 1); live(() => { cfg.pan = Math.round(p * 100) / 100; }); syncMixer(); k.style.setProperty('--a', cfg.pan * 135 + 'deg'); st.querySelector('.knob-ring').style.background = panRing(cfg.pan); st.querySelector('.st-pan').textContent = panTxt(cfg.pan); };
   const up = () => { k.removeEventListener('pointermove', mv); k.removeEventListener('pointerup', up); liveEnd(); };
   k.addEventListener('pointermove', mv); k.addEventListener('pointerup', up);
 });
