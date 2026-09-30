@@ -48,6 +48,54 @@ const TRS = [
 const TR = Object.fromEntries(TRS.map(x => [x.id, x]));
 const TRD = {type: 'fade', d: .6};   // última transição escolhida e duração padrão
 const MAIN_TF = {x: .5, y: .5, s: 1, r: 0, op: 1};
+/* ---------- transformação no tempo: keyframes, recorte e giro ---------- */
+// c.tf = posição/tamanho fixos; c.kf = [{t, x, y, s, r, op}] (t = segundos desde o começo do clipe na timeline)
+const TF_KEYS = ['x', 'y', 's', 'r', 'op'];
+const baseTf = c => ({...(c.track === 'v' ? MAIN_TF : {x: .5, y: .5, s: .3, r: 0, op: 1}), ...(c.tf || {})});
+const pickTf = o => Object.fromEntries(TF_KEYS.map(k => [k, o[k] ?? (k === 'op' ? 1 : 0)]));
+const clipLen = c => { const e = entryOf(c); return e ? e.end - e.start : clipDur(c); };
+const localT = c => { const e = entryOf(c); return e ? t - e.start : 0; };
+const easeKf = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+function tfAt(c, lt = localT(c)){
+  const b = baseTf(c), kf = c.kf;
+  if(!kf || !kf.length) return b;
+  if(lt <= kf[0].t) return {...b, ...pickTf(kf[0])};
+  const z = kf[kf.length - 1];
+  if(lt >= z.t) return {...b, ...pickTf(z)};
+  let i = 0; while(kf[i + 1].t < lt) i++;
+  const a = kf[i], n = kf[i + 1], p = easeKf((lt - a.t) / Math.max(1e-6, n.t - a.t));
+  const out = {...b};
+  for(const k of TF_KEYS) out[k] = a[k] + (n[k] - a[k]) * p;
+  return out;
+}
+const kfHere = c => { const lt = localT(c); return (c.kf || []).find(k => Math.abs(k.t - lt) < 1 / 50); };
+// mexer no tamanho/posição: sem keyframes muda o fixo; com keyframes grava no ponto do cursor (cria se não existir)
+function editTf(c, fn){
+  if(c.kf?.length){
+    const lt = clamp(localT(c), 0, clipLen(c));
+    let k = c.kf.find(x => Math.abs(x.t - lt) < 1 / 50);
+    if(!k){ k = {t: lt, ...pickTf(tfAt(c, lt))}; c.kf.push(k); c.kf.sort((a, b) => a.t - b.t); }
+    fn(k);
+  } else { c.tf = baseTf(c); fn(c.tf); }
+}
+// atalhos de animação prontos
+const KF_PRESETS = {
+  kenburns: {label: 'Zoom lento', f: (b, d) => [{t: 0, ...b, x: b.x - .02}, {t: d, ...b, s: b.s * 1.18, x: b.x + .02}]},
+  zoomin: {label: 'Aproximar', f: (b, d) => [{t: 0, ...b}, {t: d, ...b, s: b.s * 1.4}]},
+  zoomout: {label: 'Afastar', f: (b, d) => [{t: 0, ...b, s: b.s * 1.4}, {t: d, ...b}]},
+  left: {label: 'Entrar pela esquerda', f: (b, d, w) => [{t: 0, ...b, x: -w / 2 - .02}, {t: Math.min(.7, d / 2), ...b}]},
+  bottom: {label: 'Entrar por baixo', f: (b, d, w, h) => [{t: 0, ...b, y: 1 + h / 2 + .02}, {t: Math.min(.7, d / 2), ...b}]},
+  fadein: {label: 'Aparecer', f: (b, d) => [{t: 0, ...b, op: 0}, {t: Math.min(.6, d / 2), ...b}]},
+  pulse: {label: 'Pulsar', f: (b, d) => Array.from({length: Math.max(2, Math.floor(d / .5) + 1)}, (_, i) => ({t: Math.min(d, i * .5), ...b, s: b.s * (i % 2 ? 1.1 : 1)}))},
+};
+// dimensões da imagem depois do recorte e do giro de 90°
+function srcDims(c){
+  const m = media.get(c.mid), cr = c.crop;
+  let w = m?.w || 16, h = m?.h || 9;
+  if(cr){ w *= Math.max(.05, 1 - cr.l - cr.r); h *= Math.max(.05, 1 - cr.t - cr.b); }
+  return (c.rot90 || 0) % 180 ? {w: h, h: w} : {w, h};
+}
+
 
 /* ---------- texto ---------- */
 // um clipe de texto não tem arquivo: guarda o texto e o estilo em c.text. Tamanho da letra = fração da altura do vídeo
@@ -75,7 +123,7 @@ const txtFont = (T, px) => `${T.italic ? 'italic ' : ''}${T.weight} ${px}px "${T
 function ensureFont(T){ const f = txtFont(T, 40); if(!document.fonts.check(f)) document.fonts.load(f).then(() => { dirty = true; }); }
 const mctx = document.createElement('canvas').getContext('2d');
 function textMetrics(c, W, H){
-  const T = c.text, px = Math.max(4, T.size * H * (c.tf?.s ?? 1));
+  const T = c.text, px = Math.max(4, T.size * H * (tfAt(c).s ?? 1));
   mctx.font = txtFont(T, px);
   const lines = (T.content || ' ').split('\n'), widths = lines.map(l => mctx.measureText(l).width);
   const lh = px * 1.2, pad = T.bg === 'box' ? px * .38 : px * .08;
@@ -103,7 +151,7 @@ function drawText(ctx, c, W, H){
   const M = textMetrics(c, W, H), b = boxOf(c, W, H), an = textAnim(c, e);
   if(an.alpha <= 0) return;
   ctx.save();
-  ctx.globalAlpha *= (c.tf?.op ?? 1) * an.alpha;
+  ctx.globalAlpha *= (tfAt(c).op ?? 1) * an.alpha;
   ctx.translate(b.cx, b.cy + an.dy * H); ctx.rotate(b.r); ctx.scale(an.scale, an.scale);
   if(T.bg === 'box'){
     ctx.fillStyle = hexA(T.bgColor, T.bgOp);
@@ -175,6 +223,7 @@ function changed(){
   syncMixer(); if($('#mixer').open) renderMixer();
   syncMedia(!playing); dirty = true;
   pruneEls();
+  markDirty();
 }
 // seleção: um clipe (ou vários); "sel" é o que aparece no painel
 function select(id, add = false){
@@ -239,6 +288,7 @@ function addFiles(files, autoAdd = null, meta = null){
     if(!kind){ skipped++; continue; }
     const m = {id: uid(), file: f, name: meta?.name || f.name, kind, url: URL.createObjectURL(f), duration: 0, w: 0, h: 0, thumbs: [], status: 'loading', credit: meta?.credit || null, sticker: !!meta?.sticker};
     media.set(m.id, m); made.push(m);
+    ensureProject(); saveMedia(m);
     probe(m).then(() => { if(autoAdd && m.status === 'ready') addToTimeline(m, autoAdd); });
   }
   if(skipped) toast(skipped === 1 ? '1 arquivo ignorado: não é vídeo, foto nem áudio' : `${skipped} arquivos ignorados: não são vídeo, foto nem áudio`);
@@ -401,7 +451,8 @@ function clipHTML(e){
       <span class="fh in${fi ? ' on' : ''}" style="left:${Math.max(6, fi)}px" title="Arraste: o som começa baixinho e vai subindo"></span>
       <span class="fh out${fo ? ' on' : ''}" style="right:${Math.max(6, fo + cut)}px" title="Arraste: o som vai sumindo no fim"></span>`;
   }
-  const tags = [c.speed !== 1 ? `${c.speed}×` : '', c.muted ? 'mudo' : ''].filter(Boolean).join(' · ');
+  if(c.kf?.length && media.get(c.mid)?.kind !== 'audio') inner += c.kf.map(k => `<i class="kfd" data-kt="${k.t}" style="left:${k.t * pps}px" title="Keyframe em ${fmtTime(k.t)} (clique para ir até ele)"></i>`).join('');
+  const tags = [c.speed !== 1 ? `${c.speed}×` : '', c.muted ? 'mudo' : '', c.rot90 ? `${c.rot90}°` : ''].filter(Boolean).join(' · ');
   const kind = c.track === 'v' ? 'v' : aud ? 'a' : c.text ? 'o t' : 'o';
   return `<div class="clip ${kind}${selSet.has(c.id) ? ' sel' : ''}${selSet.size > 1 && selSet.has(c.id) ? ' multi' : ''}${w < 60 ? ' narrow' : ''}" data-id="${c.id}" style="left:${x}px;width:${w}px">${inner}
     <span class="clip-name">${c.text ? (c.caption ? 'Legenda' : 'Texto') : esc(m?.name || 'arquivo removido')}</span>${tags ? `<span class="clip-tag">${tags}</span>` : ''}
@@ -507,6 +558,8 @@ function snapTo(val, pts){
 
 content.addEventListener('pointerdown', e => {
   if(e.button !== 0 || e.target.closest('.tr-mark')) return;
+  const kd = e.target.closest('.kfd');
+  if(kd){ const c = clipById(kd.closest('.clip').dataset.id), en = c && entryOf(c); if(en){ if(sel !== c.id) select(c.id); if(playing) pause(); seek(en.start + +kd.dataset.kt); renderProps(); } return; }
   const clipEl = e.target.closest('.clip');
   if(clipEl) return dragClip(e, clipEl);
   if(e.target.closest('#ph-grip, #ruler')) return scrub(e);
@@ -715,7 +768,7 @@ function dragClip(e, el){
         // de uma trilha de cima para a principal: entra na posição do ponteiro
         const {v} = L(), tt = xToTime(ev); let i = v.findIndex(x => tt < (x.start + x.end) / 2);
         S.clips.splice(S.clips.indexOf(c), 1);
-        c.track = 'v'; delete c.start; c.tf = undefined; c.fit = 'contain';
+        c.track = 'v'; delete c.start; c.tf = undefined; c.kf = undefined; c.fit = 'contain';
         const vs = S.clips.filter(x => x.track === 'v');
         if(i < 0 || i >= vs.length) S.clips.push(c); else S.clips.splice(S.clips.indexOf(vs[i]), 0, c);
       } else {
@@ -726,7 +779,7 @@ function dragClip(e, el){
           // da principal para cima: mantém o tamanho que tinha na tela
           const r = RATIOS[S.ratio], bx = boxOf(c, 1000 * r, 1000);
           c.tf = {x: (c.tf || MAIN_TF).x, y: (c.tf || MAIN_TF).y, s: bx.w / (1000 * r), r: (c.tf || MAIN_TF).r, op: (c.tf || MAIN_TF).op ?? 1};
-          c.tr = null; c.start = st;
+          c.tr = null; c.kf = undefined; c.start = st;
         } else c.start = st;
         c.track = tid;
       }
@@ -926,6 +979,8 @@ function seek(nt){
   clock.base = performance.now(); clock.tBase = t;
   syncMedia(!playing); dirty = true;
   updateTime(); placePlayhead();
+  const sc = sel && clipById(sel);
+  if(sc?.kf?.length && !playing) renderProps();
 }
 
 /* ---------- desenho (preview e exportação) ---------- */
@@ -944,6 +999,7 @@ new ResizeObserver(() => sizeScreen()).observe($('#stage-wrap'));
 // quadro de um clipe: imagem pronta, null (sem imagem) ou false (vídeo ainda carregando)
 function frameOf(c){
   if(c.text) return {text: true};
+  if(EXP.fast && EXP.ov?.has(c.id)) return EXP.ov.get(c.id) || false;
   const m = media.get(c.mid); if(!m) return null;
   if(m.kind === 'image') return m.img ? {src: m.img, w: m.w, h: m.h} : null;
   const o = els.get(c.id);
@@ -951,21 +1007,26 @@ function frameOf(c){
 }
 // caixa de um clipe no quadro (centro, tamanho, rotação). Principal: encaixado na tela × tamanho escolhido
 function boxOf(c, W, H){
-  if(c.text){ const M = textMetrics(c, W, H); return {cx: c.tf.x * W, cy: c.tf.y * H, w: M.w, h: M.h, r: c.tf.r * Math.PI / 180}; }
-  const m = media.get(c.mid), mw = m?.w || 16, mh = m?.h || 9;
+  const tf = tfAt(c);
+  if(c.text){ const M = textMetrics(c, W, H); return {cx: tf.x * W, cy: tf.y * H, w: M.w, h: M.h, r: tf.r * Math.PI / 180}; }
+  const {w: mw, h: mh} = srcDims(c);
   if(c.track === 'v'){
-    const tf = c.tf || MAIN_TF, k = (c.fit === 'cover' ? Math.max(W / mw, H / mh) : Math.min(W / mw, H / mh)) * tf.s;
+    const k = (c.fit === 'cover' ? Math.max(W / mw, H / mh) : Math.min(W / mw, H / mh)) * tf.s;
     return {cx: tf.x * W, cy: tf.y * H, w: mw * k, h: mh * k, r: tf.r * Math.PI / 180};
   }
-  const w = c.tf.s * W;
-  return {cx: c.tf.x * W, cy: c.tf.y * H, w, h: w * mh / mw, r: c.tf.r * Math.PI / 180};
+  const w = tf.s * W;
+  return {cx: tf.x * W, cy: tf.y * H, w, h: w * mh / mw, r: tf.r * Math.PI / 180};
 }
 function drawBox(ctx, c, f, W, H){
   if(!f) return;
   if(c.text) return drawText(ctx, c, W, H);
-  const b = boxOf(c, W, H), op = (c.tf || MAIN_TF).op ?? 1;
-  ctx.save(); ctx.globalAlpha *= op; ctx.translate(b.cx, b.cy); ctx.rotate(b.r);
-  ctx.drawImage(f.src, -b.w / 2, -b.h / 2, b.w, b.h);
+  const b = boxOf(c, W, H), op = tfAt(c).op ?? 1, r90 = c.rot90 || 0, odd = r90 % 180;
+  const cr = c.crop || {l: 0, t: 0, r: 0, b: 0};
+  const sx = f.w * cr.l, sy = f.h * cr.t, sw = Math.max(1, f.w * (1 - cr.l - cr.r)), sh = Math.max(1, f.h * (1 - cr.t - cr.b));
+  const dw = odd ? b.h : b.w, dh = odd ? b.w : b.h;
+  ctx.save(); ctx.globalAlpha *= op; ctx.translate(b.cx, b.cy); ctx.rotate(b.r + r90 * Math.PI / 180);
+  ctx.scale(c.flipH ? -1 : 1, c.flipV ? -1 : 1);
+  ctx.drawImage(f.src, sx, sy, sw, sh, -dw / 2, -dh / 2, dw, dh);
   ctx.restore();
 }
 function drawFull(ctx, c, f, W, H){ ctx.fillStyle = S.bg; ctx.fillRect(0, 0, W, H); drawBox(ctx, c, f, W, H); }
@@ -1038,7 +1099,12 @@ function frame(now){
     dirty = true;
   }
   if($('#mixer').open && actx) drawMeters();
-  if(dirty){
+  if(dirty && EXP.fast){
+    // modo rápido: o preview só acompanha; um quadro do decodificador pode ter sido liberado no meio do caminho
+    try{ render(sctx, screen.width, screen.height); }catch{}
+    dirty = false;
+  }
+  else if(dirty){
     if(render(sctx, screen.width, screen.height)){ dirty = false; if(!EXP.on && !playing) drawSelUi(); }
     if(EXP.on) render(EXP.cx, EXP.cv.width, EXP.cv.height);
   }
@@ -1081,23 +1147,22 @@ screen.addEventListener('pointerdown', e => {
   if(playing) pause();
   if(!wasSel) select(hit.c.id);
   const c = hit.c, W = screen.width, H = screen.height, b0 = boxOf(c, W, H), d0 = Math.max(1, Math.hypot(p.x - b0.cx, p.y - b0.cy));
-  const tf0 = {...(c.tf || MAIN_TF)};
+  const tf0 = {...tfAt(c)};
   let moved = false;
   capture(screen, e);
   const mv = ev => {
     const q = canvasPt(ev);
     if(!moved && Math.hypot(q.x - p.x, q.y - p.y) < 3 * q.k) return;
     moved = true;
-    live(() => {
-      if(!c.tf) c.tf = {...MAIN_TF};
-      if(hit.mode === 'scale') c.tf.s = clamp(tf0.s * Math.hypot(q.x - b0.cx, q.y - b0.cy) / d0, .03, 8);
+    live(() => editTf(c, tf => {
+      if(hit.mode === 'scale') tf.s = clamp(tf0.s * Math.hypot(q.x - b0.cx, q.y - b0.cy) / d0, .03, 8);
       else {
         let nx = tf0.x + (q.x - p.x) / W, ny = tf0.y + (q.y - p.y) / H;
         guides.x = Math.abs(nx - .5) < 10 * q.k / W; guides.y = Math.abs(ny - .5) < 10 * q.k / H;
         if(guides.x) nx = .5; if(guides.y) ny = .5;
-        c.tf.x = clamp(nx, -1, 2); c.tf.y = clamp(ny, -1, 2);
+        tf.x = clamp(nx, -1, 2); tf.y = clamp(ny, -1, 2);
       }
-    });
+    }));
   };
   const up = () => { screen.removeEventListener('pointermove', mv); screen.removeEventListener('pointerup', up); screen.removeEventListener('pointercancel', up); guides.x = guides.y = false; if(moved) liveEnd(); else dirty = true; };
   screen.addEventListener('pointermove', mv); screen.addEventListener('pointerup', up); screen.addEventListener('pointercancel', up);
@@ -1121,7 +1186,7 @@ function updateUi(){
 }
 
 /* ---------- editar clipes ---------- */
-const copyClip = c => ({...c, id: uid(), tf: c.tf ? {...c.tf} : undefined, text: c.text ? {...c.text} : undefined, tr: null});
+const copyClip = c => ({...c, id: uid(), tf: c.tf ? {...c.tf} : undefined, text: c.text ? {...c.text} : undefined, kf: c.kf ? c.kf.map(k => ({...k})) : undefined, crop: c.crop ? {...c.crop} : undefined, tr: null});
 function split(){
   const l = L(), picked = sels().filter(c => !isLocked(c.track));
   const inside = e => e && !isLocked(e.c.track) && t > e.start + .04 && t < e.end - .04;
@@ -1132,6 +1197,11 @@ function split(){
     for(const e of targets){
       const c = e.c, cut = c.in + (t - e.start) * c.speed;
       const b = {...copyClip(c), in: cut, fi: 0};
+      if(c.kf?.length){
+        const lt = t - e.start, mid = {t: lt, ...pickTf(tfAt(c, lt))};
+        b.kf = [{...mid, t: 0}, ...c.kf.filter(k => k.t > lt).map(k => ({...k, t: k.t - lt}))];
+        c.kf = [...c.kf.filter(k => k.t < lt), mid];
+      }
       if(c.track !== 'v') b.start = t;
       c.out = cut; c.fo = 0;
       S.clips.splice(S.clips.indexOf(c) + 1, 0, b);
@@ -1161,14 +1231,14 @@ function duplicate(){
 // levar um clipe da trilha principal para uma trilha de cima (e voltar)
 function toUpper(c){
   const e = entryOf(c), m = media.get(c.mid);
-  edit(() => { c.start = e.start; c.tr = null; c.tf = defaultTf(m || {}); c.track = pickTrack('video', c.start, c.start + clipDur(c), null, c); });
+  edit(() => { c.start = e.start; c.tr = null; c.tf = defaultTf(m || {}); c.kf = undefined; c.track = pickTrack('video', c.start, c.start + clipDur(c), null, c); });
   toast('Agora está por cima do vídeo: arraste no preview para posicionar');
 }
 function toMain(c){
   const {v} = L(), i = v.findIndex(x => c.start < (x.start + x.end) / 2);
   edit(() => {
     S.clips.splice(S.clips.indexOf(c), 1);
-    c.track = 'v'; delete c.start; delete c.tf; c.fit = 'contain';
+    c.track = 'v'; delete c.start; delete c.tf; delete c.kf; c.fit = 'contain';
     const vs = S.clips.filter(x => x.track === 'v');
     if(i < 0 || i >= vs.length) S.clips.push(c); else S.clips.splice(S.clips.indexOf(vs[i]), 0, c);
   });
@@ -1265,6 +1335,35 @@ function textProps(c){
       <label>Saída<select class="inp" id="p-aout">${opt(Object.entries(TXT_ANIMS).filter(([k]) => k !== 'type'), T.aout)}</select></label>
     </div>`;
 }
+// keyframes: marcar no cursor, remover, limpar e atalhos prontos
+function kfProps(c){
+  const n = c.kf?.length || 0, here = kfHere(c), lt = localT(c), inside = lt >= -1e-3 && lt <= clipLen(c) + 1e-3;
+  return `<div class="pr kf-box"><div class="pr-h">Animação <span class="kf-count">${n ? `${n} keyframe${n > 1 ? 's' : ''}` : 'sem keyframes'}</span></div>
+    <div class="kf-row">
+      <button class="ghost sm kf-add${here ? ' on' : ''}" id="p-kf-add" type="button"${inside ? '' : ' disabled'} title="Marca a posição, o tamanho, a rotação e a opacidade neste ponto">◆ ${here ? 'Keyframe aqui' : 'Marcar aqui'}</button>
+      <button class="ghost sm" id="p-kf-del" type="button"${here ? '' : ' disabled'}>Remover</button>
+      <button class="ghost sm" id="p-kf-clear" type="button"${n ? '' : ' disabled'}>Limpar</button>
+      <button class="ib sm" id="p-kf-prev" type="button" title="Keyframe anterior"${n ? '' : ' disabled'}>‹</button><button class="ib sm" id="p-kf-next" type="button" title="Próximo keyframe"${n ? '' : ' disabled'}>›</button>
+    </div>
+    <div class="kf-presets">${Object.entries(KF_PRESETS).map(([k, p]) => `<button type="button" data-kfp="${k}">${p.label}</button>`).join('')}</div>
+    <p class="hint">${n ? 'Mexa no preview ou nos controles acima: o valor vale para o ponto onde o cursor está, e o editor anima entre os pontos.' : 'Marque um ponto, leve o cursor para outro momento e mude o tamanho ou a posição: o editor anima entre os dois.'}</p>
+  </div>`;
+}
+// recortar bordas, girar de 90 em 90 e espelhar
+function cropProps(c){
+  const cr = c.crop || {l: 0, t: 0, r: 0, b: 0}, pct = v => Math.round(v * 100);
+  return `<div class="pr crop-box"><div class="pr-h">Recortar e girar <button class="ghost sm" id="p-crop-reset" type="button">Resetar</button></div>
+    <div class="rot-row">
+      <button class="ghost sm" type="button" data-rot="-90" title="Girar 90° para a esquerda">⟲ 90°</button>
+      <button class="ghost sm" type="button" data-rot="90" title="Girar 90° para a direita">⟳ 90°</button>
+      <button class="ghost sm" type="button" data-flip="flipH" aria-pressed="${!!c.flipH}" title="Espelhar na horizontal">⇆</button>
+      <button class="ghost sm" type="button" data-flip="flipV" aria-pressed="${!!c.flipV}" title="Espelhar na vertical">⇅</button>
+    </div>
+    <div class="crop-grid">
+      ${[['l', 'Esquerda'], ['r', 'Direita'], ['t', 'Cima'], ['b', 'Baixo']].map(([k, l]) => `<label>${l}<output id="p-crop-${k}-out">${pct(cr[k])}%</output><input type="range" id="p-crop-${k}" min="0" max="45" step="1" value="${pct(cr[k])}"></label>`).join('')}
+    </div>
+  </div>`;
+}
 function renderProps(){
   const p = $('#props');
   if(selSet.size > 1){
@@ -1297,7 +1396,7 @@ function renderProps(){
     return;
   }
   const m = media.get(c.mid), e = entryOf(c), T = c.text, still = !!T || m?.kind === 'image', aud = m?.kind === 'audio', sound = hasSound(c);
-  const vi = c.track === 'v' ? L().v.findIndex(x => x.c === c) : -1, tf = c.tf || MAIN_TF, main = c.track === 'v';
+  const vi = c.track === 'v' ? L().v.findIndex(x => x.c === c) : -1, tf = tfAt(c), main = c.track === 'v';
   const d = e.end - e.start, fmax = Math.min(10, +((cutEnd(e) - e.start) / 2).toFixed(1));
   const title = T ? (c.caption ? 'Legenda' : 'Texto') : aud ? 'Áudio' : main ? (still ? 'Foto' : 'Vídeo') : 'Por cima do vídeo';
   p.innerHTML = `<div class="pane-h"><b>${title}</b><button class="ib" id="p-close" type="button" title="Voltar ao projeto (Esc)" aria-label="Fechar"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
@@ -1307,7 +1406,8 @@ function renderProps(){
         ${range('p-size', 'Tamanho', main ? 10 : 3, main ? 400 : 300, 1, Math.round(tf.s * 100), Math.round(tf.s * 100) + '%')}
         ${range('p-rot', 'Rotação', -180, 180, 1, Math.round(tf.r), Math.round(tf.r) + '°')}
         ${range('p-op', 'Opacidade', 0, 100, 1, Math.round((tf.op ?? 1) * 100), Math.round((tf.op ?? 1) * 100) + '%')}
-        <div class="pr"><div class="pr-h">Posição <button class="ghost sm" id="p-reset" type="button">Resetar</button></div><div class="pr-2">${POS9}<span class="hint">Ou clique no preview e arraste. Os cantos mudam o tamanho.</span></div></div>` : ''}
+        <div class="pr"><div class="pr-h">Posição <button class="ghost sm" id="p-reset" type="button">Resetar</button></div><div class="pr-2">${POS9}<span class="hint">Ou clique no preview e arraste. Os cantos mudam o tamanho.</span></div></div>
+        ${kfProps(c)}${T ? '' : cropProps(c)}` : ''}
       ${sound ? `<div class="pr"><div class="pr-h"><label for="p-vol">Volume</label><output id="p-vol-out">${Math.round(c.volume * 100)}%</output></div>
         <input type="range" id="p-vol" min="0" max="200" step="5" value="${Math.round(c.volume * 100)}">
         <label class="chk"><input type="checkbox" id="p-mute"${c.muted ? ' checked' : ''}> Sem som</label></div>
@@ -1334,7 +1434,23 @@ $('#props').addEventListener('click', e => {
   else if(b.id === 'p-tomain' && c) toMain(c);
   else if(b.id === 'p-front' && c) moveUpper(c, 1);
   else if(b.id === 'p-back' && c) moveUpper(c, -1);
-  else if(b.id === 'p-reset' && c) edit(() => { c.tf = c.track === 'v' ? undefined : c.text ? {x: .5, y: c.caption ? .86 : .5, s: 1, r: 0, op: 1} : defaultTf(media.get(c.mid) || {}); });
+  else if(b.id === 'p-reset' && c){ edit(() => { c.tf = c.track === 'v' ? undefined : c.text ? {x: .5, y: c.caption ? .86 : .5, s: 1, r: 0, op: 1} : defaultTf(media.get(c.mid) || {}); c.kf = undefined; }); }
+  else if(b.id === 'p-kf-add' && c) edit(() => { editTf(c, () => {}); if(!c.kf?.length){ const lt = clamp(localT(c), 0, clipLen(c)); c.kf = [{t: lt, ...pickTf(tfAt(c, lt))}]; } });
+  else if(b.id === 'p-kf-del' && c){ const k = kfHere(c); if(k) edit(() => { c.kf = c.kf.filter(x => x !== k); if(!c.kf.length){ c.tf = pickTf(k); c.kf = undefined; } }); }
+  else if(b.id === 'p-kf-clear' && c){ const cur = pickTf(tfAt(c)); edit(() => { c.kf = undefined; c.tf = cur; }); }
+  else if((b.id === 'p-kf-prev' || b.id === 'p-kf-next') && c?.kf?.length){
+    const lt = localT(c), e0 = entryOf(c), list = b.id === 'p-kf-next' ? c.kf.filter(k => k.t > lt + .01) : c.kf.filter(k => k.t < lt - .01).reverse();
+    if(list[0]) seek(e0.start + list[0].t);
+  }
+  else if(b.dataset.kfp && c){
+    const e0 = entryOf(c), d = e0.end - e0.start, base = pickTf(c.kf?.length ? tfAt(c, 0) : baseTf(c));
+    const bx = boxOf({...c, kf: undefined, tf: base}, screen.width, screen.height);
+    edit(() => { c.kf = KF_PRESETS[b.dataset.kfp].f(base, d, bx.w / screen.width, bx.h / screen.height).map(k => ({...pickTf(k), t: clamp(k.t, 0, d)})); });
+    toast(`Animação "${KF_PRESETS[b.dataset.kfp].label}" aplicada`);
+  }
+  else if(b.dataset.rot && c) edit(() => { c.rot90 = ((c.rot90 || 0) + +b.dataset.rot + 360) % 360; });
+  else if(b.dataset.flip && c) edit(() => { c[b.dataset.flip] = !c[b.dataset.flip]; });
+  else if(b.id === 'p-crop-reset' && c) edit(() => { c.crop = undefined; c.rot90 = 0; c.flipH = false; c.flipV = false; });
   else if(b.closest('#p-ratio')){ edit(() => { S.ratio = b.dataset.v; S.ratioAuto = false; }); sizeScreen(); }
   else if(b.closest('#p-speed') && c) edit(() => { c.speed = +b.dataset.v; });
   else if(b.closest('#p-fit') && c) edit(() => { c.fit = b.dataset.v; });
@@ -1342,9 +1458,9 @@ $('#props').addEventListener('click', e => {
   else if(b.closest('#p-tbg') && c?.text) edit(() => { c.text.bg = b.dataset.v; });
   else if(b.closest('#p-shadow') && c?.text) edit(() => { c.text.shadow = b.dataset.v; });
   else if(b.closest('#p-pos') && c){
-    const W = screen.width, H = screen.height, bx = boxOf({...c, tf: {...(c.tf || MAIN_TF), r: 0}}, W, H), v = b.dataset.v;
+    const W = screen.width, H = screen.height, bx = boxOf({...c, kf: undefined, tf: {...tfAt(c), r: 0}}, W, H), v = b.dataset.v;
     const mx = Math.min(.5, bx.w / 2 / W + (c.track === 'v' ? 0 : .04)), my = Math.min(.5, bx.h / 2 / H + (c.track === 'v' ? 0 : .04));
-    edit(() => { c.tf = {...(c.tf || MAIN_TF)}; c.tf.x = v[1] === 'l' ? mx : v[1] === 'r' ? 1 - mx : .5; c.tf.y = v[0] === 't' ? my : v[0] === 'b' ? 1 - my : .5; });
+    edit(() => editTf(c, tf => { tf.x = v[1] === 'l' ? mx : v[1] === 'r' ? 1 - mx : .5; tf.y = v[0] === 't' ? my : v[0] === 'b' ? 1 - my : .5; }));
   }
 });
 $('#props').addEventListener('input', e => {
@@ -1359,7 +1475,9 @@ $('#props').addEventListener('input', e => {
     if(id === 'p-bgop'){ live(() => { T.bgOp = v / 100; }); out(v + '%'); return; }
   }
   const out = txt => { const o = $('#' + id + '-out'); if(o) o.textContent = txt; };
-  const tfSet = fn => live(() => { if(!c.tf) c.tf = {...MAIN_TF}; fn(c.tf); });
+  const tfSet = fn => live(() => editTf(c, fn));
+  const cm = id.match(/^p-crop-([lrtb])$/);
+  if(cm && c){ live(() => { c.crop = {l: 0, t: 0, r: 0, b: 0, ...(c.crop || {})}; c.crop[cm[1]] = v / 100; }); out(v + '%'); return; }
   if(id === 'p-vol' && c){ live(() => { c.volume = v / 100; }); out(v + '%'); syncMedia(!playing); }
   else if(id === 'p-bg') live(() => { S.bg = e.target.value; });
   else if(id === 'p-size' && c){ tfSet(tf => { tf.s = v / 100; }); out(v + '%'); }
@@ -1377,7 +1495,7 @@ $('#props').addEventListener('change', e => {
     const set = {'p-font': ['font', x => x], 'p-weight': ['weight', Number], 'p-ain': ['ain', x => x], 'p-aout': ['aout', x => x], 'p-italic': ['italic', () => e.target.checked]}[id];
     if(set){ edit(() => { T[set[0]] = set[1](e.target.value); }); return; }
   }
-  if(['p-vol', 'p-bg', 'p-size', 'p-rot', 'p-op', 'p-fi', 'p-fo', 'p-mfi', 'p-mfo'].includes(id)){ liveEnd(); }
+  if(['p-vol', 'p-bg', 'p-size', 'p-rot', 'p-op', 'p-fi', 'p-fo', 'p-mfi', 'p-mfo'].includes(id) || /^p-crop-/.test(id)){ liveEnd(); }
   else if(id === 'p-mute' && c) edit(() => { c.muted = e.target.checked; });
   else if(id === 'p-dur' && c){ const d = clamp(parseFloat(e.target.value) || 5, MIN, 3600); edit(() => { c.out = c.in + d; }); }
   else if(id === 'p-tr' && c) setTransition(c, e.target.value);
@@ -1673,7 +1791,8 @@ $('#media-grid').addEventListener('click', e => {
     if(used && !confirm(`"${m.name}" está em ${used === 1 ? '1 clipe' : used + ' clipes'} da timeline. Remover mesmo assim?`)) return;
     if(used) edit(() => { S.clips = S.clips.filter(c => c.mid !== m.id); });
     URL.revokeObjectURL(m.url); m.thumbs.forEach(x => URL.revokeObjectURL(x.url)); if(m.wave) URL.revokeObjectURL(m.wave);
-    media.delete(m.id); renderMedia(); changed();
+    media.delete(m.id); if(PID) dbRun('media', 'readwrite', st => st.delete(m.id)).catch(() => {});
+    renderMedia(); changed();
   }
 });
 $('#media-grid').addEventListener('dblclick', e => { const li = e.target.closest('.mi'); const m = li && media.get(li.dataset.mid); if(m?.status === 'ready' && !e.target.closest('button')) addToTimeline(m, m.sticker ? {start: t} : {}); });
@@ -1767,33 +1886,25 @@ normalize();
 const chCfg = id => id === 'master' ? S.master : trkCfg(id);
 const channelIds = () => ['master', 'v', ...S.tracks.map(x => x.id)];
 
-const bq = (type, f, q) => { const b = actx.createBiquadFilter(); b.type = type; b.frequency.value = f; if(q) b.Q.value = q; return b; };
-function wetDry(){
-  const input = actx.createGain(), output = actx.createGain(), dry = actx.createGain(), wet = actx.createGain();
-  input.connect(dry).connect(output); wet.connect(output);
-  return {input, output, wet, setMix(v){ dry.gain.value = 1 - v; wet.gain.value = v; }};
-}
-function impulse(sec){
-  const rate = actx.sampleRate, len = Math.max(1, Math.floor(rate * sec)), b = actx.createBuffer(2, len, rate);
-  for(let ch = 0; ch < 2; ch++){ const d = b.getChannelData(ch); for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5); }
-  return b;
-}
 function distCurve(amount){ const k = 1 + amount / 8, n = 2048, c = new Float32Array(n); for(let i = 0; i < n; i++){ const x = i * 2 / n - 1; c[i] = Math.tanh(x * k) / Math.tanh(k); } return c; }
-// cada efeito vira {input, output, set(params)}
-function makeFx(fx){
+// cada efeito vira {input, output, set(params)}; ac = contexto de áudio (ao vivo ou offline, na exportação)
+function makeFx(fx, ac = actx){
+  const bq = (type, f, q) => { const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f; if(q) b.Q.value = q; return b; };
+  const wetDry = () => { const input = ac.createGain(), output = ac.createGain(), dry = ac.createGain(), wet = ac.createGain(); input.connect(dry).connect(output); wet.connect(output); return {input, output, wet, setMix(v){ dry.gain.value = 1 - v; wet.gain.value = v; }}; };
+  const impulse = sec => { const rate = ac.sampleRate, len = Math.max(1, Math.floor(rate * sec)), b = ac.createBuffer(2, len, rate); for(let ch = 0; ch < 2; ch++){ const d = b.getChannelData(ch); for(let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.5); } return b; };
   switch(fx.type){
     case 'eq': { const lo = bq('lowshelf', 120), mi = bq('peaking', 1000, 1), hi = bq('highshelf', 8000); lo.connect(mi).connect(hi);
       return {input: lo, output: hi, set(p){ lo.gain.value = p.low; mi.gain.value = p.mid; mi.frequency.value = p.midf; hi.gain.value = p.high; }}; }
     case 'filter': { const f = bq('lowpass', 1500); return {input: f, output: f, set(p){ f.type = p.mode; f.frequency.value = p.freq; f.Q.value = p.q; }}; }
-    case 'comp': { const c = actx.createDynamicsCompressor(), g = actx.createGain(); c.connect(g);
+    case 'comp': { const c = ac.createDynamicsCompressor(), g = ac.createGain(); c.connect(g);
       return {input: c, output: g, set(p){ c.threshold.value = p.threshold; c.ratio.value = p.ratio; c.knee.value = 6; c.attack.value = p.attack / 1000; c.release.value = p.release / 1000; g.gain.value = dB(p.makeup); }}; }
-    case 'limiter': { const c = actx.createDynamicsCompressor(); c.knee.value = 0; c.ratio.value = 20; c.attack.value = .001; c.release.value = .05;
+    case 'limiter': { const c = ac.createDynamicsCompressor(); c.knee.value = 0; c.ratio.value = 20; c.attack.value = .001; c.release.value = .05;
       return {input: c, output: c, set(p){ c.threshold.value = p.ceiling; }}; }
-    case 'reverb': { const m = wetDry(), conv = actx.createConvolver(), tone = bq('lowpass', 7000); m.input.connect(conv); conv.connect(tone).connect(m.wet); let size = null;
+    case 'reverb': { const m = wetDry(), conv = ac.createConvolver(), tone = bq('lowpass', 7000); m.input.connect(conv); conv.connect(tone).connect(m.wet); let size = null;
       return {input: m.input, output: m.output, set(p){ if(p.size !== size){ size = p.size; conv.buffer = impulse(size); } tone.frequency.value = p.tone; m.setMix(p.mix / 100); }}; }
-    case 'delay': { const m = wetDry(), d = actx.createDelay(2), fb = actx.createGain(); m.input.connect(d); d.connect(fb).connect(d); d.connect(m.wet);
+    case 'delay': { const m = wetDry(), d = ac.createDelay(2), fb = ac.createGain(); m.input.connect(d); d.connect(fb).connect(d); d.connect(m.wet);
       return {input: m.input, output: m.output, set(p){ d.delayTime.value = p.time / 1000; fb.gain.value = p.feedback / 100; m.setMix(p.mix / 100); }}; }
-    case 'dist': { const m = wetDry(), ws = actx.createWaveShaper(); ws.oversample = '4x'; m.input.connect(ws).connect(m.wet); let dr = null;
+    case 'dist': { const m = wetDry(), ws = ac.createWaveShaper(); ws.oversample = '4x'; m.input.connect(ws).connect(m.wet); let dr = null;
       return {input: m.input, output: m.output, set(p){ if(p.drive !== dr){ dr = p.drive; ws.curve = distCurve(dr); } m.setMix(p.mix / 100); }}; }
   }
 }
@@ -2025,6 +2136,383 @@ $('#mx-rack').addEventListener('input', e => {
   out.textContent = (Math.abs(v) >= 100 || Number.isInteger(v) ? Math.round(v) : v.toFixed(1)).toString().replace('.', ',') + (d[5] ? ' ' + d[5] : '');
 });
 
+
+/* ---------- projetos salvos no navegador (IndexedDB): timeline + arquivos, com salvamento automático ---------- */
+let idbP = null;
+const idb = () => idbP || (idbP = new Promise((res, rej) => {
+  const r = indexedDB.open('webkit-editor', 1);
+  r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('projects', {keyPath: 'id'}); d.createObjectStore('media', {keyPath: 'id'}).createIndex('pid', 'pid'); };
+  r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+}));
+async function dbRun(store, mode, fn){
+  const d = await idb();
+  return new Promise((res, rej) => { const tr = d.transaction(store, mode), req = fn(tr.objectStore(store)); tr.oncomplete = () => res(req?.result); tr.onerror = tr.onabort = () => rej(tr.error); });
+}
+const dbPut = (store, v) => dbRun(store, 'readwrite', s => s.put(v));
+const dbGet = (store, k) => dbRun(store, 'readonly', s => s.get(k));
+const dbAll = store => dbRun(store, 'readonly', s => s.getAll());
+const dbMediaOf = pid => dbRun('media', 'readonly', s => s.index('pid').getAll(pid));
+const dbDelMediaOf = pid => dbRun('media', 'readwrite', s => { const c = s.index('pid').openCursor(pid); c.onsuccess = () => { const k = c.result; if(k){ k.delete(); k.continue(); } }; return null; });
+let PID = null, projCreated = 0, saveTimer = null, saveFailed = false, persistAsked = false;
+function setSaveState(st){
+  const el = $('#save-st'); if(!el) return;
+  el.dataset.st = st;
+  el.textContent = st === 'saving' ? 'Salvando…' : st === 'saved' ? 'Salvo' : st === 'error' ? 'Não salvou (sem espaço?)' : '';
+  el.title = st === 'saved' ? 'O projeto fica guardado neste navegador. Abra de novo em "Projetos".' : '';
+}
+function saveMedia(m){
+  if(!PID) return;
+  dbPut('media', {id: m.id, pid: PID, name: m.name, kind: kindOf(m.file) || m.kind, file: m.file, type: m.file.type, credit: m.credit, sticker: m.sticker})
+    .catch(() => { saveFailed = true; setSaveState('error'); });
+}
+// o projeto só passa a existir quando entra o primeiro arquivo ou clipe
+function ensureProject(){
+  if(PID) return;
+  PID = 'p' + uid(); projCreated = Date.now();
+  for(const m of media.values()) saveMedia(m);
+  if(!persistAsked && navigator.storage?.persist){ persistAsked = true; navigator.storage.persist().catch(() => {}); }
+}
+function markDirty(){
+  if(!PID){ if(!S.clips.length && !media.size) return; ensureProject(); }
+  setSaveState('saving');
+  clearTimeout(saveTimer); saveTimer = setTimeout(saveProject, 700);
+}
+function projectThumb(){
+  try{ const c = document.createElement('canvas'); c.width = 240; c.height = 135; const x = c.getContext('2d'); x.fillStyle = '#111'; x.fillRect(0, 0, 240, 135);
+    const k = Math.min(240 / screen.width, 135 / screen.height); x.drawImage(screen, (240 - screen.width * k) / 2, (135 - screen.height * k) / 2, screen.width * k, screen.height * k);
+    return c.toDataURL('image/jpeg', .6); }catch{ return null; }
+}
+async function saveProject(){
+  saveTimer = null;
+  if(!PID) return;
+  try{
+    await dbPut('projects', {id: PID, name: $('#proj-name').value.trim() || 'Meu vídeo', created: projCreated, updated: Date.now(), S: JSON.parse(snap()), duration: L().total, clips: S.clips.length, thumb: projectThumb()});
+    saveFailed = false; setSaveState('saved');
+  }catch{ saveFailed = true; setSaveState('error'); }
+}
+// limpa o editor (antes de abrir outro projeto ou começar um novo)
+function resetEditor(){
+  if(playing) pause();
+  for(const o of els.values()){ o.el.pause(); o.el.removeAttribute('src'); o.el.load(); try{ o.node?.disconnect(); }catch{} }
+  els.clear();
+  for(const m of media.values()){ URL.revokeObjectURL(m.url); m.thumbs.forEach(x => URL.revokeObjectURL(x.url)); if(m.wave) URL.revokeObjectURL(m.wave); }
+  media.clear();
+  S = {clips: [], ratio: '16:9', ratioAuto: true, bg: '#000000', tracks: [{id: 'a1', kind: 'audio'}], main: {}, master: {vol: 1, fx: []}};
+  normalize(); hist.past = []; hist.future = []; sel = null; selSet = new Set(); t = 0; autoFit = true;
+  clearTimeout(saveTimer); saveTimer = null; PID = null; saveFailed = false;
+}
+async function openProject(id){
+  const rec = await dbGet('projects', id); if(!rec) return;
+  const meds = await dbMediaOf(id);
+  resetEditor();
+  PID = id; projCreated = rec.created || Date.now();
+  $('#proj-name').value = rec.name || 'Meu vídeo';
+  for(const r of meds){
+    const f = r.file instanceof File ? r.file : new File([r.file], r.name, {type: r.type || ''});
+    const m = {id: r.id, file: f, name: r.name, kind: r.kind, url: URL.createObjectURL(f), duration: 0, w: 0, h: 0, thumbs: [], status: 'loading', credit: r.credit || null, sticker: !!r.sticker};
+    media.set(m.id, m); probe(m);
+  }
+  S = rec.S; normalize();
+  renderMedia(); changed(); sizeScreen(); zoomFit(); setSaveState('saved');
+  try{ localStorage.setItem('ed-last', id); }catch{}
+  toast(`"${rec.name}" aberto`);
+}
+function newProject(){
+  resetEditor(); $('#proj-name').value = 'Meu vídeo';
+  renderMedia(); changed(); sizeScreen(); setSaveState('');
+}
+const ago = ts => { const s = (Date.now() - ts) / 1000; return s < 60 ? 'agora' : s < 3600 ? `há ${Math.round(s / 60)} min` : s < 86400 ? `há ${Math.round(s / 3600)} h` : `há ${Math.round(s / 86400)} dia${s >= 172800 ? 's' : ''}`; };
+async function renderProjects(){
+  let list = [];
+  try{ list = (await dbAll('projects')).sort((a, b) => b.updated - a.updated); }catch{}
+  const est = await navigator.storage?.estimate?.().catch(() => null);
+  $('#proj-list').innerHTML = list.length ? list.map(p => `<li class="pj${p.id === PID ? ' cur' : ''}" data-pid="${p.id}">
+      <button class="pj-open" type="button" data-act="open" title="Abrir ${esc(p.name)}">${p.thumb ? `<img src="${p.thumb}" alt="">` : '<span class="pj-ph"></span>'}</button>
+      <div class="pj-info"><b>${esc(p.name)}</b><span>${fmtTime(p.duration || 0, false)} · ${p.clips || 0} clipe${p.clips === 1 ? '' : 's'} · editado ${ago(p.updated)}</span></div>
+      <button class="pj-del" type="button" data-act="del" title="Excluir projeto" aria-label="Excluir ${esc(p.name)}"><svg viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 9h5.8l.6-9"/></svg></button>
+    </li>`).join('') : '<li class="pj-empty">Nenhum projeto salvo ainda. Tudo o que você fizer no editor é salvo sozinho aqui.</li>';
+  $('#proj-foot').textContent = est ? `Espaço usado pelo site neste navegador: ${(est.usage / 1048576).toFixed(0)} MB de ${(est.quota / 1073741824).toFixed(0)} GB` : '';
+  return list;
+}
+async function openProjects(){ await renderProjects(); gelOpen($('#proj-dlg')); }
+$('#proj-btn').addEventListener('click', openProjects);
+$('#proj-x').addEventListener('click', () => gelClose($('#proj-dlg')));
+$('#proj-new').addEventListener('click', () => { if(saveTimer) saveProject(); newProject(); gelClose($('#proj-dlg')); toast('Projeto novo'); });
+$('#proj-list').addEventListener('click', async e => {
+  const b = e.target.closest('[data-act]'), li = e.target.closest('.pj'); if(!li) return;
+  const id = li.dataset.pid;
+  if(!b || b.dataset.act === 'open'){ if(saveTimer) await saveProject(); await openProject(id); gelClose($('#proj-dlg')); return; }
+  const rec = await dbGet('projects', id);
+  if(!confirm(`Excluir "${rec?.name || 'projeto'}" e os arquivos dele deste navegador?`)) return;
+  await dbRun('projects', 'readwrite', s => s.delete(id)); await dbDelMediaOf(id);
+  if(id === PID){ newProject(); }
+  renderProjects();
+});
+$('#proj-name').addEventListener('input', () => markDirty());
+
+
+/* ---------- exportação rápida: quadro a quadro com WebCodecs, áudio mixado offline, MP4 com mp4-muxer ---------- */
+const MUXER_URL = 'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/+esm';
+// o navegador freia timers em abas de fundo; mensagens e eventos do codificador não. Por isso nada aqui depende de setTimeout.
+const yieldNow = () => new Promise(r => { const ch = new MessageChannel(); ch.port1.onmessage = () => { ch.port1.close(); r(); }; ch.port2.postMessage(0); });
+const onDequeue = codec => 'ondequeue' in codec ? new Promise(r => codec.addEventListener('dequeue', r, {once: true})) : sleep(2);
+async function fastSupport(w, h){
+  if(typeof VideoEncoder === 'undefined' || typeof AudioEncoder === 'undefined' || typeof VideoFrame === 'undefined' || typeof OfflineAudioContext === 'undefined') return null;
+  for(const codec of ['avc1.640028', 'avc1.4d0028', 'avc1.640033', 'avc1.42001f']){
+    try{
+      if(!(await VideoEncoder.isConfigSupported({codec, width: w, height: h, bitrate: 8e6, framerate: FPS})).supported) continue;
+      let ac = null;
+      for(const a of [['mp4a.40.2', 'aac'], ['opus', 'opus']]){
+        try{ if((await AudioEncoder.isConfigSupported({codec: a[0], sampleRate: 48000, numberOfChannels: 2, bitrate: 192000})).supported){ ac = a; break; } }catch{}
+      }
+      return {vcodec: codec, acodec: ac};
+    }catch{}
+  }
+  return null;
+}
+// volume de um clipe num instante: fades + cruzamento das transições da trilha principal
+function gainAt(e, tt){
+  const c = e.c, lt = tt - e.start, d = cutEnd(e) - e.start;
+  let f = 1;
+  if(c.fi > 0) f = Math.min(f, lt / c.fi);
+  if(c.fo > 0) f = Math.min(f, (d - lt) / c.fo);
+  f = clamp(f, 0, 1);
+  if(c.track === 'v'){
+    const v = L().v, i = v.indexOf(e), nx = v[i + 1];
+    if(e.td > 0 && tt < e.start + e.td) f *= clamp((tt - e.start) / e.td, 0, 1);
+    if(nx && nx.td > 0 && tt > nx.start) f *= 1 - clamp((tt - nx.start) / nx.td, 0, 1);
+  }
+  return f;
+}
+// o som inteiro do vídeo, com o mesmo mixer (canais, efeitos, volume, pan, mudo, solo), sem tocar nada
+async function renderAudioOffline(total){
+  const rate = 48000, oc = new OfflineAudioContext(2, Math.max(1, Math.ceil(total * rate)), rate);
+  const ids = channelIds(), anySolo = ids.some(id => id !== 'master' && chCfg(id)?.solo), made = {};
+  const mkBus = id => {
+    const cfg = chCfg(id), input = oc.createGain(); let prev = input;
+    for(const f of (cfg.fx || []).filter(f => f.on && FX[f.type])){ const n = makeFx(f, oc); n.set({...fxDefaults(f.type), ...f.p}); prev.connect(n.input); prev = n.output; }
+    const fader = oc.createGain(), muted = id !== 'master' && (cfg.mute || (anySolo && !cfg.solo));
+    fader.gain.value = muted ? 0 : (cfg.vol ?? 1); prev.connect(fader);
+    let out = fader;
+    if(id !== 'master' && oc.createStereoPanner){ const p = oc.createStereoPanner(); p.pan.value = cfg.pan || 0; fader.connect(p); out = p; }
+    return {input, out};
+  };
+  made.master = mkBus('master'); made.master.out.connect(oc.destination);
+  const busOf = id => { if(!chCfg(id)) id = 'v'; if(!made[id]){ made[id] = mkBus(id); made[id].out.connect(made.master.input); } return made[id]; };
+  const l = L(), entries = [...l.v, ...l.a, ...l.o].filter(e => hasSound(e.c) && !e.c.muted && e.start < total);
+  const dec = new Map();
+  for(const e of entries){
+    const m = media.get(e.c.mid);
+    if(!dec.has(m.id)){ try{ dec.set(m.id, await oc.decodeAudioData(await m.file.arrayBuffer())); }catch{ dec.set(m.id, null); } }
+  }
+  let any = false;
+  for(const e of entries){
+    const c = e.c, buf = dec.get(c.mid); if(!buf) continue;
+    const end = Math.min(e.end, total), dur = end - e.start; if(dur <= .01) continue;
+    const src = oc.createBufferSource(), g = oc.createGain();
+    src.buffer = buf; src.playbackRate.value = c.speed;
+    const N = Math.max(2, Math.ceil(dur * 100)), curve = new Float32Array(N);
+    for(let i = 0; i < N; i++) curve[i] = c.volume * gainAt(e, e.start + dur * i / (N - 1));
+    g.gain.setValueCurveAtTime(curve, e.start, dur);
+    src.connect(g).connect(busOf(c.track).input);
+    src.start(e.start, c.in, Math.max(.01, c.out - c.in));
+    any = true;
+  }
+  return any ? oc.startRendering() : null;
+}
+// deixa cada vídeo visível exatamente no quadro do instante t e espera o navegador decodificar
+async function seekExact(){
+  const need = [];
+  const put = e => {
+    if(EXP.fast && EXP.ov?.has(e.c.id)) return;
+    const o = getEl(e.c); if(!o) return;
+    const el = o.el, want = clamp(e.c.in + (t - e.start) * e.c.speed, 0, Math.max(0, (media.get(e.c.mid)?.duration || 0) - .01));
+    if(!el.paused) el.pause();
+    if(Math.abs(el.currentTime - want) > 1e-3){ el.currentTime = want; need.push(el); }
+    else if(el.readyState < 2 || el.seeking) need.push(el);
+  };
+  if(!S.main.hidden) activeV().forEach(put);
+  activeO().filter(e => !isHidden(e.c.track)).forEach(put);
+  await Promise.all(need.map(el => new Promise(res => {
+    if(!el.seeking && el.readyState >= 2) return res();
+    const done = () => { el.removeEventListener('seeked', done); el.removeEventListener('loadeddata', done); clearTimeout(tm); res(); };
+    el.addEventListener('seeked', done); el.addEventListener('loadeddata', done);
+    const tm = setTimeout(done, 4000);
+  })));
+}
+
+// MP4/MOV: em vez de pular de quadro em quadro (lento), lê o arquivo com o mp4box e decodifica em sequência com o WebCodecs
+const MP4BOX_URL = 'https://cdn.jsdelivr.net/npm/mp4box@0.5.3/+esm';
+const demuxCache = new Map();   // arquivo -> dados do vídeo (amostras, codec, giro)
+const isMp4 = m => /mp4|quicktime|m4v/.test(m.file.type) || /\.(mp4|mov|m4v)$/i.test(m.file.name || '');
+async function demuxMp4(m){
+  if(demuxCache.has(m.id)) return demuxCache.get(m.id);
+  const p = (async () => {
+    const mod = await import(MP4BOX_URL), M = mod.createFile ? mod : mod.default;
+    const file = M.createFile(), samples = [];
+    let track = null;
+    await new Promise(async (res, rej) => {
+      file.onError = rej;
+      file.onReady = info => { track = info.videoTracks[0]; if(!track) return rej(new Error('sem vídeo')); file.setExtractionOptions(track.id, null, {nbSamples: 1e9}); file.start(); };
+      file.onSamples = (id, u, s) => { for(const x of s) samples.push({ts: x.cts / x.timescale, dur: x.duration / x.timescale, key: x.is_sync, data: x.data}); };
+      const buf = await m.file.arrayBuffer(); buf.fileStart = 0; file.appendBuffer(buf); file.flush();
+      setTimeout(res, 0);
+    });
+    if(!track || !samples.length) throw new Error('sem amostras');
+    const entry = file.getTrackById(track.id).mdia.minf.stbl.stsd.entries[0], box = entry.avcC || entry.hvcC || entry.vpcC || entry.av1C;
+    let description;
+    if(box){ const ds = new M.DataStream(undefined, 0, M.DataStream.BIG_ENDIAN); box.write(ds); description = new Uint8Array(ds.buffer, 8); }
+    const cfg = {codec: track.codec, codedWidth: track.video.width, codedHeight: track.video.height, description};
+    if(!(await VideoDecoder.isConfigSupported(cfg)).supported) throw new Error('codec não suportado');
+    // giro gravado no arquivo (vídeo em pé de celular)
+    const mt = track.matrix || [65536, 0], rot = ((Math.round(Math.atan2(mt[1], mt[0]) * 180 / Math.PI) % 360) + 360) % 360;
+    return {cfg, samples, rot};
+  })();
+  demuxCache.set(m.id, p);
+  p.catch(() => demuxCache.delete(m.id));
+  return p;
+}
+// uma fonte de quadros por clipe: decodifica pra frente e devolve o quadro de cada instante pedido
+class DecSource {
+  constructor(d){ this.d = d; this.q = []; this.next = 0; this.done = false; this.wake = null; this.err = null; this.rc = null; }
+  start(fromT){
+    const S_ = this.d.samples;
+    // começa no quadro-chave antes do ponto de entrada
+    let i = S_.findIndex(s => s.ts > fromT + 1e-3); if(i < 0) i = S_.length;
+    let k = Math.max(0, i - 1); while(k > 0 && !S_[k].key) k--;
+    this.next = k;
+    this.dec = new VideoDecoder({output: f => { this.q.push(f); this.q.sort((a, b) => a.timestamp - b.timestamp); this.wake?.(); }, error: e => { this.err = e; this.wake?.(); }});
+    this.dec.configure(this.d.cfg);
+  }
+  // espera um quadro sair do decodificador (ou 15 ms)
+  pause(){ return new Promise(r => { this.wake = r; if('ondequeue' in this.dec) this.dec.addEventListener('dequeue', () => r(), {once: true}); setTimeout(r, 15); }); }
+  async frameAt(want){
+    const S_ = this.d.samples, us = want * 1e6 + 1000;
+    for(let guard = 0; guard < 4000 && !EXP.cancelled; guard++){
+      if(this.err) throw this.err;
+      // libera os quadros que já passaram: o decodificador só trabalha com poucos quadros em memória
+      while(this.q.length >= 2 && this.q[1].timestamp <= us) this.q.shift().close();
+      const last = this.q[this.q.length - 1];
+      if(last && (last.timestamp > us || this.done)) return this.q[0];
+      if(this.done) return this.q[0] || null;
+      if(this.next >= S_.length){
+        // fim do arquivo: pede o resto sem travar (os quadros continuam sendo liberados enquanto isso)
+        if(!this.flushing) this.flushing = this.dec.flush().catch(() => {}).then(() => { this.done = true; this.wake?.(); });
+        await this.pause(); continue;
+      }
+      // manda pouco por vez: só o suficiente para chegar no instante pedido
+      let fed = 0;
+      while(this.dec.decodeQueueSize < 4 && this.q.length < 6 && this.next < S_.length){
+        const s = S_[this.next++];
+        this.dec.decode(new EncodedVideoChunk({type: s.key ? 'key' : 'delta', timestamp: Math.round(s.ts * 1e6), duration: Math.round(s.dur * 1e6), data: s.data}));
+        fed++;
+      }
+      if(!fed || this.dec.decodeQueueSize >= 4) await this.pause();
+    }
+    return this.q[0] || null;
+  }
+  // quadro pronto para desenhar (com o giro do celular aplicado)
+  image(f){
+    if(!f) return null;
+    const rot = this.d.rot, w = f.displayWidth, h = f.displayHeight;
+    if(!rot) return {src: f, w, h};
+    const odd = rot % 180, cw = odd ? h : w, ch = odd ? w : h;
+    if(!this.rc || this.rc.width !== cw || this.rc.height !== ch){ this.rc = new OffscreenCanvas(cw, ch); this.rx = this.rc.getContext('2d'); }
+    this.rx.save(); this.rx.translate(cw / 2, ch / 2); this.rx.rotate(rot * Math.PI / 180); this.rx.drawImage(f, -w / 2, -h / 2); this.rx.restore();
+    return {src: this.rc, w: cw, h: ch};
+  }
+  close(){ this.q.forEach(f => f.close()); this.q = []; try{ this.dec?.close(); }catch{} }
+}
+// prepara os quadros de todos os vídeos visíveis no instante t (MP4 pelo decodificador; o resto pelo tocador)
+async function framesAt(){
+  const now = [...(S.main.hidden ? [] : activeV()), ...activeO().filter(e => !isHidden(e.c.track))];
+  const live = new Set();
+  for(const e of now){
+    const m = media.get(e.c.mid); if(!m || m.kind !== 'video') continue;
+    const want = clamp(e.c.in + (t - e.start) * e.c.speed, 0, Math.max(0, m.duration - .01));
+    let src = EXP.srcs.get(e.c.id);
+    if(src === undefined && isMp4(m)){
+      try{ const d = await demuxMp4(m); src = new DecSource(d); src.start(want); }catch{ src = null; }
+      EXP.srcs.set(e.c.id, src);
+    }
+    if(src){ live.add(e.c.id); try{ EXP.ov.set(e.c.id, src.image(await src.frameAt(want))); }catch{ src.close(); EXP.srcs.set(e.c.id, null); EXP.ov.delete(e.c.id); } }
+  }
+  // clipes que já passaram: libera o decodificador
+  for(const [id, src] of EXP.srcs) if(src && !live.has(id) && !now.some(e => e.c.id === id)){ src.close(); EXP.srcs.set(id, null); EXP.ov.delete(id); }
+  await seekExact();
+}
+
+async function fastExport(){
+  const {w, h} = expSize(EXP.res), sup = await fastSupport(w, h); if(!sup) return false;
+  const {Muxer, ArrayBufferTarget} = await import(MUXER_URL);
+  const total = L().total, frames = Math.max(1, Math.round(total * FPS));
+  pause(); ensureAudio();
+  await Promise.all(S.clips.filter(c => c.text).map(c => document.fonts.load(txtFont(c.text, 40)).catch(() => {})));
+  const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+  Object.assign(EXP, {on: true, fast: true, cancelled: false, total, cv, cx: cv.getContext('2d'), blob: null, mime: 'video/mp4', srcs: new Map(), ov: new Map()});
+  showExp('run'); updateFast(0, frames, 'Mixando o som…');
+  const t0 = performance.now();
+  let abuf = null;
+  // se a mixagem falhar, melhor cair no tempo real do que entregar um vídeo mudo
+  if(sup.acodec) abuf = await renderAudioOffline(total);
+  else if(S.clips.some(c => hasSound(c) && !c.muted)) throw new Error('sem codificador de áudio');
+  const muxer = new Muxer({target: new ArrayBufferTarget(), fastStart: 'in-memory', firstTimestampBehavior: 'offset',
+    video: {codec: 'avc', width: w, height: h, frameRate: FPS},
+    audio: abuf ? {codec: sup.acodec[1], numberOfChannels: 2, sampleRate: 48000} : undefined});
+  let failed = null;
+  const venc = new VideoEncoder({output: (ch, meta) => muxer.addVideoChunk(ch, meta), error: err => { failed = err; }});
+  venc.configure({codec: sup.vcodec, width: w, height: h, bitrate: EXP.res >= 1080 ? 10e6 : 5e6, framerate: FPS});
+  for(let i = 0; i < frames && !EXP.cancelled && !failed; i++){
+    t = i / FPS;
+    await framesAt();
+    let ok = render(EXP.cx, w, h);
+    for(let k = 0; !ok && k < 200; k++){ await yieldNow(); ok = render(EXP.cx, w, h); }
+    const vf = new VideoFrame(cv, {timestamp: Math.round(i * 1e6 / FPS), duration: Math.round(1e6 / FPS)});
+    venc.encode(vf, {keyFrame: i % (FPS * 2) === 0}); vf.close();
+    while(venc.encodeQueueSize > 6) await onDequeue(venc);
+    if(i % 4 === 0){ dirty = true; updateFast(i, frames, null, t0); await yieldNow(); }
+  }
+  if(!EXP.cancelled && !failed){ updateFast(frames, frames, 'Finalizando o arquivo…'); await venc.flush(); }
+  try{ venc.close(); }catch{}
+  if(abuf && !EXP.cancelled && !failed){
+    const aenc = new AudioEncoder({output: (ch, meta) => muxer.addAudioChunk(ch, meta), error: err => { failed = err; }});
+    aenc.configure({codec: sup.acodec[0], sampleRate: 48000, numberOfChannels: 2, bitrate: 192000});
+    const L0 = abuf.getChannelData(0), R0 = abuf.numberOfChannels > 1 ? abuf.getChannelData(1) : L0, CH = 1024;
+    for(let o = 0; o < abuf.length && !failed; o += CH){
+      const n = Math.min(CH, abuf.length - o), data = new Float32Array(n * 2);
+      data.set(L0.subarray(o, o + n), 0); data.set(R0.subarray(o, o + n), n);
+      const ad = new AudioData({format: 'f32-planar', sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(o * 1e6 / 48000), data});
+      aenc.encode(ad); ad.close();
+      if(aenc.encodeQueueSize > 50) await onDequeue(aenc);
+    }
+    await aenc.flush(); try{ aenc.close(); }catch{}
+  }
+  for(const src of EXP.srcs.values()) src?.close();
+  EXP.srcs.clear(); EXP.ov.clear();
+  EXP.on = false; EXP.fast = false;
+  t = 0; syncMedia(true); dirty = true; updateTime(); placePlayhead();
+  if(failed){ console.warn(failed); throw failed; }
+  if(EXP.cancelled){ toast('Exportação cancelada'); showExp('setup'); renderExpSetup(); return true; }
+  muxer.finalize();
+  EXP.blob = new Blob([muxer.target.buffer], {type: 'video/mp4'});
+  EXP.file = `${slug($('#proj-name').value) || 'video'}.mp4`;
+  EXP.took = (performance.now() - t0) / 1000;
+  save(EXP.blob, EXP.file);
+  $('#exp-file').textContent = `${EXP.file} · ${(EXP.blob.size / 1048576).toFixed(1).replace('.', ',')} MB · pronto em ${EXP.took.toFixed(1).replace('.', ',')} s`;
+  const cr = creditsText();
+  $('#exp-credits').hidden = !cr; $('#credits-txt').value = cr;
+  showExp('done');
+  return true;
+}
+function updateFast(i, n, msg, t0){
+  const pct = n ? i / n : 0;
+  $('#exp-bar').style.width = (pct * 100).toFixed(1) + '%';
+  $('#exp-pct').textContent = Math.floor(pct * 100) + '%';
+  $('#exp-time').textContent = `quadro ${i} de ${n}`;
+  if(msg) $('#exp-msg').textContent = msg;
+  else if(t0){ const el = (performance.now() - t0) / 1000, speed = el > 0 ? (i / FPS) / el : 0; $('#exp-msg').textContent = `Modo rápido: ${speed >= 1 ? speed.toFixed(1).replace('.', ',') + '× mais rápido que o tempo real' : 'gerando quadro a quadro'}. Pode trocar de aba.`; }
+}
+
 /* ---------- exportar ---------- */
 const EXP = {on: false, res: 1080};
 function pickMime(){
@@ -2038,6 +2526,14 @@ function renderExpSetup(){
   const mime = pickMime(), {w, h} = expSize(EXP.res);
   $('#exp-info').innerHTML = `<span>Tamanho</span><b>${w} × ${h}</b><span>Duração</span><b>${fmtTime(L().total)}</b><span>Arquivo</span><b>${mime ? (mime.startsWith('video/mp4') ? 'MP4' : 'WebM') : 'não suportado'}</b>`;
   $('#exp-go').disabled = !mime;
+  const hint = $('#exp-setup .hint');
+  fastSupport(w, h).then(sup => {
+    EXP.realtime = !sup;
+    $('#exp-info').insertAdjacentHTML('beforeend', `<span>Modo</span><b>${sup ? 'Rápido (quadro a quadro)' : 'Tempo real'}</b>`);
+    if(sup) $('#exp-go').disabled = false;
+    hint.textContent = sup ? 'Modo rápido: o vídeo é gerado quadro a quadro, sem precisar tocar. Normalmente fica pronto bem antes da duração do vídeo, e dá para trocar de aba.'
+      : 'Este navegador não tem o modo rápido: o vídeo é gerado em tempo real, tocando do começo ao fim. Deixe esta aba aberta e visível até terminar.';
+  });
 }
 function showExp(step){ ['setup', 'run', 'done'].forEach(s => { $('#exp-' + s).hidden = s !== step; }); }
 $('#export-btn').addEventListener('click', () => { pause(); closeTrPop(); showExp('setup'); renderExpSetup(); gelOpen($('#exp-dlg')); });
@@ -2050,6 +2546,10 @@ $('#exp-dl').addEventListener('click', () => { if(EXP.blob) save(EXP.blob, EXP.f
 $('#exp-go').addEventListener('click', startExport);
 $('#credits-copy').addEventListener('click', async () => { try{ await navigator.clipboard.writeText($('#credits-txt').value); toast('Créditos copiados'); }catch{ $('#credits-txt').select(); } });
 async function startExport(){
+  if(!EXP.realtime){
+    try{ if(await fastExport()) return; }
+    catch(err){ console.warn(err); for(const src of EXP.srcs?.values() || []) src?.close(); EXP.srcs?.clear(); EXP.ov?.clear(); EXP.on = false; EXP.fast = false; toast('O modo rápido falhou aqui; gerando em tempo real'); }
+  }
   const mime = pickMime(); if(!mime) return;
   pause(); ensureAudio();
   await Promise.all(S.clips.filter(c => c.text).map(c => document.fonts.load(txtFont(c.text, 40)).catch(() => {})));
@@ -2073,7 +2573,7 @@ async function startExport(){
   play();
 }
 function expTick(hold){
-  const r = EXP.rec; if(!r) return;
+  const r = EXP.rec; if(!r || EXP.fast) return;
   if(hold && r.state === 'recording') r.pause();
   else if(!hold && r.state === 'paused') r.resume();
   updateExp();
@@ -2087,6 +2587,7 @@ function updateExp(){
 }
 function finishExport(){ if(!EXP.on) return; EXP.on = false; updateExp(); setTimeout(() => { if(EXP.rec && EXP.rec.state !== 'inactive') EXP.rec.stop(); }, 150); }
 function stopExport(cancel){
+  if(EXP.fast){ EXP.cancelled = true; return; }
   if(!EXP.rec) return;
   EXP.cancelled = cancel; EXP.on = false;
   pause();
@@ -2111,14 +2612,15 @@ function save(blob, name){
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
 }
-document.addEventListener('visibilitychange', () => { if(EXP.on) updateExp(); });
+document.addEventListener('visibilitychange', () => { if(EXP.on && !EXP.fast) updateExp(); });
 
 /* ---------- tema e saída ---------- */
 const themeBtn = $('#theme');
 function syncThemeBtn(){ const dark = document.documentElement.dataset.theme === 'dark'; const l = dark ? 'Ativar modo claro' : 'Ativar modo escuro'; themeBtn.setAttribute('aria-label', l); themeBtn.title = l; }
 themeBtn.addEventListener('click', () => { const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next; try{ localStorage.setItem('rx-theme', next); }catch{} syncThemeBtn(); });
 syncThemeBtn();
-window.addEventListener('beforeunload', e => { if(S.clips.length || EXP.on){ e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if(saveTimer) saveProject(); if(EXP.on || (saveFailed && S.clips.length)){ e.preventDefault(); e.returnValue = ''; } });
 
 /* ---------- início ---------- */
 renderMedia(); renderProps(); sizeScreen(); setPps(60); updateUi();
+dbAll('projects').then(l => { if(l.length) openProjects(); }).catch(() => {});

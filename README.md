@@ -70,7 +70,10 @@ Editor simples no estilo do [OpenCut](https://github.com/OpenCut-app/OpenCut): a
 - Volume até 200%, sem som, velocidade (0,5× a 2×), "mostrar inteiro" ou "preencher a tela", duração de cada foto
 - Formatos 16:9, 9:16 (Reels/TikTok), 1:1 e 4:5, com cor de fundo
 - Desfazer e refazer, zoom da timeline (Ctrl + rodinha), altura da timeline ajustável, atalhos de teclado
-- Exporta em HD ou Full HD: MP4 no Chrome/Edge, WebM onde não houver MP4. A gravação é em tempo real (MediaRecorder), então a aba precisa ficar aberta e visível até terminar
+- Keyframes: posição, tamanho, giro e opacidade animados entre pontos (losangos no clipe; mexer no preview com o cursor em outro ponto cria um keyframe). Prontos: Ken Burns, zoom in/out, entrar pela esquerda, subir, aparecer e pulsar
+- Recortar e girar: giro de 90°, espelhar na horizontal/vertical e corte das bordas (esquerda, direita, cima, baixo)
+- Projetos salvos no navegador (IndexedDB), com os arquivos: salva sozinho a cada mudança e a lista "Projetos recentes" reabre ou apaga
+- Exporta em HD ou Full HD. Modo rápido (Chrome/Edge): o vídeo é gerado quadro a quadro com WebCodecs (MP4/MOV decodificados em sequência com [mp4box.js](https://github.com/gpac/mp4box.js), som mixado offline com os mesmos efeitos do mixer, arquivo montado com [mp4-muxer](https://github.com/Vanilagy/mp4-muxer)); costuma ficar pronto bem antes da duração do vídeo e continua com a aba em segundo plano. Sem WebCodecs, grava em tempo real (MediaRecorder, MP4 ou WebM) com a aba visível
 
 ## Estrutura
 

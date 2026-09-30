@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Montserrat:wght@800;900&family=Permanent+Marker&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:wght@600;800&family=Inter:wght@600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/base.css?v=2">
 <link rel="stylesheet" href="assets/motion.css?v=2">
-<link rel="stylesheet" href="assets/editor.css?v=12">
+<link rel="stylesheet" href="assets/editor.css?v=15">
 </head>
 <body class="ed-page">
 <main class="ed" id="ed">
@@ -28,8 +28,10 @@
     <div class="ed-bar-l">
       <a class="back" href="./" title="Voltar para o webkit" aria-label="Voltar para a página inicial do webkit"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3 5 8l5 5"/></svg></a>
       <input class="proj-name" id="proj-name" value="Meu vídeo" aria-label="Nome do projeto" spellcheck="false" maxlength="60">
+      <span class="save-st" id="save-st" aria-live="polite"></span>
     </div>
     <div class="ed-bar-r">
+      <button class="proj-btn" id="proj-btn" type="button" title="Seus projetos salvos neste navegador"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 1.5h4.5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z"/></svg>Projetos</button>
       <button class="ib" id="undo" type="button" title="Desfazer (Ctrl+Z)" aria-label="Desfazer" disabled><svg viewBox="0 0 16 16"><path d="M5.5 3 2 6.5 5.5 10"/><path d="M2.5 6.5H10a4 4 0 0 1 0 8H7"/></svg></button>
       <button class="ib" id="redo" type="button" title="Refazer (Ctrl+Shift+Z)" aria-label="Refazer" disabled><svg viewBox="0 0 16 16"><path d="M10.5 3 14 6.5 10.5 10"/><path d="M13.5 6.5H6a4 4 0 0 0 0 8h3"/></svg></button>
       <button class="ib" id="keys-btn" type="button" title="Atalhos do teclado" aria-label="Atalhos do teclado" aria-haspopup="dialog"><svg viewBox="0 0 16 16"><rect x="1.5" y="4" width="13" height="8.5" rx="1.5"/><path d="M4 7h.01M6.5 7h.01M9 7h.01M11.5 7h.01M5 9.8h6"/></svg></button>
@@ -189,6 +191,16 @@
   <div class="pr"><div class="pr-h"><label for="trpop-dur">Duração</label><output id="trpop-dur-out"></output></div><input type="range" id="trpop-dur" min="0.2" max="2" step="0.1"></div>
 </div>
 
+<!-- projetos salvos -->
+<dialog id="proj-dlg" class="gel proj-dlg" aria-labelledby="proj-title">
+  <div class="dlg-box">
+    <div class="dlg-h"><b id="proj-title">Seus projetos</b><button class="ib" id="proj-x" type="button" aria-label="Fechar"><svg viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></svg></button></div>
+    <button class="btn teal" id="proj-new" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Novo projeto</button>
+    <ul class="proj-list" id="proj-list"></ul>
+    <p class="hint">Os projetos ficam salvos só neste navegador, com os arquivos junto. Limpar os dados do site apaga eles. <span id="proj-foot"></span></p>
+  </div>
+</dialog>
+
 <!-- menu ⋯ de cada trilha -->
 <div class="trk-menu gel" id="trk-menu" role="menu" hidden></div>
 
@@ -255,7 +267,7 @@
 </dialog>
 
 <div class="toast" id="toast" role="status"></div>
-<script src="assets/editor.js?v=14"></script>
+<script src="assets/editor.js?v=22"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>
