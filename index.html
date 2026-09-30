@@ -116,6 +116,36 @@ section{scroll-margin-top:72px}
 .d-thumb.t1{background:var(--ink)}.d-thumb.t2{background:var(--teal)}.d-thumb.t3{background:var(--mist)}
 .d-thumb::before{content:"";position:absolute;left:14%;right:14%;bottom:16%;height:42%;background:var(--parchment);opacity:.85;clip-path:polygon(0 100%,38% 20%,62% 62%,76% 42%,100% 100%)}
 .d-thumb::after{content:"";position:absolute;right:18%;top:16%;width:22%;height:22%;border-radius:50%;background:var(--parchment);opacity:.85}
+/* cena do editor de vídeo: preview com texto por cima, exportar e mini timeline com cursor andando */
+.de-top{display:grid;grid-template-columns:22em minmax(0,1fr);gap:.8em;align-items:stretch}
+.de-prev{position:relative;aspect-ratio:16/9;border-radius:.55em;overflow:hidden;background:#111;box-shadow:0 .4em 1em rgba(0,0,0,.18)}
+.de-img{position:absolute;inset:0;background:var(--scene,linear-gradient(135deg,#c9a27a,#8c6a4f));transition:background .35s ease}
+.de-img::before{content:"";position:absolute;left:10%;right:10%;bottom:0;height:45%;background:rgba(255,255,255,.18);clip-path:polygon(0 100%,30% 30%,50% 65%,70% 20%,100% 100%)}
+.de-img::after{content:"";position:absolute;right:16%;top:16%;width:12%;aspect-ratio:1;border-radius:50%;background:rgba(255,255,255,.55)}
+.de-txt{position:absolute;left:50%;top:50%;font:800 1.7em/1 "Poppins",var(--font);color:#ffd21f;-webkit-text-stroke:.06em #111;paint-order:stroke fill;letter-spacing:-.01em;transform:translate(-50%,-50%) scale(.4);opacity:0;transition:transform .35s cubic-bezier(.3,1.6,.5,1),opacity .2s}
+.de-txt.in{transform:translate(-50%,-50%) scale(1);opacity:1}
+.de-time{position:absolute;right:.4em;bottom:.35em;padding:.05em .45em;border-radius:.3em;background:rgba(0,0,0,.55);color:#fff;font:.62em var(--mono)}
+.de-side{display:grid;align-content:start;gap:.55em;padding:.6em .7em;border-radius:.55em;background:var(--paper);border:1px solid var(--hair)}
+.de-info{display:grid;grid-template-columns:auto 1fr;gap:.25em .6em;font-size:.72em;color:var(--graphite)}
+.de-info b{text-align:right;color:var(--ink);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.de-exp{margin:0;text-align:center;background:var(--teal);color:var(--on-teal)}
+.de-prog{height:.45em;border-radius:1em;background:var(--hair);overflow:hidden}
+.de-prog span{display:block;height:100%;width:0;background:var(--teal);border-radius:1em;transition:width 1.4s linear}
+.de-done{display:grid;gap:.25em;justify-items:start;font-size:.72em}
+.de-done b{font:500 1em var(--mono);color:var(--graphite)}
+.de-tl{position:relative;display:grid;gap:.3em;padding:.45em .5em;border-radius:.55em;background:var(--paper);border:1px solid var(--hair)}
+.de-track{position:relative;height:1.6em;border-radius:.3em;background:var(--parchment)}
+.de-track.au{height:1.15em}
+.de-clip{position:absolute;top:.12em;bottom:.12em;border-radius:.3em;border:1px solid rgba(0,0,0,.18);overflow:hidden}
+.de-clip.c1{background:linear-gradient(90deg,#c9a27a,#8c6a4f)}
+.de-clip.c2{background:linear-gradient(90deg,#6f8f9c,#3f5d6a)}
+.de-clip.c3{background:linear-gradient(90deg,#a7b48a,#6d7a52)}
+.de-clip.txt{display:flex;align-items:center;padding:0 .4em;background:color-mix(in srgb, #8b5cf6 30%, var(--paper));border-color:#8b5cf6;font:700 .62em var(--font);color:#5b21b6}
+.de-clip.au{background:repeating-linear-gradient(90deg,color-mix(in srgb, var(--teal) 60%, transparent) 0 2px,transparent 2px 5px),color-mix(in srgb, var(--ink) 7%, var(--paper));background-size:100% 55%,100% 100%;background-repeat:no-repeat;background-position:center}
+.de-tr{position:absolute;top:50%;width:.7em;height:.7em;margin:-.35em 0 0 -.35em;border-radius:.15em;background:var(--teal);transform:rotate(45deg)}
+.de-tr.pop.in{transform:rotate(45deg)}
+.de-head{position:absolute;top:.2em;bottom:.2em;left:calc(.5em + var(--x,0) * (100% - 1em));width:2px;margin-left:-1px;background:var(--ink);border-radius:2px}
+.de-head::before{content:"";position:absolute;top:-.15em;left:-.3em;width:.6em;height:.5em;border-radius:.15em .15em .3em .3em;background:var(--ink)}
 .d-file .n{font:500 .78em var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .d-file .s{font-size:.68em;color:var(--graphite);white-space:nowrap}
 .d-bar{height:.28em;margin-top:.3em;border-radius:1em;background:var(--hair);overflow:hidden}
@@ -376,13 +406,14 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
       </div>
 
       <div class="hero-mac">
-        <div class="mac" aria-label="Demonstração das duas ferramentas em uso">
+        <div class="mac" aria-label="Demonstração das ferramentas em uso">
           <div class="mac-screen" id="demo" aria-hidden="true">
             <div class="bw">
               <div class="bw-tabs">
                 <span class="bw-dots"><i></i><i></i><i></i></span>
                 <span class="bw-tab on" data-tab="rx"><i class="fav"></i>Raio-X de domínio</span>
                 <span class="bw-tab" data-tab="cv"><i class="fav"></i>Conversor de imagens</span>
+                <span class="bw-tab" data-tab="ed"><i class="fav"></i>Editor de vídeo</span>
               </div>
               <div class="bw-bar"><span class="bw-url" id="d-url">webkit / raio-x</span></div>
               <div class="bw-body">
@@ -403,6 +434,23 @@ footer.site{border-top:1px solid var(--hair);margin-top:72px}
                   <div class="d-file pop"><span class="d-thumb t2"></span><div style="min-width:0"><div class="n">cozinha.heic</div><div class="s">3024 × 4032 · 2,1 MB → <b>164 KB</b></div><div class="d-bar"><span></span></div></div><span class="d-pill">−92%</span></div>
                   <div class="d-file pop"><span class="d-thumb t3"></span><div style="min-width:0"><div class="n">banheiro.png</div><div class="s">2400 × 1600 · 820 KB → <b>68 KB</b></div><div class="d-bar"><span></span></div></div><span class="d-pill">−92%</span></div>
                   <div class="d-total pop"><span>5,3 MB → 412 KB</span><span class="d-pill">Economia de 92%</span></div>
+                </section>
+                <section class="scene" data-scene="ed">
+                  <div class="de-top">
+                    <div class="de-prev"><div class="de-img" id="de-img"></div><span class="de-txt" id="de-txt">OFERTA!</span><span class="de-time" id="de-time">0:00</span></div>
+                    <div class="de-side">
+                      <div class="de-info"><span>Formato</span><b>16:9</b><span>Duração</span><b>0:12</b><span>Música</span><b>Animada</b><span>Transições</span><b>Dissolver</b></div>
+                      <span class="d-btn de-exp" id="de-exp">Exportar vídeo</span>
+                      <div class="de-prog pop" id="de-prog"><span></span></div>
+                      <div class="de-done pop" id="de-done"><span class="d-pill">Vídeo pronto</span><b>promo.mp4</b></div>
+                    </div>
+                  </div>
+                  <div class="de-tl">
+                    <div class="de-track"><span class="de-clip txt pop" style="left:22%;width:36%">OFERTA!</span></div>
+                    <div class="de-track"><span class="de-clip c1 pop" style="left:0;width:33%"></span><span class="de-clip c2 pop" style="left:33%;width:30%"></span><span class="de-clip c3 pop" style="left:63%;width:37%"></span><i class="de-tr pop" style="left:33%"></i><i class="de-tr pop" style="left:63%"></i></div>
+                    <div class="de-track au"><span class="de-clip au pop" style="left:0;width:100%"></span></div>
+                    <i class="de-head" id="de-head"></i>
+                  </div>
                 </section>
               </div>
             </div>
@@ -640,8 +688,8 @@ document.getElementById('try').addEventListener('submit', e => {
   const demo = document.getElementById('demo'); if(!demo) return;
   const q = s => demo.querySelector(s), qa = s => [...demo.querySelectorAll(s)];
   const cursor = q('#d-cursor'), typed = q('#d-typed'), ph = q('#d-ph'), url = q('#d-url');
-  const tabs = {rx: q('[data-tab="rx"]'), cv: q('[data-tab="cv"]')};
-  const scenes = {rx: q('[data-scene="rx"]'), cv: q('[data-scene="cv"]')};
+  const tabs = {rx: q('[data-tab="rx"]'), cv: q('[data-tab="cv"]'), ed: q('[data-tab="ed"]')};
+  const scenes = {rx: q('[data-scene="rx"]'), cv: q('[data-scene="cv"]'), ed: q('[data-scene="ed"]')};
   const DOMAIN = 'seusite.com.br';
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let visible = true;
@@ -665,6 +713,16 @@ document.getElementById('try').addEventListener('submit', e => {
   }
   function resetRx(){ typed.textContent = ''; ph.hidden = false; qa('[data-scene="rx"] .pop').forEach(e => e.classList.remove('in')); url.textContent = 'webkit / raio-x'; }
   function resetCv(){ qa('[data-scene="cv"] .pop').forEach(e => e.classList.remove('in', 'done')); qa('.d-bar span').forEach(b => { b.style.width = '0'; }); }
+  // editor: cena do preview muda conforme o clipe sob o cursor; o texto aparece no trecho dele
+  const SCENES = ['linear-gradient(135deg,#c9a27a,#8c6a4f)', 'linear-gradient(135deg,#6f8f9c,#3f5d6a)', 'linear-gradient(135deg,#a7b48a,#6d7a52)'];
+  function edAt(x){
+    q('#de-head').style.setProperty('--x', x);
+    q('#de-img').style.setProperty('--scene', SCENES[x < .33 ? 0 : x < .63 ? 1 : 2]);
+    q('#de-txt').classList.toggle('in', x >= .22 && x <= .58);
+    const s = Math.floor(x * 12); q('#de-time').textContent = '0:' + String(s).padStart(2, '0');
+  }
+  function resetEd(){ qa('[data-scene="ed"] .pop').forEach(e => e.classList.remove('in')); q('#de-prog span').style.transition = 'none'; q('#de-prog span').style.width = '0'; void q('#de-prog span').offsetWidth; q('#de-prog span').style.transition = ''; edAt(0); }
+  async function playEd(ms){ const t0 = performance.now(); for(;;){ const x = Math.min(1, (performance.now() - t0) / ms); edAt(x); if(x >= 1) break; await wait(40); } }
   async function stagger(list, gap){ for(const el of list){ el.classList.add('in'); await wait(gap); } }
 
   if(reduced){ // sem animação: mostra o resultado do Raio-X pronto
@@ -703,6 +761,24 @@ document.getElementById('try').addEventListener('submit', e => {
       q('[data-scene="cv"] .d-total').classList.add('in');
       point(q('.d-total'), .75, .5);
       await wait(2600);
+
+      // editor de vídeo: os clipes entram, o cursor toca o vídeo (texto aparece por cima) e exporta
+      resetEd();
+      point(tabs.ed, .45, .55); await wait(850);
+      await click(tabs.ed);
+      show('ed'); url.textContent = 'webkit / editor';
+      await wait(500);
+      await stagger(qa('[data-scene="ed"] .de-clip, [data-scene="ed"] .de-tr'), 120);
+      await wait(300);
+      await playEd(3200);
+      point(q('#de-exp')); await wait(700);
+      await click(q('#de-exp'));
+      q('#de-prog').classList.add('in'); await wait(60);
+      q('#de-prog span').style.width = '100%';
+      await wait(1500);
+      q('#de-done').classList.add('in');
+      point(q('#de-done'), .4, .5);
+      await wait(2400);
 
       // volta para o Raio-X
       point(tabs.rx, .45, .55); await wait(850);
