@@ -18,7 +18,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28' fill='none' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='22' height='15' rx='3' stroke='%2327251e'/%3E%3Cpath d='M12 9.5v6l5-3z' fill='%23016a71' stroke='%23016a71'/%3E%3Cpath d='M3 24h22M10 22v4' stroke='%23016a71'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="assets/base.css?v=2">
 <link rel="stylesheet" href="assets/motion.css?v=2">
-<link rel="stylesheet" href="assets/editor.css?v=1">
+<link rel="stylesheet" href="assets/editor.css?v=3">
 </head>
 <body class="ed-page">
 <header class="topbar">
@@ -49,13 +49,18 @@
     </div>
   </div>
 
-  <!-- arquivos -->
-  <section class="pane media" id="media-pane" aria-label="Arquivos">
-    <div class="pane-h">
-      <b>Arquivos</b>
-      <button class="ghost sm" id="import" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Importar</button>
+  <!-- biblioteca: seus arquivos, músicas, elementos e transições -->
+  <section class="pane media" id="media-pane" aria-label="Biblioteca">
+    <div class="lib-tabs" role="tablist" aria-label="Biblioteca">
+      <button role="tab" type="button" data-tab="files" aria-selected="true"><svg viewBox="0 0 16 16"><path d="M2 4.5A1.5 1.5 0 0 1 3.5 3h3l1.5 1.5h4.5A1.5 1.5 0 0 1 14 6v5.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 11.5z"/></svg>Arquivos</button>
+      <button role="tab" type="button" data-tab="music" aria-selected="false"><svg viewBox="0 0 16 16"><path d="M6 12V3.5l7-1.5v8.5"/><circle cx="4.3" cy="12" r="1.8"/><circle cx="11.3" cy="10.5" r="1.8"/></svg>Músicas</button>
+      <button role="tab" type="button" data-tab="els" aria-selected="false"><svg viewBox="0 0 16 16"><path d="M8 1.8l1.8 3.8 4.1.5-3 2.9.8 4.1L8 11.1 4.3 13l.8-4.1-3-2.9 4.1-.5z"/></svg>Elementos</button>
+      <button role="tab" type="button" data-tab="trans" aria-selected="false"><svg viewBox="0 0 16 16"><rect x="1.5" y="3.5" width="6" height="9" rx="1.2"/><rect x="8.5" y="3.5" width="6" height="9" rx="1.2"/><path d="M6 8h4M8.5 6.5 10 8l-1.5 1.5"/></svg>Transições</button>
     </div>
-    <div class="media-body" id="media-drop">
+
+    <!-- arquivos do computador -->
+    <div class="tab-panel media-body" data-panel="files" id="media-drop">
+      <div class="panel-top"><span class="panel-t">Seus arquivos</span><button class="ghost sm" id="import" type="button"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10"/></svg>Importar</button></div>
       <div class="media-empty" id="media-empty">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>
         <b>Arraste seus arquivos</b>
@@ -63,8 +68,35 @@
         <button class="btn teal" id="import2" type="button">Escolher arquivos</button>
       </div>
       <ul class="media-grid" id="media-grid" aria-label="Arquivos importados"></ul>
+      <input type="file" id="file" accept="video/*,image/*,audio/*" multiple hidden>
     </div>
-    <input type="file" id="file" accept="video/*,image/*,audio/*" multiple hidden>
+
+    <!-- músicas e efeitos sonoros (Openverse: Jamendo e Freesound) -->
+    <div class="tab-panel lib" data-panel="music" hidden>
+      <div class="seg" id="mu-kind" role="group" aria-label="Tipo de som"><button type="button" data-v="music" aria-pressed="true">Músicas</button><button type="button" data-v="sfx" aria-pressed="false">Efeitos sonoros</button></div>
+      <form class="lib-search" id="mu-form"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input type="search" id="mu-q" placeholder="Buscar: calma, animada, rock…" aria-label="Buscar música" autocomplete="off"></form>
+      <div class="lib-chips" id="mu-chips"></div>
+      <ul class="lib-list" id="mu-list" aria-live="polite"></ul>
+      <p class="lib-note">Músicas do Jamendo e efeitos do Freesound, pelo Openverse. Só licenças que permitem uso comercial e edição; os créditos saem prontos na exportação.</p>
+    </div>
+
+    <!-- elementos: emojis, figurinhas e ícones (Iconify) -->
+    <div class="tab-panel lib" data-panel="els" hidden>
+      <div class="seg" id="el-kind" role="group" aria-label="Estilo"><button type="button" data-v="color" aria-pressed="true">Coloridos</button><button type="button" data-v="mono" aria-pressed="false">Ícones</button></div>
+      <form class="lib-search" id="el-form"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg><input type="search" id="el-q" placeholder="Buscar: estrela, seta, coração…" aria-label="Buscar elemento" autocomplete="off"></form>
+      <div class="lib-chips" id="el-chips"></div>
+      <div class="el-colors" id="el-colors" hidden><span>Cor</span></div>
+      <div class="el-grid" id="el-grid" aria-live="polite"></div>
+      <p class="lib-note">Clique para pôr por cima do vídeo, no ponto do cursor. Ícones do Iconify com licença livre (MIT, Apache ou CC0).</p>
+    </div>
+
+    <!-- transições -->
+    <div class="tab-panel lib" data-panel="trans" hidden>
+      <p class="lib-note top">Arraste uma transição até o encontro de dois clipes na trilha de vídeo, ou clique para usar no corte mais perto do cursor.</p>
+      <div class="tr-grid" id="tr-grid"></div>
+      <div class="pr"><div class="pr-h"><label for="tr-dur">Duração</label><output id="tr-dur-out">0,6 s</output></div><input type="range" id="tr-dur" min="0.2" max="2" step="0.1" value="0.6"></div>
+      <div class="tr-acts"><button class="ghost" id="tr-all" type="button">Usar em todos os cortes</button><button class="ghost" id="tr-none" type="button">Tirar todas</button></div>
+    </div>
   </section>
 
   <!-- preview -->
@@ -118,15 +150,13 @@
     </div>
     <div class="tl-body">
       <div class="tl-heads">
-        <div class="th-ruler"></div>
-        <div class="th" title="Trilha de vídeo: os clipes ficam colados um no outro"><svg viewBox="0 0 16 16"><rect x="1.8" y="3" width="12.4" height="10" rx="1.8"/><path d="M6.8 6v4l3.2-2z"/></svg><span>Vídeo</span></div>
-        <div class="th a" title="Trilha de áudio: músicas e narração"><svg viewBox="0 0 16 16"><path d="M6 12V3.5l7-1.5v8.5"/><circle cx="4.3" cy="12" r="1.8"/><circle cx="11.3" cy="10.5" r="1.8"/></svg><span>Áudio</span></div>
+        <div class="th-ruler"><button class="ib sm" id="add-layer" type="button" title="Nova camada de sobreposição" aria-label="Nova camada"><svg viewBox="0 0 16 16"><path d="M8 3.5v9M3.5 8h9"/></svg></button></div>
+        <div id="heads"></div>
       </div>
       <div class="tl-scroll" id="tl-scroll">
         <div class="tl-content" id="tl-content">
           <div class="ruler" id="ruler"></div>
-          <div class="track v" id="track-v" data-track="v"><span class="track-empty">Arraste vídeos e fotos para cá</span></div>
-          <div class="track a" id="track-a" data-track="a"><span class="track-empty">Arraste músicas para cá</span></div>
+          <div id="tracks"></div>
           <div class="drop-mark" id="drop-mark" hidden></div>
           <div class="snap-mark" id="snap-mark" hidden></div>
           <div class="playhead" id="playhead"><span class="ph-grip" id="ph-grip"></span></div>
@@ -135,6 +165,13 @@
     </div>
   </section>
 </main>
+
+<!-- escolher a transição de um corte -->
+<div class="trpop gel" id="trpop" role="dialog" aria-label="Transição" hidden>
+  <div class="trpop-h"><b>Transição</b><span id="trpop-where"></span></div>
+  <div class="trpop-grid" id="trpop-grid"></div>
+  <div class="pr"><div class="pr-h"><label for="trpop-dur">Duração</label><output id="trpop-dur-out"></output></div><input type="range" id="trpop-dur" min="0.2" max="2" step="0.1"></div>
+</div>
 
 <!-- exportar -->
 <dialog id="exp-dlg" class="gel exp-dlg" aria-labelledby="exp-title">
@@ -158,6 +195,11 @@
     </div>
     <div id="exp-done" hidden>
       <div class="exp-ok"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg><div><b>Vídeo pronto</b><span id="exp-file"></span></div></div>
+      <div class="credits" id="exp-credits" hidden>
+        <div class="pr-h">Créditos das músicas <button class="ghost sm" id="credits-copy" type="button">Copiar</button></div>
+        <textarea id="credits-txt" readonly rows="4"></textarea>
+        <p class="hint">Algumas licenças Creative Commons pedem que o autor seja citado. Cole isto na descrição do vídeo.</p>
+      </div>
       <div class="dlg-f"><button class="ghost" id="exp-close" type="button">Fechar</button><button class="btn teal" id="exp-dl" type="button">Baixar de novo</button></div>
     </div>
   </div>
@@ -183,7 +225,7 @@
 </dialog>
 
 <div class="toast" id="toast" role="status"></div>
-<script src="assets/editor.js?v=3"></script>
+<script src="assets/editor.js?v=5"></script>
 <script src="assets/site.js"></script>
 </body>
 </html>

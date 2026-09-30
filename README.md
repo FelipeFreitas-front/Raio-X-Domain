@@ -50,8 +50,15 @@ Também aceita HEIC do iPhone, remove a localização GPS das fotos e baixa tudo
 Editor simples no estilo do [OpenCut](https://github.com/OpenCut-app/OpenCut): arquivos à esquerda, preview no centro, propriedades à direita e timeline embaixo.
 
 - Importa vídeos, fotos e músicas (arrastar ou escolher), com miniatura, duração e forma de onda
-- Timeline com trilha de vídeo magnética (os clipes ficam colados, na ordem) e trilha de áudio livre
+- Biblioteca em abas:
+  - **Músicas e efeitos sonoros** do [Openverse](https://openverse.org) (músicas do Jamendo, efeitos do Freesound), só com licenças que permitem uso comercial e edição; prévia antes de usar e créditos prontos para copiar na exportação
+  - **Elementos**: emojis, figurinhas, ícones e logos de redes sociais do [Iconify](https://iconify.design) (coleções MIT, Apache ou CC0), coloridos ou em uma cor
+  - **Transições**: Dissolver, Preto, Flash, Deslizar, Subir, Zoom, Cortina e Círculo, com duração ajustável
+- Timeline com camadas de sobreposição (imagens e elementos por cima do vídeo, quantas camadas precisar), trilha de vídeo magnética (os clipes ficam colados, na ordem) e trilha de áudio livre
+- Sobreposições: arrastar direto no preview para mover, canto para redimensionar, guias de centro, rotação, opacidade e 9 posições prontas
+- Transição no losango entre dois clipes (ou arrastando da aba); o som cruza junto
 - Cortar pelas bordas do clipe, dividir no cursor (`S`), duplicar, excluir, reordenar arrastando, ímã nas bordas e no cursor
+- O vídeo termina onde acaba a imagem: música mais longa é cortada no fim
 - Volume até 200%, sem som, velocidade (0,5× a 2×), "mostrar inteiro" ou "preencher a tela", duração de cada foto
 - Formatos 16:9, 9:16 (Reels/TikTok), 1:1 e 4:5, com cor de fundo
 - Desfazer e refazer, zoom da timeline (Ctrl + rodinha), altura da timeline ajustável, atalhos de teclado
